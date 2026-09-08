@@ -32,6 +32,17 @@ test('muestra el resumen de lo que se está contratando', () => {
   montar();
   expect(screen.getByRole('dialog', { name: 'Contratar Nexo II' })).toBeInTheDocument();
   expect(screen.getByText('$12.000,00 por mes')).toBeInTheDocument();
+  expect(screen.queryByText('a confirmar')).not.toBeInTheDocument();
+});
+
+test('un ítem pendiente muestra el chip "a confirmar" junto al precio', () => {
+  const itemPendiente: ItemAlta = { ...ITEM, pendiente: true };
+  const router = createMemoryRouter(
+    [{ path: '/', element: <AltaDialog abierto onCambio={() => {}} item={itemPendiente} /> }],
+    { initialEntries: ['/'] },
+  );
+  render(<RouterProvider router={router} />);
+  expect(screen.getByText('a confirmar')).toBeInTheDocument();
 });
 
 test('el plan elegido viaja como campo oculto', () => {

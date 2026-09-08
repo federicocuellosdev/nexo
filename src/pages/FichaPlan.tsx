@@ -71,7 +71,13 @@ export function FichaPlan() {
       <AltaDialog
         abierto={abierto}
         onCambio={setAbierto}
-        item={{ tipo: 'plan', id: plan.slug, nombre: plan.nombre, precio: plan.precio }}
+        item={{
+          tipo: 'plan',
+          id: plan.slug,
+          nombre: plan.nombre,
+          precio: plan.precio,
+          pendiente: plan.prestaciones.some((p) => p.pendiente),
+        }}
       />
     </div>
   );

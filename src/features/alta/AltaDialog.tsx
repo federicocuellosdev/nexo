@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router';
+import { CircleAlert } from 'lucide-react';
 import { Sheet } from '@/ui/Sheet';
 import { Field } from '@/ui/Field';
 import { Input } from '@/ui/Input';
 import { Button } from '@/ui/Button';
 import { Money } from '@/ui/Money';
+import { Chip } from '@/ui/Chip';
 import { guardarHandoff } from '@/lib/handoff';
 import {
   DATOS_ALTA_VACIOS,
@@ -21,6 +23,7 @@ export interface ItemAlta {
   id: string;
   nombre: string;
   precio: number;
+  pendiente?: boolean;
 }
 
 export interface AltaDialogProps {
@@ -118,7 +121,14 @@ export function AltaDialog({ abierto, onCambio, item }: AltaDialogProps) {
           está por pagar sin volver atrás. */}
       <div className="mb-5 flex items-center justify-between gap-3 rounded-campo bg-ink-50 px-4 py-3">
         <span className="text-sm font-medium text-ink-800">{item.nombre}</span>
-        <Money monto={item.precio} periodo="por mes" />
+        <div className="flex items-center gap-2">
+          <Money monto={item.precio} periodo="por mes" />
+          {item.pendiente ? (
+            <Chip tono="warn" icono={CircleAlert}>
+              a confirmar
+            </Chip>
+          ) : null}
+        </div>
       </div>
 
       <form onSubmit={enviar} noValidate className="flex flex-col gap-4">

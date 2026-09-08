@@ -67,7 +67,13 @@ export function FichaProducto() {
       <AltaDialog
         abierto={abierto}
         onCambio={setAbierto}
-        item={{ tipo: 'producto', id: producto.id, nombre: producto.nombre, precio: producto.precio }}
+        item={{
+          tipo: 'producto',
+          id: producto.id,
+          nombre: producto.nombre,
+          precio: producto.precio,
+          pendiente: producto.pendiente,
+        }}
       />
     </div>
   );
