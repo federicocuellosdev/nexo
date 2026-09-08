@@ -11,6 +11,7 @@ import { PerfilCompletar } from '@/pages/PerfilCompletar';
 import { Inicio } from '@/pages/Inicio';
 import { Planes } from '@/pages/Planes';
 import { Coberturas } from '@/pages/Coberturas';
+import { Movimientos } from '@/pages/Movimientos';
 
 /**
  * Se exporta el arreglo además del router para que los tests puedan montar
@@ -43,6 +44,7 @@ export const rutas: RouteObject[] = [
       { path: 'perfil/completar', element: <PerfilCompletar /> },
       { path: 'planes', element: <Planes /> },
       { path: 'coberturas', element: <Coberturas /> },
+      { path: 'movimientos', element: <Movimientos /> },
     ],
   },
 ];
