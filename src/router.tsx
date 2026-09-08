@@ -4,6 +4,7 @@ import { PublicLayout } from '@/layouts/PublicLayout';
 import { Home } from '@/pages/Home';
 import { Catalogo } from '@/pages/Catalogo';
 import { FichaPlan } from '@/pages/FichaPlan';
+import { FichaProducto } from '@/pages/FichaProducto';
 
 /**
  * Se exporta el arreglo además del router para que los tests puedan montar
@@ -17,6 +18,7 @@ export const rutas: RouteObject[] = [
       { index: true, element: <Home /> },
       { path: 'catalogo', element: <Catalogo /> },
       { path: 'planes/:slug', element: <FichaPlan /> },
+      { path: 'productos/:id', element: <FichaProducto /> },
     ],
   },
 ];
