@@ -13,6 +13,7 @@ import { Planes } from '@/pages/Planes';
 import { Coberturas } from '@/pages/Coberturas';
 import { Movimientos } from '@/pages/Movimientos';
 import { Cuenta } from '@/pages/Cuenta';
+import { Demo } from '@/pages/Demo';
 
 /**
  * Se exporta el arreglo además del router para que los tests puedan montar
@@ -23,6 +24,7 @@ export const rutas: RouteObject[] = [
   { path: '/', element: <Navigate to="/inicio" replace /> },
   { path: '/auth/callback', element: <AuthCallback /> },
   { path: '/ingresar', element: <Ingresar /> },
+  { path: '/demo', element: <Demo /> },
   {
     path: '/',
     element: (
