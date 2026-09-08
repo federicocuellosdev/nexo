@@ -5,7 +5,7 @@ import type { Tono } from '@/ui/tipos';
 export interface IconProps {
   icono: LucideIcon;
   tono?: Tono;
-  tamano?: 'sm' | 'md';
+  tamano?: 'sm' | 'md' | 'lg';
   /** Si el icono aporta información (estado de una prestación), pasá el texto. */
   etiqueta?: string;
   className?: string;
@@ -28,12 +28,12 @@ export function Icon({ icono: Glifo, tono = 'neutro', tamano = 'md', etiqueta, c
       aria-hidden={etiqueta ? undefined : true}
       className={cn(
         'inline-flex shrink-0 items-center justify-center rounded-pill',
-        tamano === 'sm' ? 'size-8' : 'size-10',
+        tamano === 'sm' ? 'size-8' : tamano === 'lg' ? 'size-20' : 'size-10',
         TONOS[tono],
         className,
       )}
     >
-      <Glifo size={tamano === 'sm' ? 16 : 20} strokeWidth={1.75} aria-hidden="true" />
+      <Glifo size={tamano === 'sm' ? 16 : tamano === 'lg' ? 32 : 20} strokeWidth={1.75} aria-hidden="true" />
     </span>
   );
 }

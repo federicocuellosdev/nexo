@@ -21,3 +21,9 @@ test('el tamaño sm reduce el círculo', () => {
   const { container } = render(<Icon icono={Check} tamano="sm" />);
   expect(container.firstElementChild).toHaveClass('size-8');
 });
+
+test('el tamaño lg agranda el círculo y el glifo', () => {
+  const { container } = render(<Icon icono={Check} tamano="lg" />);
+  expect(container.firstElementChild).toHaveClass('size-20');
+  expect(container.querySelector('svg')).toHaveAttribute('width', '32');
+});

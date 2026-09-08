@@ -34,9 +34,7 @@ export function RevisaTuMail() {
   return (
     <div className="mx-auto max-w-[560px] px-4 py-12 text-center lg:px-6 lg:py-16">
       <div className="flex justify-center">
-        <span className="inline-flex size-20 items-center justify-center rounded-pill bg-brand text-white">
-          <MailCheck size={32} strokeWidth={1.5} aria-hidden="true" />
-        </span>
+        <Icon icono={MailCheck} tono="marca" tamano="lg" />
       </div>
 
       <h1 className="mt-6 text-2xl text-ink-950">Revisá tu mail</h1>
