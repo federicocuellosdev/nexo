@@ -45,7 +45,7 @@ export function Ingresar() {
           </p>
 
           <form onSubmit={enviar} noValidate className="mt-6 flex flex-col gap-4">
-            <Field label="Email" htmlFor="ingresar-email" error={error}>
+            <Field label="Email" htmlFor="ingresar-email" error={error} requerido>
               <Input
                 id="ingresar-email"
                 name="email"
