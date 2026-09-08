@@ -56,6 +56,16 @@ export function AltaDialog({ abierto, onCambio, item }: AltaDialogProps) {
   const [datos, setDatos] = useState<DatosAlta>(DATOS_ALTA_VACIOS);
   const [errores, setErrores] = useState<ErroresAlta>({});
 
+  // Al reabrir el popup arranca siempre en modo alta, sin datos ni errores de
+  // un intento anterior: si alguien cerró estando en modo login, o cerró
+  // después de un submit fallido, la próxima apertura no hereda ese estado.
+  useEffect(() => {
+    if (!abierto) return;
+    setModo('alta');
+    setDatos(DATOS_ALTA_VACIOS);
+    setErrores({});
+  }, [abierto]);
+
   // Radix enfoca por defecto el primer elemento tabulable del diálogo, que es
   // el botón "Cerrar": quien abre el popup para contratar quiere escribir su
   // nombre, no cerrarlo. El propio autofoco de Radix también se resuelve en el
@@ -115,41 +125,60 @@ export function AltaDialog({ abierto, onCambio, item }: AltaDialogProps) {
     void navegar('/revisa-tu-mail');
   }
 
+  const campoEmail = (
+    <Field label="Email" htmlFor={idDelCampo('email')} error={errores.email} requerido>
+      <Input
+        id={idDelCampo('email')}
+        name="email"
+        type="email"
+        inputMode="email"
+        autoComplete="email"
+        value={datos.email}
+        onChange={(evento) => actualizar('email', evento.target.value)}
+      />
+    </Field>
+  );
+
   return (
     <Sheet abierto={abierto} onCambio={onCambio} titulo={`Contratar ${item.nombre}`}>
       {/* Resumen visible de lo que se contrata: el usuario tiene que ver qué
-          está por pagar sin volver atrás. */}
-      <div className="mb-5 flex items-center justify-between gap-3 rounded-campo bg-ink-50 px-4 py-3">
-        <span className="text-sm font-medium text-ink-800">{item.nombre}</span>
-        <div className="flex items-center gap-2">
+          está por pagar sin volver atrás. El chip "a confirmar" va en su
+          propia línea debajo del precio, nunca junto a él: el precio de este
+          ítem puede estar confirmado aunque otro dato (prestaciones de un
+          plan, o el precio de un producto) todavía no lo esté. */}
+      <div className="mb-5 rounded-campo bg-ink-50 px-4 py-3">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm font-medium text-ink-800">{item.nombre}</span>
           <Money monto={item.precio} periodo="por mes" />
-          {item.pendiente ? (
-            <Chip tono="warn" icono={CircleAlert}>
-              a confirmar
-            </Chip>
-          ) : null}
         </div>
+        {item.pendiente ? (
+          <div className="mt-2">
+            <Chip tono="warn" icono={CircleAlert}>
+              {item.tipo === 'plan' ? 'Prestaciones a confirmar' : 'Precio a confirmar'}
+            </Chip>
+          </div>
+        ) : null}
       </div>
 
       <form onSubmit={enviar} noValidate className="flex flex-col gap-4">
-        <input type="hidden" name="itemTipo" value={item.tipo} readOnly />
-        <input type="hidden" name="itemId" value={item.id} readOnly />
+        <input type="hidden" name="itemTipo" value={item.tipo} />
+        <input type="hidden" name="itemId" value={item.id} />
 
         {modo === 'alta' ? (
           <>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Nombre" htmlFor="alta-nombre" error={errores.nombre} requerido>
+              <Field label="Nombre" htmlFor={idDelCampo('nombre')} error={errores.nombre} requerido>
                 <Input
-                  id="alta-nombre"
+                  id={idDelCampo('nombre')}
                   name="nombre"
                   autoComplete="given-name"
                   value={datos.nombre}
                   onChange={(evento) => actualizar('nombre', evento.target.value)}
                 />
               </Field>
-              <Field label="Apellido" htmlFor="alta-apellido" error={errores.apellido} requerido>
+              <Field label="Apellido" htmlFor={idDelCampo('apellido')} error={errores.apellido} requerido>
                 <Input
-                  id="alta-apellido"
+                  id={idDelCampo('apellido')}
                   name="apellido"
                   autoComplete="family-name"
                   value={datos.apellido}
@@ -158,27 +187,17 @@ export function AltaDialog({ abierto, onCambio, item }: AltaDialogProps) {
               </Field>
             </div>
 
-            <Field label="Email" htmlFor="alta-email" error={errores.email} requerido>
-              <Input
-                id="alta-email"
-                name="email"
-                type="email"
-                inputMode="email"
-                autoComplete="email"
-                value={datos.email}
-                onChange={(evento) => actualizar('email', evento.target.value)}
-              />
-            </Field>
+            {campoEmail}
 
             <Field
               label="Teléfono"
-              htmlFor="alta-telefono"
+              htmlFor={idDelCampo('telefono')}
               error={errores.telefono}
               ayuda="Sin 0 ni 15"
               requerido
             >
               <Input
-                id="alta-telefono"
+                id={idDelCampo('telefono')}
                 name="telefono"
                 type="tel"
                 inputMode="tel"
@@ -189,17 +208,7 @@ export function AltaDialog({ abierto, onCambio, item }: AltaDialogProps) {
             </Field>
           </>
         ) : (
-          <Field label="Email" htmlFor="alta-email" error={errores.email} requerido>
-            <Input
-              id="alta-email"
-              name="email"
-              type="email"
-              inputMode="email"
-              autoComplete="email"
-              value={datos.email}
-              onChange={(evento) => actualizar('email', evento.target.value)}
-            />
-          </Field>
+          campoEmail
         )}
 
         <Button type="submit" ancho="full" tamano="lg">

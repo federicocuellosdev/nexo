@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AltaDialog, type ItemAlta } from '@/features/alta/AltaDialog';
 import { leerHandoff } from '@/lib/handoff';
@@ -35,14 +36,34 @@ test('muestra el resumen de lo que se está contratando', () => {
   expect(screen.queryByText('a confirmar')).not.toBeInTheDocument();
 });
 
-test('un ítem pendiente muestra el chip "a confirmar" junto al precio', () => {
+test('un plan pendiente muestra "Prestaciones a confirmar" en su propia línea, sin chip junto al precio', () => {
   const itemPendiente: ItemAlta = { ...ITEM, pendiente: true };
   const router = createMemoryRouter(
     [{ path: '/', element: <AltaDialog abierto onCambio={() => {}} item={itemPendiente} /> }],
     { initialEntries: ['/'] },
   );
   render(<RouterProvider router={router} />);
-  expect(screen.getByText('a confirmar')).toBeInTheDocument();
+  // "Nexo II" es el nombre del ítem: su fila (nombre + precio) es el contenedor
+  // del precio. El chip tiene que quedar FUERA de esa fila, no adentro.
+  const filaPrecio = screen.getByText('Nexo II').closest('div')!;
+  expect(within(filaPrecio).queryByText(/a confirmar/i)).not.toBeInTheDocument();
+  expect(screen.getByText('Prestaciones a confirmar')).toBeInTheDocument();
+});
+
+test('un producto pendiente muestra "Precio a confirmar"', () => {
+  const itemProductoPendiente: ItemAlta = {
+    tipo: 'producto',
+    id: 'hogar-2',
+    nombre: 'Seguro de Hogar',
+    precio: 5000,
+    pendiente: true,
+  };
+  const router = createMemoryRouter(
+    [{ path: '/', element: <AltaDialog abierto onCambio={() => {}} item={itemProductoPendiente} /> }],
+    { initialEntries: ['/'] },
+  );
+  render(<RouterProvider router={router} />);
+  expect(screen.getByText('Precio a confirmar')).toBeInTheDocument();
 });
 
 test('el plan elegido viaja como campo oculto', () => {
@@ -116,5 +137,34 @@ test('volver a "Crear una cuenta" repone los campos', async () => {
   montar();
   await usuario.click(screen.getByRole('button', { name: 'Ya tengo cuenta' }));
   await usuario.click(screen.getByRole('button', { name: 'Crear una cuenta' }));
+  expect(screen.getByLabelText(/^Nombre/)).toBeInTheDocument();
+});
+
+test('pasar a "Ya tengo cuenta", cerrar y reabrir vuelve a mostrar el formulario de alta', async () => {
+  const usuario = userEvent.setup();
+
+  function Envoltorio() {
+    const [abierto, setAbierto] = useState(true);
+    return (
+      <>
+        <button type="button" onClick={() => setAbierto(true)}>
+          reabrir
+        </button>
+        <AltaDialog abierto={abierto} onCambio={setAbierto} item={ITEM} />
+      </>
+    );
+  }
+
+  const router = createMemoryRouter([{ path: '/', element: <Envoltorio /> }], { initialEntries: ['/'] });
+  render(<RouterProvider router={router} />);
+
+  await usuario.click(screen.getByRole('button', { name: 'Ya tengo cuenta' }));
+  expect(screen.queryByLabelText(/^Nombre/)).not.toBeInTheDocument();
+
+  await usuario.click(screen.getByRole('button', { name: 'Cerrar' }));
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+  await usuario.click(screen.getByRole('button', { name: 'reabrir' }));
+  expect(screen.getByRole('dialog', { name: 'Contratar Nexo II' })).toBeInTheDocument();
   expect(screen.getByLabelText(/^Nombre/)).toBeInTheDocument();
 });
