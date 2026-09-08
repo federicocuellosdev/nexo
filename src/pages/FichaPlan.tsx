@@ -8,6 +8,7 @@ import { AltaDialog } from '@/features/alta/AltaDialog';
 import { Money } from '@/ui/Money';
 import { Button, clasesBoton } from '@/ui/Button';
 import { EmptyState } from '@/ui/EmptyState';
+import { BarraAccionFija } from '@/ui/BarraAccionFija';
 
 export function FichaPlan() {
   const { slug } = useParams();
@@ -60,13 +61,11 @@ export function FichaPlan() {
       </section>
 
       {/* CTA fijo inferior en mobile; estático desde lg. */}
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-ink-100 bg-white/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md lg:static lg:mt-10 lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
-        <div className="mx-auto max-w-[720px]">
-          <Button ancho="full" tamano="lg" onClick={() => setAbierto(true)}>
-            {`Contratar ${plan.nombre}`}
-          </Button>
-        </div>
-      </div>
+      <BarraAccionFija>
+        <Button ancho="full" tamano="lg" onClick={() => setAbierto(true)}>
+          {`Contratar ${plan.nombre}`}
+        </Button>
+      </BarraAccionFija>
 
       <AltaDialog
         abierto={abierto}
