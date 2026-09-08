@@ -93,3 +93,22 @@ test('cuándo puedo usar los servicios aclara qué depende del plan (emergencias
     within(seccion).getByText(/emergencias médicas y guardia odontológica en Nexo I; farmacia en Nexo I y Nexo II/),
   ).toBeInTheDocument();
 });
+
+test('la foto del hero tiene alt descriptivo (no genérico) y carga con prioridad alta', () => {
+  montarEn('/');
+  const foto = screen.getByAltText(/Mujer sonriendo mientras mira la app de Nexo en su celular/);
+  expect(foto.tagName).toBe('IMG');
+  expect(foto).toHaveAttribute('fetchpriority', 'high');
+  expect(foto).toHaveAttribute('loading', 'eager');
+});
+
+test('las fotos de la composición de "Cómo funciona" tienen alt descriptivo, no genérico', () => {
+  montarEn('/');
+  const seccion = screen.getByRole('region', { name: 'Cómo funciona' });
+  expect(
+    within(seccion).getByAltText(/Grupo de amigos sonriendo mientras miran juntos el celular/),
+  ).toBeInTheDocument();
+  expect(
+    within(seccion).getByAltText(/Mujer haciendo una videollamada de telemedicina con una doctora/),
+  ).toBeInTheDocument();
+});
