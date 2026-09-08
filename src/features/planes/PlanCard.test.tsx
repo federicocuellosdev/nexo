@@ -2,10 +2,25 @@ import { MemoryRouter } from 'react-router';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { PlanCard } from '@/features/planes/PlanCard';
-import { buscarPlan } from '@/mock/planes';
+import { buscarPlan, type Plan } from '@/mock/planes';
 
 const NEXO_1 = buscarPlan('nexo-1')!;
 const NEXO_2 = buscarPlan('nexo-2')!;
+
+/** Plan sintético: 5 prestaciones incluidas, solo la 5ª pendiente de confirmar. */
+const PLAN_CON_RECORTE_PENDIENTE: Plan = {
+  slug: 'nexo-3',
+  nombre: 'Nexo Test',
+  precio: 10000,
+  bajada: 'Plan de prueba para el recorte del teaser.',
+  prestaciones: [
+    { label: 'Prestación 1', estado: 'incluido' },
+    { label: 'Prestación 2', estado: 'incluido' },
+    { label: 'Prestación 3', estado: 'incluido' },
+    { label: 'Prestación 4', estado: 'incluido' },
+    { label: 'Prestación 5', estado: 'incluido', pendiente: true },
+  ],
+};
 
 test('muestra nombre, bajada y precio del plan', () => {
   render(
@@ -26,6 +41,26 @@ test('lista solo las prestaciones incluidas, hasta cuatro', () => {
   );
   expect(screen.getAllByRole('listitem')).toHaveLength(4);
   expect(screen.queryByText('Emergencias médicas')).not.toBeInTheDocument();
+});
+
+test('si el recorte de cuatro descarta una prestación pendiente, muestra el chip "datos a confirmar"', () => {
+  render(
+    <MemoryRouter>
+      <PlanCard plan={PLAN_CON_RECORTE_PENDIENTE} hrefDetalle="/planes/test" />
+    </MemoryRouter>,
+  );
+  expect(screen.getAllByRole('listitem')).toHaveLength(4);
+  expect(screen.queryByText('Prestación 5')).not.toBeInTheDocument();
+  expect(screen.getByText('datos a confirmar')).toBeInTheDocument();
+});
+
+test('si el recorte no descarta ninguna prestación pendiente, no muestra el chip "datos a confirmar"', () => {
+  render(
+    <MemoryRouter>
+      <PlanCard plan={NEXO_2} hrefDetalle="/planes/nexo-2" />
+    </MemoryRouter>,
+  );
+  expect(screen.queryByText('datos a confirmar')).not.toBeInTheDocument();
 });
 
 test('las prestaciones sin confirmar llevan el chip "a confirmar"', () => {
