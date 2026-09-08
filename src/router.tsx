@@ -8,6 +8,7 @@ import { Bienvenida } from '@/pages/Bienvenida';
 import { Pago } from '@/pages/Pago';
 import { PagoExito } from '@/pages/PagoExito';
 import { PerfilCompletar } from '@/pages/PerfilCompletar';
+import { Inicio } from '@/pages/Inicio';
 
 /**
  * Se exporta el arreglo además del router para que los tests puedan montar
@@ -26,6 +27,7 @@ export const rutas: RouteObject[] = [
       </RequiereUsuario>
     ),
     children: [
+      { path: 'inicio', element: <Inicio /> },
       {
         path: 'bienvenida',
         element: (
