@@ -1,0 +1,67 @@
+import { useState } from 'react';
+import { ON_DEMAND, PLANES } from '@/mock/planes';
+import { PlanCard } from '@/features/planes/PlanCard';
+import { ProductoCard } from '@/features/planes/ProductoCard';
+import { PlanComparador } from '@/features/planes/PlanComparador';
+import { TabPanel, Tabs } from '@/ui/Tabs';
+
+const ITEMS = [
+  { valor: 'planes', label: 'Planes' },
+  { valor: 'productos', label: 'Productos' },
+];
+
+const RECOMENDADO = PLANES.find((plan) => plan.recomendado === true) ?? PLANES[0];
+
+export function Catalogo() {
+  const [pestana, setPestana] = useState('planes');
+
+  return (
+    <div className="mx-auto max-w-[1100px] px-4 py-10 lg:px-6 lg:py-14">
+      <h1 className="text-2xl text-ink-950 lg:text-3xl">Catálogo</h1>
+      <p className="mt-2 max-w-[52ch] text-sm text-ink-600">
+        Planes mensuales y coberturas que se contratan aparte. Los precios son mensuales.
+      </p>
+
+      <div className="mt-6">
+        <Tabs valor={pestana} onCambio={setPestana} items={ITEMS} etiqueta="Catálogo">
+          <TabPanel valor="planes">
+            <div className="grid gap-4 md:grid-cols-3">
+              {PLANES.map((plan) => (
+                <PlanCard
+                  key={plan.slug}
+                  plan={plan}
+                  destacado={plan.recomendado === true}
+                  hrefDetalle={`/planes/${plan.slug}`}
+                  etiquetaCta={`Ver plan ${plan.nombre}`}
+                />
+              ))}
+            </div>
+
+            <section aria-label="Comparación de planes" className="mt-10">
+              <h2 className="text-xl text-ink-950">Comparalos de un vistazo</h2>
+              <div className="mt-4">
+                <PlanComparador
+                  actual={RECOMENDADO}
+                  otros={PLANES.filter((plan) => plan.slug !== RECOMENDADO.slug)}
+                />
+              </div>
+            </section>
+          </TabPanel>
+
+          <TabPanel valor="productos">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {ON_DEMAND.map((producto) => (
+                <ProductoCard
+                  key={producto.id}
+                  producto={producto}
+                  hrefDetalle={`/productos/${producto.id}`}
+                  etiquetaCta={`Ver ${producto.nombre}`}
+                />
+              ))}
+            </div>
+          </TabPanel>
+        </Tabs>
+      </div>
+    </div>
+  );
+}
