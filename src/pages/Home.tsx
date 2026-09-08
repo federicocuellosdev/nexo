@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 import { ChevronDown, CreditCard, MousePointerClick, UserPlus } from 'lucide-react';
 import { ON_DEMAND, PLANES } from '@/mock/planes';
+import { FAQ } from '@/mock/faq';
 import { formatearPrecio, precioDesde } from '@/lib/formato';
 import { PlanCard } from '@/features/planes/PlanCard';
 import { ProductoCard } from '@/features/planes/ProductoCard';
@@ -12,28 +13,6 @@ const PASOS = [
   { icono: MousePointerClick, titulo: 'Elegís', texto: 'Comparás los planes y te quedás con el que te sirve.' },
   { icono: UserPlus, titulo: 'Te registrás', texto: 'Nombre, apellido, email y teléfono. Sin contraseñas.' },
   { icono: CreditCard, titulo: 'Pagás y listo', texto: 'Abonás la primera cuota y tu cobertura queda activa.' },
-];
-
-const FAQ = [
-  {
-    pregunta: '¿Cuándo empieza a valer la cobertura?',
-    respuesta:
-      'Apenas se acredita el primer pago y completás tu perfil. En la maqueta el pago es simulado, así que es inmediato.',
-  },
-  {
-    pregunta: '¿Necesito obra social o prepaga?',
-    respuesta:
-      'No. Nexo es complementario: podés tenerlo con obra social o sin ella. Te lo preguntamos solo para conocerte mejor.',
-  },
-  {
-    pregunta: '¿Puedo cambiar de plan más adelante?',
-    respuesta: 'Sí. Desde el portal elegís otro plan y el cambio se aplica en la cuota siguiente.',
-  },
-  {
-    pregunta: '¿Qué son los servicios on demand?',
-    respuesta:
-      'Coberturas que se contratan aparte de la cuota mensual, como el Seguro de Hogar. Requieren un plan activo.',
-  },
 ];
 
 export function Home() {
@@ -48,7 +27,12 @@ export function Home() {
           Tu salud, resuelta desde el celular
         </h1>
         <p className="mt-4 max-w-[46ch] text-base text-ink-600 lg:text-lg">
-          Emergencias, farmacia, óptica y telemedicina en un plan mensual que contratás en minutos.
+          {/* Telemedicina (Doc24 · Clínica) es la única prestación en los TRES
+              planes (src/mock/planes.ts): emergencias, farmacia, guardia
+              odontológica y óptica varían según cuál elijas, así que acá no se
+              promete el combo completo para cualquier plan. */}
+          Telemedicina en los tres planes, más emergencias, guardia odontológica, farmacia u óptica según el que
+          elijas — todo en una cuota mensual que contratás en minutos.
         </p>
         <p className="mt-6 text-lg text-ink-900">
           Planes <strong className="font-semibold">desde {formatearPrecio(desde)} por mes</strong>
@@ -146,7 +130,14 @@ export function Home() {
                   className="shrink-0 text-ink-400 transition-transform duration-200 ease-out-quart group-open:rotate-180 motion-reduce:transition-none"
                 />
               </summary>
-              <p className="mt-2 text-sm text-ink-600">{item.respuesta}</p>
+              <div className="mt-2 flex flex-col gap-2 text-sm text-ink-600">
+                {item.respuesta.split('\n').map((parrafo, indice) => (
+                  // Los párrafos son posicionales y pueden repetirse entre sí
+                  // (dos oraciones idénticas en una misma respuesta): la key
+                  // va por índice, no por contenido.
+                  <p key={indice}>{parrafo}</p>
+                ))}
+              </div>
             </details>
           ))}
         </div>

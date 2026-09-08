@@ -25,19 +25,22 @@ test('el segundo CTA del hero lleva a la pestaña de productos', () => {
 test('explica el alta en tres pasos', () => {
   montarEn('/');
   const seccion = screen.getByRole('region', { name: 'Cómo funciona' });
-  expect(seccion.querySelectorAll('li')).toHaveLength(3);
+  // `getAllByRole` recorre el árbol de accesibilidad (lo que llega a un lector
+  // de pantalla), no el DOM crudo: un paso con `aria-hidden` por error no
+  // pasaría acá aunque siguiera siendo un `<li>` de verdad.
+  expect(within(seccion).getAllByRole('listitem')).toHaveLength(3);
 });
 
 test('muestra las tres tarjetas de plan', () => {
   montarEn('/');
   const seccion = screen.getByRole('region', { name: 'Nuestros planes' });
-  expect(seccion.querySelectorAll('article')).toHaveLength(3);
+  expect(within(seccion).getAllByRole('article')).toHaveLength(3);
 });
 
 test('muestra los cinco productos on demand', () => {
   montarEn('/');
   const seccion = screen.getByRole('region', { name: 'Productos on demand' });
-  expect(seccion.querySelectorAll('article')).toHaveLength(5);
+  expect(within(seccion).getAllByRole('article')).toHaveLength(5);
 });
 
 test('el encabezado de "Productos on demand" enlaza a la pestaña de productos', () => {
@@ -49,8 +52,44 @@ test('el encabezado de "Productos on demand" enlaza a la pestaña de productos',
   );
 });
 
-test('las preguntas frecuentes tienen cuatro ítems plegables', () => {
+test('las preguntas frecuentes tienen las 12 preguntas reales', () => {
   montarEn('/');
   const seccion = screen.getByRole('region', { name: 'Preguntas frecuentes' });
-  expect(seccion.querySelectorAll('details')).toHaveLength(4);
+  // `<details>` mapea a role "group" (verificado contra jsdom/aria-query):
+  // recorre el árbol de accesibilidad igual que las otras listas de esta página.
+  expect(within(seccion).getAllByRole('group')).toHaveLength(12);
+});
+
+test('la respuesta de suscripción habla de elegir entre los tres planes, no de "el plan" en singular', () => {
+  montarEn('/');
+  const seccion = screen.getByRole('region', { name: 'Preguntas frecuentes' });
+  expect(within(seccion).getByText('¿Cómo me suscribo?')).toBeInTheDocument();
+  expect(within(seccion).getByText(/Elegís uno de los tres planes \(Nexo I, II o III\)/)).toBeInTheDocument();
+});
+
+test('la respuesta de teleconsultas es verdadera para Nexo III (tope en pesos, no consulta gratis)', () => {
+  montarEn('/');
+  const seccion = screen.getByRole('region', { name: 'Preguntas frecuentes' });
+  expect(within(seccion).getByText('¿Cuántas teleconsultas puedo realizar por mes?')).toBeInTheDocument();
+  expect(
+    within(seccion).getByText(/Nexo III no incluye una consulta gratis, sino una cobertura de \$10\.000/),
+  ).toBeInTheDocument();
+});
+
+test('la recuperación de cuenta habla de Magic Link, no de una contraseña que no existe', () => {
+  montarEn('/');
+  const seccion = screen.getByRole('region', { name: 'Preguntas frecuentes' });
+  // Positivo Y negativo: el alta es sin contraseña (`docs/CONTEXTO.md`), así
+  // que la respuesta tiene que nombrar el mecanismo real (Magic Link) y no
+  // dejar colada la mención a una contraseña inexistente.
+  expect(within(seccion).getByText(/Magic Link \(sin contraseña\)/)).toBeInTheDocument();
+  expect(seccion).not.toHaveTextContent('Olvidé mi contraseña');
+});
+
+test('cuándo puedo usar los servicios aclara qué depende del plan (emergencias y odontología no son de todos)', () => {
+  montarEn('/');
+  const seccion = screen.getByRole('region', { name: 'Preguntas frecuentes' });
+  expect(
+    within(seccion).getByText(/emergencias médicas y guardia odontológica en Nexo I; farmacia en Nexo I y Nexo II/),
+  ).toBeInTheDocument();
 });
