@@ -47,6 +47,18 @@ export function CoberturaCard({ plan, estado, proximoVencimiento }: CoberturaCar
             Completar perfil
           </Link>
         </div>
+      ) : estado === 'conCuentaSinPago' ? (
+        <div className="rounded-campo bg-danger-50 p-3">
+          <p className="text-sm text-danger-700">
+            Todavía no registramos tu pago. La cobertura arranca cuando lo hagas.
+          </p>
+          <Link
+            to="/pago"
+            className={clasesBoton({ tamano: 'sm', ancho: 'full', className: 'mt-3' })}
+          >
+            Pagar mi plan
+          </Link>
+        </div>
       ) : (
         <Link
           to="/coberturas"

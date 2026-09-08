@@ -35,6 +35,28 @@ test('activa muestra el chip verde y ningún CTA de completar perfil', () => {
   expect(screen.queryByRole('link', { name: 'Completar perfil' })).not.toBeInTheDocument();
 });
 
+test('activa enlaza a la cobertura', () => {
+  render(
+    <MemoryRouter>
+      <CoberturaCard plan={NEXO_2} estado="activo" proximoVencimiento="01/10/2026" />
+    </MemoryRouter>,
+  );
+  expect(screen.getByRole('link', { name: 'Ver mi cobertura' })).toHaveAttribute(
+    'href',
+    '/coberturas',
+  );
+});
+
+test('con cuenta y sin pago ofrece pagar, no ver la cobertura', () => {
+  render(
+    <MemoryRouter>
+      <CoberturaCard plan={NEXO_2} estado="conCuentaSinPago" proximoVencimiento="01/10/2026" />
+    </MemoryRouter>,
+  );
+  expect(screen.getByRole('link', { name: 'Pagar mi plan' })).toHaveAttribute('href', '/pago');
+  expect(screen.queryByRole('link', { name: 'Ver mi cobertura' })).not.toBeInTheDocument();
+});
+
 test('pendiente de activación ofrece completar el perfil', () => {
   render(
     <MemoryRouter>
