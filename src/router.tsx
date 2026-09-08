@@ -6,6 +6,7 @@ import { Catalogo } from '@/pages/Catalogo';
 import { FichaPlan } from '@/pages/FichaPlan';
 import { FichaProducto } from '@/pages/FichaProducto';
 import { RevisaTuMail } from '@/pages/RevisaTuMail';
+import { NoEncontrada } from '@/pages/NoEncontrada';
 
 /**
  * Se exporta el arreglo además del router para que los tests puedan montar
@@ -21,6 +22,7 @@ export const rutas: RouteObject[] = [
       { path: 'planes/:slug', element: <FichaPlan /> },
       { path: 'productos/:id', element: <FichaProducto /> },
       { path: 'revisa-tu-mail', element: <RevisaTuMail /> },
+      { path: '*', element: <NoEncontrada /> },
     ],
   },
 ];
