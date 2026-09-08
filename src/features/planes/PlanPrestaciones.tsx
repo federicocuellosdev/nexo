@@ -1,28 +1,9 @@
-import type { LucideIcon } from 'lucide-react';
-import { Check, CircleAlert, Minus, X } from 'lucide-react';
-import type { EstadoPrestacion, Prestacion } from '@/mock/planes';
-import type { Tono } from '@/ui/tipos';
+import { CircleAlert } from 'lucide-react';
+import type { Prestacion } from '@/mock/planes';
 import { Icon } from '@/ui/Icon';
 import { Chip } from '@/ui/Chip';
 import { cn } from '@/lib/cn';
-
-const GLIFO: Record<EstadoPrestacion, LucideIcon> = {
-  incluido: Check,
-  coseguro: Minus,
-  'no-incluido': X,
-};
-
-const TONO: Record<EstadoPrestacion, Tono> = {
-  incluido: 'ok',
-  coseguro: 'warn',
-  'no-incluido': 'neutro',
-};
-
-const ETIQUETA: Record<EstadoPrestacion, string> = {
-  incluido: 'Incluido',
-  coseguro: 'Con coseguro',
-  'no-incluido': 'No incluido',
-};
+import { ETIQUETA, GLIFO, TONO } from '@/features/planes/estadoPrestacion';
 
 export interface PlanPrestacionesProps {
   prestaciones: Prestacion[];
