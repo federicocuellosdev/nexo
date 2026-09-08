@@ -108,3 +108,22 @@ test('una sesión guardada sin ordenes se normaliza a lista vacía', async () =>
   const modulo = await import('@/mock/session');
   expect(modulo.getSession().ordenes).toEqual([]);
 });
+
+test('mutar el arreglo de órdenes de un snapshot vacío no corrompe futuros resets', () => {
+  const sesion = getSession();
+  sesion.ordenes.push(ORDEN);
+
+  resetSession();
+
+  expect(getSession().ordenes).toEqual([]);
+});
+
+test('getSession devuelve la misma referencia sin escrituras y una nueva tras setSession', () => {
+  const primera = getSession();
+  const segunda = getSession();
+  expect(segunda).toBe(primera);
+
+  setSession({ usuario: USUARIO_DEMO });
+  const tercera = getSession();
+  expect(tercera).not.toBe(segunda);
+});

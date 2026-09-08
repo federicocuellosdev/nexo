@@ -63,24 +63,32 @@ export type PresetDemo = 'nuevo-con-intent' | 'activo';
 
 export const CLAVE_SESION = 'nexo3.session';
 
-const VACIA: Session = { ordenes: [] };
+// Fábrica en vez de constante compartida: cada llamada devuelve un objeto (y un
+// array `ordenes`) nuevos, así ningún consumidor que mute un snapshot en el
+// lugar (`.push`, `.sort`, etc.) puede corromper la base vacía para siempre.
+function sesionVacia(): Session {
+  return { ordenes: [] };
+}
 
 function leerDeStorage(): Session {
   try {
     const crudo = localStorage.getItem(CLAVE_SESION);
-    if (crudo === null) return VACIA;
+    if (crudo === null) return sesionVacia();
     const parseado: unknown = JSON.parse(crudo);
-    if (typeof parseado !== 'object' || parseado === null) return VACIA;
+    if (typeof parseado !== 'object' || parseado === null) return sesionVacia();
+    // Cast sin validar campo por campo: la maqueta confía en que el único
+    // escritor de esta clave es `escribirEnStorage`, así que la validación
+    // shallow (solo chequear `ordenes`) alcanza para este mock.
     const guardada = parseado as Partial<Session>;
     return {
-      ...VACIA,
+      ...sesionVacia(),
       ...guardada,
       // Normalizar: una sesión vieja o a medio escribir no tiene por qué dejar
       // `ordenes` undefined y hacer explotar cada `.map` del portal.
       ordenes: Array.isArray(guardada.ordenes) ? guardada.ordenes : [],
     };
   } catch {
-    return VACIA;
+    return sesionVacia();
   }
 }
 
@@ -118,7 +126,7 @@ export function setSession(patch: Partial<Session>): void {
 }
 
 export function resetSession(): void {
-  estado = VACIA;
+  estado = sesionVacia();
   try {
     localStorage.removeItem(CLAVE_SESION);
   } catch {
