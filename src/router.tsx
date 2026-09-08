@@ -5,11 +5,13 @@ import { RequiereIntent, RequiereUsuario } from '@/features/sesion/Guards';
 import { AuthCallback } from '@/pages/AuthCallback';
 import { Ingresar } from '@/pages/Ingresar';
 import { Bienvenida } from '@/pages/Bienvenida';
+import { Pago } from '@/pages/Pago';
+import { PagoExito } from '@/pages/PagoExito';
 
 /**
  * Se exporta el arreglo además del router para que los tests puedan montar
  * `createMemoryRouter(rutas, { initialEntries: [...] })`.
- * Las tareas 10 a 20 agregan más rutas privadas debajo de `PortalLayout`.
+ * Las tareas 11 a 20 agregan más rutas privadas debajo de `PortalLayout`.
  */
 export const rutas: RouteObject[] = [
   { path: '/', element: <Navigate to="/inicio" replace /> },
@@ -31,6 +33,8 @@ export const rutas: RouteObject[] = [
           </RequiereIntent>
         ),
       },
+      { path: 'pago', element: <Pago /> },
+      { path: 'pago/exito', element: <PagoExito /> },
     ],
   },
 ];
