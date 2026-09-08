@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { CircleAlert, Info, SearchX } from 'lucide-react';
 import { buscarProducto } from '@/mock/planes';
+import { AltaDialog } from '@/features/alta/AltaDialog';
 import { Money } from '@/ui/Money';
 import { Chip } from '@/ui/Chip';
 import { Icon } from '@/ui/Icon';
@@ -11,7 +12,7 @@ import { EmptyState } from '@/ui/EmptyState';
 export function FichaProducto() {
   const { id } = useParams();
   const producto = buscarProducto(id ?? '');
-  const [quiereContratar, setQuiereContratar] = useState(false);
+  const [abierto, setAbierto] = useState(false);
 
   if (!producto) {
     return (
@@ -55,19 +56,19 @@ export function FichaProducto() {
         </p>
       </div>
 
-      {quiereContratar ? (
-        <p role="status" className="mt-6 text-sm text-ink-600">
-          Abriendo el formulario de alta…
-        </p>
-      ) : null}
-
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-ink-100 bg-white/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md lg:static lg:mt-10 lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
         <div className="mx-auto max-w-[720px]">
-          <Button ancho="full" tamano="lg" onClick={() => setQuiereContratar(true)}>
+          <Button ancho="full" tamano="lg" onClick={() => setAbierto(true)}>
             {`Contratar ${producto.nombre}`}
           </Button>
         </div>
       </div>
+
+      <AltaDialog
+        abierto={abierto}
+        onCambio={setAbierto}
+        item={{ tipo: 'producto', id: producto.id, nombre: producto.nombre, precio: producto.precio }}
+      />
     </div>
   );
 }
