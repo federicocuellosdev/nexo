@@ -9,11 +9,11 @@ test('escribe el valor', async () => {
   expect(screen.getByLabelText('Nombre')).toHaveValue('Camila');
 });
 
-test('marcado como inválido expone aria-invalid y apunta al mensaje de error', () => {
+test('standalone: invalido expone aria-invalid pero nunca un aria-describedby colgante', () => {
   render(<Input id="email" aria-label="Email" invalido />);
   const campo = screen.getByLabelText('Email');
   expect(campo).toHaveAttribute('aria-invalid', 'true');
-  expect(campo).toHaveAttribute('aria-describedby', 'email-error');
+  expect(campo).not.toHaveAttribute('aria-describedby');
 });
 
 test('sin error no ensucia el DOM con aria-invalid', () => {

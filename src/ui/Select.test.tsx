@@ -26,3 +26,10 @@ test('cambia el valor elegido', async () => {
   await usuario.selectOptions(screen.getByLabelText('Tipo de documento'), 'Pasaporte');
   expect(screen.getByLabelText('Tipo de documento')).toHaveValue('Pasaporte');
 });
+
+test('standalone: invalido expone aria-invalid pero nunca un aria-describedby colgante', () => {
+  render(<Select id="doc" aria-label="Tipo de documento" opciones={OPCIONES} invalido />);
+  const campo = screen.getByLabelText('Tipo de documento');
+  expect(campo).toHaveAttribute('aria-invalid', 'true');
+  expect(campo).not.toHaveAttribute('aria-describedby');
+});
