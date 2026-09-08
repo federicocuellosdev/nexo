@@ -28,7 +28,7 @@ test('muestra el domicilio cargado en el perfil', () => {
   expect(screen.getByText('Córdoba 1234, 3 B · Rosario, Santa Fe (2000)')).toBeInTheDocument();
 });
 
-test('editar el domicilio abre el wizard en el paso 3', async () => {
+test('editar el domicilio abre el wizard en la sección de Domicilio, sin los otros pasos', async () => {
   const usuario = userEvent.setup();
   seedDemo('activo');
   montar();
@@ -37,11 +37,13 @@ test('editar el domicilio abre el wizard en el paso 3', async () => {
   await usuario.click(within(seccion).getByRole('button', { name: 'Editar' }));
 
   const dialogo = screen.getByRole('dialog', { name: 'Editar tus datos' });
-  expect(within(dialogo).getByText('Paso 3 de 4')).toBeInTheDocument();
   expect(within(dialogo).getByLabelText(/^Localidad/)).toHaveValue('Rosario');
+  // Edición de sección puntual: sin navegación a otros pasos.
+  expect(within(dialogo).queryByRole('button', { name: 'Continuar' })).not.toBeInTheDocument();
+  expect(within(dialogo).queryByRole('button', { name: 'Volver' })).not.toBeInTheDocument();
 });
 
-test('guardar desde el diálogo actualiza el perfil de la sesión', async () => {
+test('guardar el domicilio desde el diálogo actualiza el perfil en un solo clic', async () => {
   const usuario = userEvent.setup();
   seedDemo('activo');
   montar();
@@ -52,10 +54,27 @@ test('guardar desde el diálogo actualiza el perfil de la sesión', async () => 
   const dialogo = screen.getByRole('dialog', { name: 'Editar tus datos' });
   await usuario.clear(within(dialogo).getByLabelText(/^Localidad/));
   await usuario.type(within(dialogo).getByLabelText(/^Localidad/), 'Funes');
-  await usuario.click(within(dialogo).getByRole('button', { name: 'Continuar' }));
-  await usuario.click(within(dialogo).getByRole('button', { name: 'Guardar y activar' }));
+  await usuario.click(within(dialogo).getByRole('button', { name: 'Guardar cambios' }));
 
   expect(getSession().perfil?.domicilio.localidad).toBe('Funes');
+});
+
+test('editar Documento (paso 1) desde /cuenta guarda en un solo clic', async () => {
+  const usuario = userEvent.setup();
+  seedDemo('activo');
+  montar();
+
+  const seccion = screen.getByRole('region', { name: 'Documento' });
+  await usuario.click(within(seccion).getByRole('button', { name: 'Editar' }));
+
+  const dialogo = screen.getByRole('dialog', { name: 'Editar tus datos' });
+  await usuario.clear(within(dialogo).getByLabelText(/^Número de documento/));
+  await usuario.type(within(dialogo).getByLabelText(/^Número de documento/), '40111222');
+  expect(within(dialogo).queryByRole('button', { name: 'Continuar' })).not.toBeInTheDocument();
+  await usuario.click(within(dialogo).getByRole('button', { name: 'Guardar cambios' }));
+
+  expect(getSession().perfil?.numeroDocumento).toBe('40111222');
+  expect(screen.queryByRole('dialog', { name: 'Editar tus datos' })).not.toBeInTheDocument();
 });
 
 test('sin perfil cargado invita a completarlo en vez de mostrar campos vacíos', () => {

@@ -21,6 +21,14 @@ export interface PerfilWizardProps {
   /** Paso en el que abre. Lo usa /cuenta para editar una sección puntual. */
   pasoInicial?: PasoPerfil;
   borradorInicial?: BorradorPerfil;
+  /**
+   * Modo edición de una sola sección: el wizard queda fijo en `pasoInicial`
+   * (sin "Volver" ni avance a los siguientes pasos) y el CTA guarda directo,
+   * validando solo ese paso. Lo usa /cuenta, donde `borradorInicial` ya viene
+   * completo desde el perfil existente. El alta desde /perfil/completar
+   * (4 pasos secuenciales) no pasa esta prop y sigue igual.
+   */
+  soloEstePaso?: boolean;
   onGuardar: (perfil: PerfilPrevinca) => void;
 }
 
@@ -51,12 +59,20 @@ const OPCIONES_CONTRATACION = [
 /** Badge de los campos cuya obligatoriedad Previnca todavía no cerró. */
 const EN_DEBATE = <Badge tono="warn">opcional · a definir</Badge>;
 
-export function PerfilWizard({ pasoInicial = 1, borradorInicial, onGuardar }: PerfilWizardProps) {
+export function PerfilWizard({
+  pasoInicial = 1,
+  borradorInicial,
+  soloEstePaso = false,
+  onGuardar,
+}: PerfilWizardProps) {
   const [paso, setPaso] = useState<PasoPerfil>(pasoInicial);
   const [borrador, setBorrador] = useState<BorradorPerfil>(borradorInicial ?? BORRADOR_INICIAL);
   const [errores, setErrores] = useState<ErroresPerfil>({});
 
   const esUltimo = paso === TOTAL_PASOS;
+  // En modo sección puntual el CTA siempre guarda, sin importar en qué paso
+  // esté parado: no hay "siguiente" al que avanzar.
+  const guardaDirecto = soloEstePaso || esUltimo;
   const titulo = PASOS.find((p) => p.numero === paso)?.titulo ?? '';
 
   function actualizar<C extends keyof BorradorPerfil>(campo: C, valor: BorradorPerfil[C]) {
@@ -73,7 +89,7 @@ export function PerfilWizard({ pasoInicial = 1, borradorInicial, onGuardar }: Pe
     }
     setErrores({});
 
-    if (!esUltimo) {
+    if (!guardaDirecto) {
       setPaso((previo) => (previo + 1) as PasoPerfil);
       return;
     }
@@ -88,25 +104,32 @@ export function PerfilWizard({ pasoInicial = 1, borradorInicial, onGuardar }: Pe
 
   return (
     <Card className="flex flex-col gap-5">
-      <div>
-        <div className="flex items-baseline justify-between gap-3">
-          <span className="text-sm font-medium text-ink-500">{`Paso ${paso} de ${TOTAL_PASOS}`}</span>
-          <span className="text-sm text-ink-600">{titulo}</span>
-        </div>
-        <div
-          role="progressbar"
-          aria-valuenow={paso}
-          aria-valuemin={1}
-          aria-valuemax={TOTAL_PASOS}
-          aria-label="Progreso del perfil"
-          className="mt-2 h-1.5 w-full overflow-hidden rounded-pill bg-ink-100"
-        >
+      {soloEstePaso ? (
+        // Sin "Paso X de 4" ni barra de progreso: en modo sección puntual no
+        // hay pasos siguientes ni anteriores, mostrarlos sería prometer una
+        // navegación que esta instancia no ofrece.
+        <span className="text-sm font-medium text-ink-900">{titulo}</span>
+      ) : (
+        <div>
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="text-sm font-medium text-ink-500">{`Paso ${paso} de ${TOTAL_PASOS}`}</span>
+            <span className="text-sm text-ink-600">{titulo}</span>
+          </div>
           <div
-            className="h-full rounded-pill bg-brand transition-[width] duration-300 ease-out-expo"
-            style={{ width: `${(paso / TOTAL_PASOS) * 100}%` }}
-          />
+            role="progressbar"
+            aria-valuenow={paso}
+            aria-valuemin={1}
+            aria-valuemax={TOTAL_PASOS}
+            aria-label="Progreso del perfil"
+            className="mt-2 h-1.5 w-full overflow-hidden rounded-pill bg-ink-100"
+          >
+            <div
+              className="h-full rounded-pill bg-brand transition-[width] duration-300 ease-out-expo"
+              style={{ width: `${(paso / TOTAL_PASOS) * 100}%` }}
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       <form onSubmit={enviar} noValidate className="flex flex-col gap-4">
         {paso === 1 ? (
@@ -281,9 +304,11 @@ export function PerfilWizard({ pasoInicial = 1, borradorInicial, onGuardar }: Pe
 
         <div className="mt-2 flex flex-col gap-3 sm:flex-row-reverse">
           <Button type="submit" ancho="full" tamano="lg" className="sm:w-auto">
-            {esUltimo ? 'Guardar y activar' : 'Continuar'}
+            {soloEstePaso ? 'Guardar cambios' : esUltimo ? 'Guardar y activar' : 'Continuar'}
           </Button>
-          {paso > 1 ? (
+          {/* Sin "Volver" en modo sección puntual: no hay otro paso al que
+              navegar, esta instancia solo edita `pasoInicial`. */}
+          {paso > 1 && !soloEstePaso ? (
             <Button
               type="button"
               variante="secundario"

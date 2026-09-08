@@ -107,3 +107,44 @@ test('puede abrir en un paso puntual con el borrador ya cargado', () => {
   expect(screen.getByText('Paso 3 de 4')).toBeInTheDocument();
   expect(screen.getByLabelText(/^Localidad/)).toHaveValue('Rosario');
 });
+
+test('con soloEstePaso guarda el paso puntual en un solo clic, sin pedir los siguientes', async () => {
+  const usuario = userEvent.setup();
+  const alGuardar = vi.fn();
+  render(
+    <PerfilWizard
+      pasoInicial={1}
+      borradorInicial={desdePerfil(PERFIL_DEMO)}
+      soloEstePaso
+      onGuardar={alGuardar}
+    />,
+  );
+
+  expect(screen.queryByRole('button', { name: 'Continuar' })).not.toBeInTheDocument();
+  await usuario.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+
+  expect(alGuardar).toHaveBeenCalledWith(PERFIL_DEMO);
+});
+
+test('con soloEstePaso no ofrece volver a un paso anterior', () => {
+  render(
+    <PerfilWizard
+      pasoInicial={3}
+      borradorInicial={desdePerfil(PERFIL_DEMO)}
+      soloEstePaso
+      onGuardar={vi.fn()}
+    />,
+  );
+  expect(screen.queryByRole('button', { name: 'Volver' })).not.toBeInTheDocument();
+});
+
+test('con soloEstePaso sigue validando el paso antes de guardar', async () => {
+  const usuario = userEvent.setup();
+  const alGuardar = vi.fn();
+  render(<PerfilWizard pasoInicial={1} soloEstePaso onGuardar={alGuardar} />);
+
+  await usuario.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+
+  expect(screen.getByRole('alert')).toHaveTextContent('Ingresá tu número de documento');
+  expect(alGuardar).not.toHaveBeenCalled();
+});

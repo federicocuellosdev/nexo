@@ -196,7 +196,12 @@ export function Cuenta() {
           }}
           titulo="Editar tus datos"
         >
-          <PerfilWizard pasoInicial={pasoEditado} borradorInicial={desdePerfil(perfil)} onGuardar={guardar} />
+          <PerfilWizard
+            pasoInicial={pasoEditado}
+            borradorInicial={desdePerfil(perfil)}
+            soloEstePaso
+            onGuardar={guardar}
+          />
         </Dialog>
       ) : null}
     </div>
