@@ -2,7 +2,8 @@ import { createMemoryRouter, RouterProvider } from 'react-router';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { rutas } from '@/router';
-import { agregarOrden, resetSession, seedDemo } from '@/mock/session';
+import { agregarOrden, resetSession, seedDemo, setSession } from '@/mock/session';
+import { USUARIO_DEMO } from '@/mock/usuarios';
 
 function montar() {
   const router = createMemoryRouter(rutas, { initialEntries: ['/movimientos'] });
@@ -45,4 +46,14 @@ test('el filtro Contrataciones deja solo los productos', async () => {
   await usuario.click(screen.getByRole('tab', { name: 'Contrataciones' }));
   expect(contenido.getAllByRole('listitem')).toHaveLength(1);
   expect(screen.getByText('Seguro de Hogar · hasta 1er piso · cuota mensual')).toBeInTheDocument();
+});
+
+test('lista vacía conserva la jerarquía h1 → h2 → h3, sin salto', () => {
+  resetSession();
+  setSession({ usuario: USUARIO_DEMO, ordenes: [] });
+  montar();
+
+  expect(screen.getByRole('heading', { level: 1, name: 'Mis movimientos' })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { level: 2, name: 'Todos' })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { level: 3, name: 'Todavía no hay movimientos' })).toBeInTheDocument();
 });

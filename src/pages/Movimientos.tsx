@@ -27,6 +27,7 @@ export function Movimientos() {
       >
         {FILTROS.map((f) => (
           <TabPanel key={f.valor} valor={f.valor}>
+            <h2 className="sr-only">{f.label}</h2>
             <MovimientosList ordenes={filtrarMovimientos(sesion.ordenes, f.valor)} />
           </TabPanel>
         ))}
