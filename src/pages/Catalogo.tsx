@@ -3,9 +3,11 @@ import { ON_DEMAND, PLANES } from '@/mock/planes';
 import { PlanCard } from '@/features/planes/PlanCard';
 import { ProductoCard } from '@/features/planes/ProductoCard';
 import { PlanComparador } from '@/features/planes/PlanComparador';
-import { TabPanel, Tabs } from '@/ui/Tabs';
+import { TabPanel, Tabs, type ItemTab } from '@/ui/Tabs';
 
-const ITEMS = [
+type Pestana = 'planes' | 'productos';
+
+const ITEMS: ItemTab<Pestana>[] = [
   { valor: 'planes', label: 'Planes' },
   { valor: 'productos', label: 'Productos' },
 ];
@@ -19,9 +21,9 @@ const RECOMENDADO = PLANES.find((plan) => plan.recomendado === true) ?? PLANES[0
  */
 export function Catalogo() {
   const [parametros, setParametros] = useSearchParams();
-  const pestana = parametros.get('tab') === 'productos' ? 'productos' : 'planes';
+  const pestana: Pestana = parametros.get('tab') === 'productos' ? 'productos' : 'planes';
 
-  function cambiarPestana(valor: string) {
+  function cambiarPestana(valor: Pestana) {
     setParametros(valor === 'planes' ? {} : { tab: valor }, { replace: true });
   }
 
@@ -34,7 +36,7 @@ export function Catalogo() {
 
       <div className="mt-6">
         <Tabs valor={pestana} onCambio={cambiarPestana} items={ITEMS} etiqueta="Catálogo">
-          <TabPanel valor="planes">
+          <TabPanel<Pestana> valor="planes">
             <div className="grid gap-4 md:grid-cols-3">
               {PLANES.map((plan) => (
                 <PlanCard
@@ -58,7 +60,7 @@ export function Catalogo() {
             </section>
           </TabPanel>
 
-          <TabPanel valor="productos">
+          <TabPanel<Pestana> valor="productos">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {ON_DEMAND.map((producto) => (
                 <ProductoCard
