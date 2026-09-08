@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { Check } from 'lucide-react';
+import { Check, CircleAlert } from 'lucide-react';
 import type { Plan } from '@/mock/planes';
 import { Card } from '@/ui/Card';
 import { Badge } from '@/ui/Badge';
@@ -52,12 +52,20 @@ export function PlanCard({
           <li key={prestacion.label} className="flex items-center gap-2.5 text-sm text-ink-700">
             <Icon icono={Check} tono="ok" tamano="sm" />
             <span className="min-w-0 flex-1">{prestacion.label}</span>
-            {prestacion.pendiente ? <Chip tono="warn">a confirmar</Chip> : null}
+            {prestacion.pendiente ? (
+              <Chip tono="warn" icono={CircleAlert}>
+                a confirmar
+              </Chip>
+            ) : null}
           </li>
         ))}
       </ul>
 
-      {hayPendienteOculto ? <Chip tono="warn">datos a confirmar</Chip> : null}
+      {hayPendienteOculto ? (
+        <Chip tono="warn" icono={CircleAlert}>
+          datos a confirmar
+        </Chip>
+      ) : null}
 
       <div className="mt-auto pt-1">
         {onCta ? (
