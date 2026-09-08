@@ -2,13 +2,17 @@ import { createMemoryRouter, RouterProvider } from 'react-router';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { rutas } from '@/router';
-import { getSession, setSession } from '@/mock/session';
+import { getSession, resetSession, setSession } from '@/mock/session';
 import { PERFIL_DEMO, USUARIO_DEMO } from '@/mock/usuarios';
 
 function montar() {
   const router = createMemoryRouter(rutas, { initialEntries: ['/perfil/completar'] });
   return render(<RouterProvider router={router} />);
 }
+
+beforeEach(() => {
+  resetSession();
+});
 
 test('muestra el wizard con su explicación', () => {
   setSession({ usuario: USUARIO_DEMO });
@@ -40,4 +44,9 @@ test('al guardar deja el perfil en la sesión y lleva al inicio con el aviso', a
   await usuario.click(screen.getByRole('button', { name: 'Guardar y activar' }));
 
   expect(getSession().perfil).toEqual(PERFIL_DEMO);
+  // La navegación efectivamente llega a /inicio (y no al ErrorBoundary de
+  // React Router, que quedaba silenciosamente mal hasta que la Task 15 creó
+  // la ruta): se ve el saludo de Inicio y el aviso que llega por `state`.
+  expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Hola, Camila');
+  expect(screen.getByRole('status')).toHaveTextContent('Cobertura activa');
 });

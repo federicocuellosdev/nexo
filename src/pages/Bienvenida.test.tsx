@@ -49,5 +49,7 @@ test('resume también un producto on demand y aclara que requiere plan activo', 
 test('sin intención el guard manda al inicio', () => {
   setSession({ usuario: USUARIO_DEMO });
   montar();
-  expect(screen.queryByRole('heading', { level: 1, name: /Hola, Camila/ })).not.toBeInTheDocument();
+  // La ruta /inicio (Task 15) ya existe: se puede assertar la navegación real
+  // en vez de solo la ausencia del contenido de Bienvenida.
+  expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Hola, Camila');
 });
