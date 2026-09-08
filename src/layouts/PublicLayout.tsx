@@ -2,12 +2,18 @@ import { Link, Outlet } from 'react-router';
 import { TopBar } from '@/ui/TopBar';
 import { clasesBoton } from '@/ui/Button';
 import { portalUrl } from '@/lib/urls';
+import { LogoNexo, ETIQUETA_MARCA } from '@/ui/LogoNexo';
 
-/** Logotipo. DM Serif Display, único lugar de la barra con tipografía display. */
+/**
+ * Logotipo real de marca. `LogoNexo` pinta el PNG con el gradiente de marca
+ * vía `mask-image`, así que se ve bien sobre el TopBar y el pie blancos sin
+ * necesitar una superficie oscura de por medio. El nombre accesible vive en
+ * el `<Link>` (no en el logo) para no duplicarlo en el árbol de accesibilidad.
+ */
 export function Marca() {
   return (
-    <Link to="/" className="font-display text-xl leading-none text-ink-950">
-      nexo<span className="text-marca-500">.</span>
+    <Link to="/" aria-label={ETIQUETA_MARCA} className="inline-flex items-center">
+      <LogoNexo alto={22} etiqueta={null} />
     </Link>
   );
 }
@@ -40,10 +46,14 @@ export function PublicLayout() {
             <Link to="/catalogo" className="hover:text-ink-900">
               Catálogo
             </Link>
-            {/* Texto distinto al del TopBar: dos enlaces con el mismo nombre accesible
-                "Ingresar" en la misma página rompen la navegación por lector de pantalla
-                (no se puede distinguir cuál es cuál) y el test de a11y que localiza el
-                del TopBar por nombre único. */}
+            {/* Texto distinto al del TopBar. Ojo, la regla NO es "nunca repetir un nombre
+                accesible": el logo (arriba y en el pie) repite "Nexo — Previnca Salud" a
+                propósito porque los dos van al mismo destino (WCAG 3.2.4 pide justamente
+                esa consistencia). Acá el caso es otro: "Ingresar" arriba abre el LOGIN y
+                "Ingresar al portal" en el pie es la MISMA acción, pero si tuvieran el
+                mismo nombre corto ("Ingresar" x2) un lector de pantalla que salta por
+                nombre no podría distinguir cuál está tocando; por eso el del pie lleva
+                el texto más largo. */}
             <a href={`${portalUrl()}/ingresar`} className="hover:text-ink-900">
               Ingresar al portal
             </a>
