@@ -63,6 +63,15 @@ test('si el recorte no descarta ninguna prestación pendiente, no muestra el chi
   expect(screen.queryByText('datos a confirmar')).not.toBeInTheDocument();
 });
 
+test('si una prestación pendiente no incluida no se muestra en el teaser, igual señala el chip "datos a confirmar"', () => {
+  render(
+    <MemoryRouter>
+      <PlanCard plan={NEXO_1} hrefDetalle="/planes/nexo-1" />
+    </MemoryRouter>,
+  );
+  expect(screen.getByText('datos a confirmar')).toBeInTheDocument();
+});
+
 test('las prestaciones sin confirmar llevan el chip "a confirmar"', () => {
   render(
     <MemoryRouter>

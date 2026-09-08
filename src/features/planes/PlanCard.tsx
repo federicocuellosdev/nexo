@@ -31,10 +31,9 @@ export function PlanCard({
   onCta,
   etiquetaCta = 'Ver plan',
 }: PlanCardProps) {
-  const todasIncluidas = plan.prestaciones.filter((p) => p.estado === 'incluido');
-  const incluidas = todasIncluidas.slice(0, MAXIMO_PRESTACIONES);
-  const recortadas = todasIncluidas.slice(MAXIMO_PRESTACIONES);
-  const hayPendienteRecortada = recortadas.some((p) => p.pendiente);
+  const incluidas = plan.prestaciones.filter((p) => p.estado === 'incluido');
+  const mostradas = incluidas.slice(0, MAXIMO_PRESTACIONES);
+  const hayPendienteOculto = plan.prestaciones.some((p) => p.pendiente && !mostradas.includes(p));
 
   return (
     <Card as="article" destacada={destacado || activo} className="flex flex-col gap-4">
@@ -49,7 +48,7 @@ export function PlanCard({
       <Money monto={plan.precio} periodo="por mes" tamano="lg" />
 
       <ul className="flex flex-col gap-2.5">
-        {incluidas.map((prestacion) => (
+        {mostradas.map((prestacion) => (
           <li key={prestacion.label} className="flex items-center gap-2.5 text-sm text-ink-700">
             <Icon icono={Check} tono="ok" tamano="sm" />
             <span className="min-w-0 flex-1">{prestacion.label}</span>
@@ -58,7 +57,7 @@ export function PlanCard({
         ))}
       </ul>
 
-      {hayPendienteRecortada ? <Chip tono="warn">datos a confirmar</Chip> : null}
+      {hayPendienteOculto ? <Chip tono="warn">datos a confirmar</Chip> : null}
 
       <div className="mt-auto pt-1">
         {onCta ? (
