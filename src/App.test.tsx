@@ -1,7 +1,9 @@
+import { createMemoryRouter, RouterProvider } from 'react-router';
 import { render, screen } from '@testing-library/react';
-import { App } from '@/App';
+import { rutas } from '@/router';
 
-test('la app monta y muestra el titular de la maqueta', () => {
-  render(<App />);
-  expect(screen.getByRole('heading', { name: 'Nexo 3.0 — portal' })).toBeInTheDocument();
+test('sin sesión el portal aterriza en el ingreso', () => {
+  const router = createMemoryRouter(rutas, { initialEntries: ['/ingresar'] });
+  render(<RouterProvider router={router} />);
+  expect(screen.getByRole('heading', { level: 1, name: 'Ingresá a tu portal' })).toBeInTheDocument();
 });
