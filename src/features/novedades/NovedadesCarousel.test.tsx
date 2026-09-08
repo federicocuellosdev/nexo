@@ -19,6 +19,11 @@ test('el carrusel scrollea horizontalmente con anclaje', () => {
   expect(pista).toHaveClass('snap-x');
 });
 
+test('la pista es alcanzable con el teclado', () => {
+  render(<NovedadesCarousel novedades={NOVEDADES} />);
+  expect(screen.getByRole('list', { name: 'Novedades' })).toHaveAttribute('tabindex', '0');
+});
+
 test('sin novedades no renderiza nada', () => {
   const { container } = render(<NovedadesCarousel novedades={[]} />);
   expect(container).toBeEmptyDOMElement();

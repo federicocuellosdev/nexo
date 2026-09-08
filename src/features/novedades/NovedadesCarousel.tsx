@@ -7,8 +7,11 @@ export interface NovedadesCarouselProps {
 
 /**
  * Carrusel por scroll nativo con `snap`: sin JS, sin librería y con el gesto
- * táctil del sistema operativo. En escritorio se arrastra con la rueda o con
- * el teclado, porque la lista es focusable por scroll del navegador.
+ * táctil del sistema operativo.
+ *
+ * El `tabIndex={0}` es necesario, no decorativo: sin él la pista queda
+ * inalcanzable para quien navega solo con teclado. Chromium auto-focusea los
+ * contenedores scrollables, pero es una heurística suya — Safari no lo hace.
  */
 export function NovedadesCarousel({ novedades }: NovedadesCarouselProps) {
   if (novedades.length === 0) return null;
@@ -16,6 +19,7 @@ export function NovedadesCarousel({ novedades }: NovedadesCarouselProps) {
   return (
     <ul
       aria-label="Novedades"
+      tabIndex={0}
       className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 lg:mx-0 lg:px-0"
     >
       {novedades.map((novedad) => (
