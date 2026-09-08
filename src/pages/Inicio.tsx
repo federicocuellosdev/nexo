@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router';
-import { LayoutGrid, Receipt, ShieldCheck, Sparkles } from 'lucide-react';
+import { CreditCard, LayoutGrid, Receipt, ShieldCheck, Sparkles } from 'lucide-react';
 import { useSession } from '@/mock/session';
+import { buscarPlan, buscarProducto } from '@/mock/planes';
 import { derivarEstado } from '@/lib/estado';
 import { NOVEDADES } from '@/mock/novedades';
 import { NovedadesCarousel } from '@/features/novedades/NovedadesCarousel';
@@ -25,6 +26,19 @@ export function Inicio() {
   const plan = planContratado(sesion);
   const vencimiento = proximoVencimiento(sesion);
   const ultimos = sesion.ordenes.slice(0, 3);
+
+  // `sesion.intent` guarda lo que el usuario ELIGIÓ (spec §6), no lo que pagó.
+  // Sin cruzarlo con el estado, quien elige un plan y no termina el pago cae
+  // en el EmptyState genérico "Todavía no tenés un plan" → "Ver planes" y
+  // nunca ve un recordatorio de terminar la compra que ya empezó.
+  const intent = sesion.intent;
+  const elegidoNombre =
+    intent === undefined
+      ? undefined
+      : intent.tipo === 'plan'
+        ? buscarPlan(intent.id)?.nombre
+        : buscarProducto(intent.id)?.nombre;
+  const faltaTerminarCompra = estado === 'conCuentaSinPago' && intent !== undefined;
 
   // `state` viene de PerfilCompletar tras guardar el perfil, pero por sí solo no
   // alcanza: dice lo que creyó la pantalla anterior, no lo que pasó. Sin cruzarlo
@@ -59,6 +73,16 @@ export function Inicio() {
       <section aria-label="Tu cobertura">
         {plan && vencimiento ? (
           <CoberturaCard plan={plan} estado={estado} proximoVencimiento={vencimiento} />
+        ) : faltaTerminarCompra ? (
+          <EmptyState
+            icono={CreditCard}
+            titulo="Terminá tu compra"
+            descripcion={`Elegiste ${elegidoNombre ?? 'una cobertura'} pero todavía no registramos el pago.`}
+          >
+            <Link to="/pago" className={clasesBoton({})}>
+              Terminar de pagar
+            </Link>
+          </EmptyState>
         ) : (
           <EmptyState
             icono={ShieldCheck}

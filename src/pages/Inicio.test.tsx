@@ -54,6 +54,16 @@ test('sin plan contratado invita a elegir uno', () => {
   expect(screen.getByRole('heading', { name: 'Todavía no tenés un plan' })).toBeInTheDocument();
 });
 
+test('eligió un plan y no pagó: muestra el recordatorio de terminar la compra, no el genérico', () => {
+  setSession({ usuario: USUARIO_DEMO, intent: { tipo: 'plan', id: 'nexo-2' } });
+  montar();
+
+  expect(screen.queryByRole('heading', { name: 'Todavía no tenés un plan' })).not.toBeInTheDocument();
+  expect(screen.getByText(/Nexo II/)).toBeInTheDocument();
+  const cta = screen.getByRole('link', { name: /pagar/i });
+  expect(cta).toHaveAttribute('href', '/pago');
+});
+
 test('al venir de completar el perfil muestra el aviso de cobertura activa', () => {
   seedDemo('activo');
   montar({ pathname: '/inicio', state: { coberturaActivada: true } });

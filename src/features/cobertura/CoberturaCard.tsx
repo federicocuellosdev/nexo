@@ -48,6 +48,16 @@ export function CoberturaCard({ plan, estado, proximoVencimiento }: CoberturaCar
           </Link>
         </div>
       ) : estado === 'conCuentaSinPago' ? (
+        // NO ES CÓDIGO MUERTO, aunque hoy no se alcance: los dos consumidores
+        // de <CoberturaCard/> (Inicio.tsx, Coberturas.tsx) solo la montan
+        // cuando `planContratado(sesion)` devuelve un plan, y ese helper
+        // exige una orden PAGADA — mutuamente excluyente con conCuentaSinPago.
+        // Ese hueco (elegir un plan y no pagarlo, sin ver ningún recordatorio)
+        // se cerró en Inicio.tsx leyendo `sesion.intent` directamente, sin
+        // pasar por acá. Esta rama queda para el día en que `plan` deje de
+        // exigir pago (ej. mostrar el plan intentado ANTES de pagar) — no
+        // borrar por "inalcanzable" sin resolver antes ese rediseño, y no
+        // asumir que hoy está viva.
         <div className="rounded-campo bg-danger-50 p-3">
           <p className="text-sm text-danger-700">
             Todavía no registramos tu pago. La cobertura arranca cuando lo hagas.
