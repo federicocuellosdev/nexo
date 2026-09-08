@@ -24,4 +24,6 @@
 
 ## Código
 - TypeScript estricto, sin `any`. Componentes funcionales, exports nombrados.
-- Stack: pendiente de definir en brainstorming (documentar aquí cuando se decida).
+- Stack: Vite 7 + React 19 + TypeScript 5.9 + Tailwind CSS v4 (`@tailwindcss/vite`) + Vitest 4
+  (Testing Library, jsdom) + Playwright para e2e + React Router 7 + Radix UI + lucide-react.
+  Decidido en el scaffold inicial (tarea 1 del plan SDD).
