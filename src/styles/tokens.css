@@ -1,0 +1,95 @@
+/* Tokens de Nexo 3.0.
+   Heredados de Nexo 2.0 (docs/referencia/theme.nexo-2.0.css): marca, acento, durazno,
+   radios, sombras y easings. Nuevos de 3.0 (spec §7): fondo de app, escala ink-*,
+   semánticos ok/warn/danger y escala tipográfica 12/14/16/20/24/32/40. */
+
+@theme {
+  /* Tipografía */
+  --font-sans: 'DM Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: 'DM Serif Display', ui-serif, Georgia, serif;
+
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1.1rem;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.25rem;
+  --text-base: 1rem;
+  --text-base--line-height: 1.5rem;
+  --text-lg: 1.25rem;
+  --text-lg--line-height: 1.65rem;
+  --text-xl: 1.5rem;
+  --text-xl--line-height: 1.9rem;
+  --text-2xl: 2rem;
+  --text-2xl--line-height: 2.3rem;
+  --text-3xl: 2.5rem;
+  --text-3xl--line-height: 2.7rem;
+
+  /* Marca — purple #8660ef de Nexo 2.0 como 500 */
+  --color-marca-50: #f1ecfe;
+  --color-marca-100: #e3d8fd;
+  --color-marca-300: #b49df5;
+  --color-marca-500: #8660ef;
+  --color-marca-600: #6d45e3;
+  --color-marca-700: #5734bd;
+
+  /* Acento (pink) y durazno — solo para acentos, nunca fondos completos */
+  --color-acento-50: #fdecf9;
+  --color-acento-500: #ee5cd0;
+  --color-durazno-50: #fbf1ef;
+  --color-durazno-500: #e5ab9f;
+
+  /* Neutros de aplicación */
+  --color-ink-50: #f6f5fb;
+  --color-ink-100: #eeecf3;
+  --color-ink-200: #e2e0e9;
+  --color-ink-300: #c2c0cc;
+  --color-ink-400: #9c99ab;
+  --color-ink-500: #7d7a90;
+  --color-ink-600: #63607a;
+  --color-ink-700: #4a4658;
+  --color-ink-800: #322e42;
+  --color-ink-900: #1f1c2b;
+  --color-ink-950: #14121c;
+
+  /* Superficies */
+  --color-app: #f6f5fb;
+  --color-superficie: #ffffff;
+
+  /* Semánticos: el 500 pinta iconos y bordes, el 700 pinta texto (contraste AA sobre el 50) */
+  --color-ok-50: #e8f7ee;
+  --color-ok-500: #16a34a;
+  --color-ok-700: #15803d;
+  --color-warn-50: #fdf2e2;
+  --color-warn-500: #d97706;
+  --color-warn-700: #a55a06;
+  --color-danger-50: #fdecec;
+  --color-danger-500: #dc2626;
+  --color-danger-700: #b21b1b;
+
+  /* Radios (Nexo 2.0: 16 / 10 / pill) */
+  --radius-card: 16px;
+  --radius-campo: 10px;
+  --radius-pill: 100px;
+
+  /* Elevación difusa y suave, heredada de Nexo 2.0 */
+  --shadow-suave: 0 1px 4px rgba(20, 18, 28, 0.03), 0 1px 2px rgba(20, 18, 28, 0.04);
+  --shadow-card: 0 2px 24px rgba(20, 18, 28, 0.04), 0 1px 4px rgba(20, 18, 28, 0.02);
+  --shadow-elevada: 0 8px 48px rgba(20, 18, 28, 0.06), 0 2px 12px rgba(20, 18, 28, 0.03);
+  --shadow-flotante: 0 16px 64px rgba(20, 18, 28, 0.07), 0 4px 20px rgba(20, 18, 28, 0.04);
+
+  /* Easings */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* El degradado de marca vive como UTILIDAD y no como `--color-*` a propósito:
+   así no aparece en `bg-*` genéricos y queda acotado al CTA primario y a los
+   acentos (avatar, icono de cobertura), como pide el spec §7. */
+@utility bg-brand {
+  background-image: linear-gradient(135deg, #8660ef 0%, #ee5cd0 100%);
+}
+
+@utility text-brand {
+  background-image: linear-gradient(135deg, #8660ef 0%, #ee5cd0 100%);
+  background-clip: text;
+  color: transparent;
+}
