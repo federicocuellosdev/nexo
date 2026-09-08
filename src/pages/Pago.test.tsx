@@ -53,4 +53,11 @@ test('sin intención manda a planes en vez de cobrar cualquier cosa', () => {
   setSession({ usuario: USUARIO_DEMO, intent: undefined });
   montar();
   expect(screen.queryByRole('button', { name: /Pagar/ })).not.toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Ver planes' })).toBeInTheDocument();
+});
+
+test('sin intención conserva el h1 de la página en el estado vacío', () => {
+  setSession({ usuario: USUARIO_DEMO, intent: undefined });
+  montar();
+  expect(screen.getByRole('heading', { level: 1, name: 'Confirmá tu pago' })).toBeInTheDocument();
 });

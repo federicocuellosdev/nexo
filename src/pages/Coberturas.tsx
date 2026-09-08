@@ -42,15 +42,28 @@ export function Coberturas() {
 
   if (plan === undefined && productos.length === 0) {
     return (
-      <EmptyState
-        icono={ShieldCheck}
-        titulo="Todavía no tenés coberturas"
-        descripcion="Cuando contrates un plan lo vas a ver acá con todas sus prestaciones."
-      >
-        <Link to="/planes" className={clasesBoton({})}>
-          Ver planes
-        </Link>
-      </EmptyState>
+      <div className="flex flex-col gap-8">
+        <div>
+          {/*
+            El h1 de la página se conserva también en el camino vacío: EmptyState
+            usa un h3 como único heading, y sin este h1 el documento arrancaría
+            directo en h3 (mismo patrón ya correcto en Inicio.tsx y Planes.tsx).
+            Acá es el caso más frecuente: dispara para sinCuenta y
+            conCuentaSinPago, los dos estados más comunes de un visitante nuevo.
+          */}
+          <h1 className="text-2xl text-ink-950">Mis coberturas</h1>
+          <p className="mt-1 text-sm text-ink-600">Lo que tenés contratado y cómo usarlo.</p>
+        </div>
+        <EmptyState
+          icono={ShieldCheck}
+          titulo="Todavía no tenés coberturas"
+          descripcion="Cuando contrates un plan lo vas a ver acá con todas sus prestaciones."
+        >
+          <Link to="/planes" className={clasesBoton({})}>
+            Ver planes
+          </Link>
+        </EmptyState>
+      </div>
     );
   }
 

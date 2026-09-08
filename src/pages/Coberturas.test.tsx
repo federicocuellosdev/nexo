@@ -83,3 +83,9 @@ test('sin nada contratado muestra el estado vacío', () => {
   montar();
   expect(screen.getByRole('heading', { name: 'Todavía no tenés coberturas' })).toBeInTheDocument();
 });
+
+test('sin nada contratado conserva el h1 de la página en el estado vacío', () => {
+  setSession({ usuario: USUARIO_DEMO });
+  montar();
+  expect(screen.getByRole('heading', { level: 1, name: 'Mis coberturas' })).toBeInTheDocument();
+});

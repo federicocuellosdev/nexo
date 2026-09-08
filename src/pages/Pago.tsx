@@ -38,15 +38,23 @@ export function Pago() {
   if (item === undefined) {
     return (
       <div className="mx-auto max-w-[560px]">
-        <EmptyState
-          icono={CreditCard}
-          titulo="No hay nada para pagar"
-          descripcion="Elegí un plan y volvé al checkout."
-        >
-          <Link to="/planes" className={clasesBoton({ variante: 'secundario' })}>
-            Ver planes
-          </Link>
-        </EmptyState>
+        {/*
+          El h1 de la página se conserva también en el camino vacío: EmptyState
+          usa un h3 como único heading, y sin este h1 el documento arrancaría
+          directo en h3 (mismo patrón ya correcto en Inicio.tsx y Planes.tsx).
+        */}
+        <h1 className="text-2xl text-ink-950">Confirmá tu pago</h1>
+        <div className="mt-6">
+          <EmptyState
+            icono={CreditCard}
+            titulo="No hay nada para pagar"
+            descripcion="Elegí un plan y volvé al checkout."
+          >
+            <Link to="/planes" className={clasesBoton({ variante: 'secundario' })}>
+              Ver planes
+            </Link>
+          </EmptyState>
+        </div>
       </div>
     );
   }
