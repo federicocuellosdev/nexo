@@ -24,7 +24,7 @@ export function CoberturaCard({ plan, estado, proximoVencimiento }: CoberturaCar
           <Icon icono={ShieldCheck} tono="marca" />
           <div className="min-w-0">
             <p className="text-sm text-ink-500">Tu cobertura</p>
-            <p className="font-display text-xl text-ink-950">{plan.nombre}</p>
+            <h3 className="font-display text-xl text-ink-950">{plan.nombre}</h3>
           </div>
         </div>
         <CoberturaEstado estado={estado} />

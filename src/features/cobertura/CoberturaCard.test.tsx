@@ -16,6 +16,15 @@ test('muestra el plan, su precio y el próximo vencimiento', () => {
   expect(screen.getByText('Vence el 01/10/2026')).toBeInTheDocument();
 });
 
+test('el nombre del plan es un encabezado, como en PlanCard', () => {
+  render(
+    <MemoryRouter>
+      <CoberturaCard plan={NEXO_2} estado="activo" proximoVencimiento="01/10/2026" />
+    </MemoryRouter>,
+  );
+  expect(screen.getByRole('heading', { name: 'Nexo II' })).toBeInTheDocument();
+});
+
 test('activa muestra el chip verde y ningún CTA de completar perfil', () => {
   render(
     <MemoryRouter>
