@@ -1,7 +1,7 @@
 import type { RouteObject } from 'react-router';
 import { createBrowserRouter, Navigate } from 'react-router';
 import { PortalLayout } from '@/layouts/PortalLayout';
-import { RequiereIntent, RequiereUsuario } from '@/features/sesion/Guards';
+import { RequiereIntent, RequierePago, RequiereUsuario } from '@/features/sesion/Guards';
 import { AuthCallback } from '@/pages/AuthCallback';
 import { Ingresar } from '@/pages/Ingresar';
 import { Bienvenida } from '@/pages/Bienvenida';
@@ -44,7 +44,14 @@ export const rutas: RouteObject[] = [
       },
       { path: 'pago', element: <Pago /> },
       { path: 'pago/exito', element: <PagoExito /> },
-      { path: 'perfil/completar', element: <PerfilCompletar /> },
+      {
+        path: 'perfil/completar',
+        element: (
+          <RequierePago>
+            <PerfilCompletar />
+          </RequierePago>
+        ),
+      },
       { path: 'planes', element: <Planes /> },
       { path: 'coberturas', element: <Coberturas /> },
       { path: 'movimientos', element: <Movimientos /> },

@@ -2,7 +2,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { rutas } from '@/router';
-import { getSession, resetSession, setSession } from '@/mock/session';
+import { agregarOrden, getSession, resetSession, setSession } from '@/mock/session';
 import { PERFIL_DEMO, USUARIO_DEMO } from '@/mock/usuarios';
 
 function montar() {
@@ -14,8 +14,27 @@ beforeEach(() => {
   resetSession();
 });
 
-test('muestra el wizard con su explicación', () => {
+/**
+ * `/perfil/completar` está detrás de `RequierePago`: solo entra quien
+ * ya pagó y le falta el perfil. Sembrar solo el usuario dejaba la sesión en
+ * `conCuentaSinPago` y el guard rebota — que es justamente el agujero que se
+ * cerró: antes se podía completar el perfil sin haber pagado nunca.
+ */
+function sembrarPagadoSinPerfil() {
   setSession({ usuario: USUARIO_DEMO });
+  agregarOrden({
+    id: 'ord-test-nexo-2',
+    fecha: '2026-09-01',
+    tipo: 'plan',
+    itemId: 'nexo-2',
+    concepto: 'Nexo II · cuota mensual',
+    monto: 12000,
+    estado: 'pagada',
+  });
+}
+
+test('muestra el wizard con su explicación', () => {
+  sembrarPagadoSinPerfil();
   montar();
   expect(screen.getByRole('heading', { level: 1, name: 'Completá tu perfil' })).toBeInTheDocument();
   expect(screen.getByText('Paso 1 de 4')).toBeInTheDocument();
@@ -23,7 +42,7 @@ test('muestra el wizard con su explicación', () => {
 
 test('al guardar deja el perfil en la sesión y lleva al inicio con el aviso', async () => {
   const usuario = userEvent.setup();
-  setSession({ usuario: USUARIO_DEMO });
+  sembrarPagadoSinPerfil();
   montar();
 
   await usuario.type(screen.getByLabelText(/^Número de documento/), '35123456');

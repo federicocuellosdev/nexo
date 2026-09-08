@@ -26,9 +26,13 @@ export function Inicio() {
   const vencimiento = proximoVencimiento(sesion);
   const ultimos = sesion.ordenes.slice(0, 3);
 
-  // `state` viene de PerfilCompletar tras guardar el perfil.
-  const reciénActivada =
+  // `state` viene de PerfilCompletar tras guardar el perfil, pero por sí solo no
+  // alcanza: dice lo que creyó la pantalla anterior, no lo que pasó. Sin cruzarlo
+  // contra el estado real, alguien que nunca pagó completaba el perfil y veía
+  // "Cobertura activa" con el cartel "Todavía no tenés un plan" justo debajo.
+  const avisoDeNavegacion =
     typeof state === 'object' && state !== null && (state as { coberturaActivada?: unknown }).coberturaActivada === true;
+  const reciénActivada = avisoDeNavegacion && estado === 'activo';
 
   return (
     <div className="flex flex-col gap-8">

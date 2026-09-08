@@ -59,3 +59,12 @@ test('al venir de completar el perfil muestra el aviso de cobertura activa', () 
   montar({ pathname: '/inicio', state: { coberturaActivada: true } });
   expect(screen.getByRole('status')).toHaveTextContent('Cobertura activa');
 });
+
+test('el aviso de cobertura activa no aparece si el estado real no es activo', () => {
+  // El state de navegación miente (o quedó viejo): el estado real de la
+  // sesión manda. Sin pago no hay cobertura que activar.
+  setSession({ usuario: USUARIO_DEMO });
+  montar({ pathname: '/inicio', state: { coberturaActivada: true } });
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Todavía no tenés un plan' })).toBeInTheDocument();
+});
