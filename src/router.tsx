@@ -10,6 +10,7 @@ import { PagoExito } from '@/pages/PagoExito';
 import { PerfilCompletar } from '@/pages/PerfilCompletar';
 import { Inicio } from '@/pages/Inicio';
 import { Planes } from '@/pages/Planes';
+import { Coberturas } from '@/pages/Coberturas';
 
 /**
  * Se exporta el arreglo además del router para que los tests puedan montar
@@ -41,6 +42,7 @@ export const rutas: RouteObject[] = [
       { path: 'pago/exito', element: <PagoExito /> },
       { path: 'perfil/completar', element: <PerfilCompletar /> },
       { path: 'planes', element: <Planes /> },
+      { path: 'coberturas', element: <Coberturas /> },
     ],
   },
 ];
