@@ -12,6 +12,7 @@ import { Inicio } from '@/pages/Inicio';
 import { Planes } from '@/pages/Planes';
 import { Coberturas } from '@/pages/Coberturas';
 import { Movimientos } from '@/pages/Movimientos';
+import { Cuenta } from '@/pages/Cuenta';
 
 /**
  * Se exporta el arreglo además del router para que los tests puedan montar
@@ -45,6 +46,7 @@ export const rutas: RouteObject[] = [
       { path: 'planes', element: <Planes /> },
       { path: 'coberturas', element: <Coberturas /> },
       { path: 'movimientos', element: <Movimientos /> },
+      { path: 'cuenta', element: <Cuenta /> },
     ],
   },
 ];
