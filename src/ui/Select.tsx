@@ -19,6 +19,13 @@ export interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
 /**
  * Select nativo. Radix Select no está en el stack acordado y el nativo trae
  * gratis el teclado, el scroll y la rueda del sistema operativo en mobile.
+ *
+ * Contrato del `placeholder`: es una `<option value="" disabled>`, así que el
+ * navegador SOLO la preselecciona si el `value` (o `defaultValue`, en no
+ * controlado) del select es exactamente `""`. Si quien consume `Select` no
+ * pasa `value=""` / `defaultValue=""`, el placeholder se agrega igual a la
+ * lista pero el navegador preselecciona la primera opción real de `opciones`
+ * (el comportamiento nativo de cualquier `<select>`), no el placeholder.
  */
 export function Select({ id, opciones, placeholder, invalido = false, className, ...resto }: SelectProps) {
   const campo = useContext(FieldContext);

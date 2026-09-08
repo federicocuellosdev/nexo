@@ -33,3 +33,21 @@ test('standalone: invalido expone aria-invalid pero nunca un aria-describedby co
   expect(campo).toHaveAttribute('aria-invalid', 'true');
   expect(campo).not.toHaveAttribute('aria-describedby');
 });
+
+test('con placeholder y defaultValue="" la opción seleccionada es el placeholder', () => {
+  render(
+    <Select
+      id="doc"
+      aria-label="Tipo de documento"
+      opciones={OPCIONES}
+      placeholder="Elegí una opción"
+      defaultValue=""
+    />,
+  );
+  expect(screen.getByLabelText('Tipo de documento')).toHaveValue('');
+});
+
+test('con placeholder pero sin value/defaultValue, la opción seleccionada es la primera real', () => {
+  render(<Select id="doc" aria-label="Tipo de documento" opciones={OPCIONES} placeholder="Elegí una opción" />);
+  expect(screen.getByLabelText('Tipo de documento')).toHaveValue('DNI');
+});
