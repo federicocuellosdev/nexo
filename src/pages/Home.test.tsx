@@ -1,5 +1,5 @@
 import { createMemoryRouter, RouterProvider } from 'react-router';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { rutas } from '@/router';
 
 function montarEn(ruta: string) {
@@ -15,6 +15,11 @@ test('el hero muestra el precio de entrada derivado de los planes', () => {
 test('el hero lleva al catálogo', () => {
   montarEn('/');
   expect(screen.getByRole('link', { name: 'Ver planes' })).toHaveAttribute('href', '/catalogo');
+});
+
+test('el segundo CTA del hero lleva a la pestaña de productos', () => {
+  montarEn('/');
+  expect(screen.getByRole('link', { name: 'Ver productos' })).toHaveAttribute('href', '/catalogo?tab=productos');
 });
 
 test('explica el alta en tres pasos', () => {
@@ -33,6 +38,15 @@ test('muestra los cinco productos on demand', () => {
   montarEn('/');
   const seccion = screen.getByRole('region', { name: 'Productos on demand' });
   expect(seccion.querySelectorAll('article')).toHaveLength(5);
+});
+
+test('el encabezado de "Productos on demand" enlaza a la pestaña de productos', () => {
+  montarEn('/');
+  const seccion = screen.getByRole('region', { name: 'Productos on demand' });
+  expect(within(seccion).getByRole('link', { name: 'Ver todos los productos' })).toHaveAttribute(
+    'href',
+    '/catalogo?tab=productos',
+  );
 });
 
 test('las preguntas frecuentes tienen cuatro ítems plegables', () => {

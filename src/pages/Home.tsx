@@ -58,7 +58,7 @@ export function Home() {
             Ver planes
           </Link>
           <Link
-            to="/catalogo"
+            to="/catalogo?tab=productos"
             className={clasesBoton({
               variante: 'secundario',
               tamano: 'lg',
@@ -112,7 +112,12 @@ export function Home() {
 
       {/* On demand */}
       <section aria-label="Productos on demand" className="mx-auto max-w-[1100px] px-4 py-10 lg:px-6 lg:py-14">
-        <h2 className="text-2xl text-ink-950">Productos on demand</h2>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <h2 className="text-2xl text-ink-950">Productos on demand</h2>
+          <Link to="/catalogo?tab=productos" className="text-sm font-medium text-marca-600 hover:text-marca-700">
+            Ver todos los productos
+          </Link>
+        </div>
         <p className="mt-2 max-w-[52ch] text-sm text-ink-600">
           Coberturas que se suman aparte de la cuota. Requieren un plan activo.
         </p>

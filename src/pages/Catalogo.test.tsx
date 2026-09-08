@@ -18,6 +18,13 @@ test('la pestaña Productos muestra los cinco servicios on demand', async () => 
   const usuario = userEvent.setup();
   montarEn('/catalogo');
   await usuario.click(screen.getByRole('tab', { name: 'Productos' }));
+  expect(screen.getByRole('tab', { name: 'Productos' })).toHaveAttribute('aria-selected', 'true');
+  expect(screen.getAllByRole('article')).toHaveLength(5);
+});
+
+test('montar en /catalogo?tab=productos arranca directo en la pestaña Productos', () => {
+  montarEn('/catalogo?tab=productos');
+  expect(screen.getByRole('tab', { name: 'Productos' })).toHaveAttribute('aria-selected', 'true');
   expect(screen.getAllByRole('article')).toHaveLength(5);
 });
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { ON_DEMAND, PLANES } from '@/mock/planes';
 import { PlanCard } from '@/features/planes/PlanCard';
 import { ProductoCard } from '@/features/planes/ProductoCard';
@@ -12,8 +12,18 @@ const ITEMS = [
 
 const RECOMENDADO = PLANES.find((plan) => plan.recomendado === true) ?? PLANES[0];
 
+/**
+ * La pestaña activa vive en la URL (`?tab=`), no en estado local: así el CTA
+ * "Ver productos" del Home puede aterrizar directo en la pestaña Productos, y
+ * el botón atrás del navegador respeta la pestaña que se estaba mirando.
+ */
 export function Catalogo() {
-  const [pestana, setPestana] = useState('planes');
+  const [parametros, setParametros] = useSearchParams();
+  const pestana = parametros.get('tab') === 'productos' ? 'productos' : 'planes';
+
+  function cambiarPestana(valor: string) {
+    setParametros(valor === 'planes' ? {} : { tab: valor }, { replace: true });
+  }
 
   return (
     <div className="mx-auto max-w-[1100px] px-4 py-10 lg:px-6 lg:py-14">
@@ -23,7 +33,7 @@ export function Catalogo() {
       </p>
 
       <div className="mt-6">
-        <Tabs valor={pestana} onCambio={setPestana} items={ITEMS} etiqueta="Catálogo">
+        <Tabs valor={pestana} onCambio={cambiarPestana} items={ITEMS} etiqueta="Catálogo">
           <TabPanel valor="planes">
             <div className="grid gap-4 md:grid-cols-3">
               {PLANES.map((plan) => (
