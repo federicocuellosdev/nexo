@@ -1,0 +1,37 @@
+import { MemoryRouter } from 'react-router';
+import { render, screen } from '@testing-library/react';
+import { CoberturaCard } from '@/features/cobertura/CoberturaCard';
+import { buscarPlan } from '@/mock/planes';
+
+const NEXO_2 = buscarPlan('nexo-2')!;
+
+test('muestra el plan, su precio y el próximo vencimiento', () => {
+  render(
+    <MemoryRouter>
+      <CoberturaCard plan={NEXO_2} estado="activo" proximoVencimiento="01/10/2026" />
+    </MemoryRouter>,
+  );
+  expect(screen.getByText('Nexo II')).toBeInTheDocument();
+  expect(screen.getByText('$12.000,00 por mes')).toBeInTheDocument();
+  expect(screen.getByText('Vence el 01/10/2026')).toBeInTheDocument();
+});
+
+test('activa muestra el chip verde y ningún CTA de completar perfil', () => {
+  render(
+    <MemoryRouter>
+      <CoberturaCard plan={NEXO_2} estado="activo" proximoVencimiento="01/10/2026" />
+    </MemoryRouter>,
+  );
+  expect(screen.getByText('Activa')).toBeInTheDocument();
+  expect(screen.queryByRole('link', { name: 'Completar perfil' })).not.toBeInTheDocument();
+});
+
+test('pendiente de activación ofrece completar el perfil', () => {
+  render(
+    <MemoryRouter>
+      <CoberturaCard plan={NEXO_2} estado="pagadoSinPerfil" proximoVencimiento="01/10/2026" />
+    </MemoryRouter>,
+  );
+  expect(screen.getByText('Pendiente de activación')).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Completar perfil' })).toHaveAttribute('href', '/perfil/completar');
+});
