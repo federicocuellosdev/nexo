@@ -6,11 +6,20 @@ import type { NavItem } from '@/ui/tipos';
 export interface SidebarProps {
   marca: ReactNode;
   items: NavItem[];
+  /**
+   * Quién está usando el portal. Va abajo de la navegación y arriba del pie.
+   *
+   * No es decoración de relleno: la columna quedaba con ~400px muertos entre la
+   * nav y el pie, y en una herramienta que se usa a diario "de quién es esta
+   * sesión" es dato de trabajo, no adorno. Es el mismo lugar donde lo ponen
+   * Linear, Notion y Vercel.
+   */
+  identidad?: ReactNode;
   pie?: ReactNode;
 }
 
 /** Menú lateral de escritorio (≥ lg). Debajo de ese ancho manda `BottomNav`. */
-export function Sidebar({ marca, items, pie }: SidebarProps) {
+export function Sidebar({ marca, items, identidad, pie }: SidebarProps) {
   return (
     <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:flex lg:w-64 lg:flex-col lg:border-r lg:border-ink-100 lg:bg-white lg:px-4 lg:py-6">
       <div className="px-2 pb-8">{marca}</div>
@@ -39,7 +48,8 @@ export function Sidebar({ marca, items, pie }: SidebarProps) {
           ))}
         </ul>
       </nav>
-      {pie ? <div className="border-t border-ink-100 pt-4">{pie}</div> : null}
+      {identidad ? <div className="mt-4">{identidad}</div> : null}
+      {pie ? <div className="mt-4 border-t border-ink-100 pt-4">{pie}</div> : null}
     </aside>
   );
 }

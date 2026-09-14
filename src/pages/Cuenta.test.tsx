@@ -17,9 +17,14 @@ beforeEach(() => {
 test('muestra los datos del usuario base', () => {
   seedDemo('activo');
   montar();
-  expect(screen.getByText('Camila Pérez')).toBeInTheDocument();
-  expect(screen.getByText('camila.perez@ejemplo.com')).toBeInTheDocument();
-  expect(screen.getByText('3415551234')).toBeInTheDocument();
+  // Acotado a `main`: el nombre también aparece en el bloque de identidad del
+  // Sidebar, que está fuera de la pantalla. Buscarlo en todo el documento
+  // encontraba dos y fallaba por ambigüedad, no porque la pantalla estuviera
+  // mal. Así el test verifica lo que dice verificar: los datos EN /cuenta.
+  const pantalla = within(screen.getByRole('main'));
+  expect(pantalla.getByText('Camila Pérez')).toBeInTheDocument();
+  expect(pantalla.getByText('camila.perez@ejemplo.com')).toBeInTheDocument();
+  expect(pantalla.getByText('3415551234')).toBeInTheDocument();
 });
 
 test('muestra el domicilio cargado en el perfil', () => {
