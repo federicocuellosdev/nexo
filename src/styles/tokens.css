@@ -23,6 +23,22 @@
   --text-3xl: 2.5rem;
   --text-3xl--line-height: 2.7rem;
 
+  /* Escala display (4xl–6xl): sólo para los títulos del lenguaje editorial de
+     la landing. La escala de arriba (xs–3xl) es la de aplicación y no se toca:
+     el portal la comparte byte a byte.
+     Fluida con clamp() porque un 96px fijo revienta en 390px de ancho, y con
+     tracking proporcional al tamaño: el -0.01em que global.css aplica a todo
+     h1/h2/h3 se lee suelto a partir de los 56px. */
+  --text-4xl: clamp(2.5rem, 4vw + 1rem, 3.5rem);
+  --text-4xl--line-height: 1.05;
+  --text-4xl--letter-spacing: -0.02em;
+  --text-5xl: clamp(3rem, 6vw + 1rem, 4.5rem);
+  --text-5xl--line-height: 1;
+  --text-5xl--letter-spacing: -0.03em;
+  --text-6xl: clamp(3.5rem, 8vw + 1rem, 6rem);
+  --text-6xl--line-height: 0.95;
+  --text-6xl--letter-spacing: -0.04em;
+
   /* Marca — purple #8660ef de Nexo 2.0 como 500 */
   --color-marca-50: #f1ecfe;
   --color-marca-100: #e3d8fd;
