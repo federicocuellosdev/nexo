@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router';
 import { parsearCallback } from '@/lib/callback';
 import { getSession, setSession } from '@/mock/session';
 import { Skeleton } from '@/ui/Skeleton';
+import { LogoNexo } from '@/ui/LogoNexo';
 
 /** Espera simulada de validación del token (spec §6). */
 const MS_VALIDACION = 600;
@@ -48,6 +49,13 @@ export function AuthCallback() {
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-[420px] flex-col justify-center px-4">
+      {/* Misma razón que en /ingresar: esta pantalla vive fuera de PortalLayout
+          y se llega a ella desde un enlace de mail. Sin marca, medio segundo de
+          "Validando tu enlace…" sobre fondo gris no dice a dónde se llegó. */}
+      <div className="mb-8 flex justify-center">
+        <LogoNexo alto={26} etiqueta={null} />
+      </div>
+
       <p role="status" className="text-center text-base text-ink-700">
         Validando tu enlace…
       </p>

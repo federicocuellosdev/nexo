@@ -6,6 +6,7 @@ import { Field } from '@/ui/Field';
 import { Input } from '@/ui/Input';
 import { Button } from '@/ui/Button';
 import { landingUrl } from '@/lib/urls';
+import { LogoNexo } from '@/ui/LogoNexo';
 
 /** Misma regla que la validación del alta en la landing: solo errores evidentes. */
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -34,13 +35,27 @@ export function Ingresar() {
   }
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-[440px] flex-col justify-center px-4 py-12">
+    <div data-entrada className="mx-auto flex min-h-dvh max-w-[440px] flex-col justify-center px-4 py-12">
+      {/* El logo va acá y no en un layout porque /ingresar y /auth/callback
+          viven FUERA de PortalLayout, sin sidebar ni topbar (también /demo y
+          /verificar). Y son justo a las que se llega desde afuera —un mail, un
+          QR—, donde lo primero que hay que responder es "¿estoy en el lugar
+          correcto?".
+          Decorativo (`etiqueta={null}`): el <h1> de abajo ya nombra la pantalla. */}
+      <div className="mb-8 flex justify-center">
+        <LogoNexo alto={26} etiqueta={null} />
+      </div>
+
       {enviado ? (
         <RevisaTuMail email={email.trim()} hrefEnlace={construirCallbackLogin(email)} />
       ) : (
         <>
-          <h1 className="text-2xl text-ink-950">Ingresá a tu portal</h1>
-          <p className="mt-2 text-sm text-ink-600">
+          {/* Centrado: el logo y el pie ya lo estaban, y un título alineado a
+              la izquierda entre los dos rompía el eje de la pantalla. Los
+              campos del formulario siguen alineados a la izquierda, que es
+              donde tienen que estar para completarse. */}
+          <h1 className="text-center text-2xl text-ink-950">Ingresá a tu portal</h1>
+          <p className="mt-2 text-center text-sm text-ink-600">
             Te mandamos un enlace por mail. No hace falta contraseña.
           </p>
 
