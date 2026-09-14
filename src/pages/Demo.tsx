@@ -16,6 +16,9 @@ const ATAJOS = [
   { to: '/movimientos', label: 'Movimientos' },
   { to: '/planes', label: 'Planes' },
   { to: '/cuenta', label: 'Cuenta' },
+  // Con el preset "Nexo II activo" resuelve; con cualquier otro cae en
+  // "No encontrado", que es justo lo que hay que poder mostrar.
+  { to: '/verificar/1547', label: 'Verificar credencial' },
 ];
 
 /**

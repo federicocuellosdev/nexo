@@ -29,8 +29,12 @@ test('muestra las novedades', () => {
 test('con cobertura activa muestra la tarjeta del plan', () => {
   seedDemo('activo');
   montar();
-  expect(screen.getByText('Nexo II')).toBeInTheDocument();
-  expect(screen.getByText('Activa')).toBeInTheDocument();
+  // Por rol y no por texto: desde que /inicio muestra la credencial, el nombre
+  // del plan y el chip de estado aparecen DOS veces —una en la tarjeta de
+  // cobertura, otra en la credencial—. Antes esta aserción se apoyaba en que
+  // fueran únicos en el documento, que nunca fue lo que quería comprobar.
+  expect(screen.getByRole('heading', { name: 'Nexo II', level: 2 })).toBeInTheDocument();
+  expect(screen.getAllByText('Activa')).toHaveLength(2);
 });
 
 test('muestra los tres accesos rápidos', () => {

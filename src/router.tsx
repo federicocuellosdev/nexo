@@ -14,6 +14,7 @@ import { Coberturas } from '@/pages/Coberturas';
 import { Movimientos } from '@/pages/Movimientos';
 import { Cuenta } from '@/pages/Cuenta';
 import { Demo } from '@/pages/Demo';
+import { Verificar } from '@/pages/Verificar';
 
 /**
  * Se exporta el arreglo además del router para que los tests puedan montar
@@ -25,6 +26,10 @@ export const rutas: RouteObject[] = [
   { path: '/auth/callback', element: <AuthCallback /> },
   { path: '/ingresar', element: <Ingresar /> },
   { path: '/demo', element: <Demo /> },
+  // Pública a propósito y fuera de `RequiereUsuario`: es la que abre una
+  // farmacia al escanear el QR de la credencial, y quien escanea no tiene —ni
+  // debería necesitar— cuenta en el portal.
+  { path: '/verificar/:numero', element: <Verificar /> },
   {
     path: '/',
     element: (
