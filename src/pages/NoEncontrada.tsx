@@ -13,7 +13,8 @@ export function NoEncontrada() {
     <div className="mx-auto max-w-[560px] px-4 py-16 lg:px-6">
       <EmptyState
         icono={Compass}
-        titulo="Esta página no existe"
+        como="h1"
+          titulo="Esta página no existe"
         descripcion="Puede que el enlace esté viejo o que la dirección tenga un error de tipeo."
       >
         <Link to="/" className={clasesBoton({ variante: 'secundario' })}>
