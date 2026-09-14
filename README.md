@@ -53,10 +53,23 @@ Sin eso el build falla, porque en la raíz del repo no hay `package.json`.
 ## Historial
 
 Las dos apps se incorporaron con `git subtree`, así que el historial completo
-de cada una está preservado dentro de este repo. Para ver los commits de una
-sola:
+de cada una está preservado dentro de este repo (122 commits en total: 70 de la
+landing, 49 del portal, más el commit inicial y los dos merges de importación).
+
+`git blame` cruza el límite de la importación sin problema, así que la
+arqueología de código funciona normal:
 
 ```bash
-git log --oneline -- apps/landing
-git log --oneline -- apps/portal
+git blame apps/landing/src/pages/Home.tsx
+```
+
+Lo que **no** funciona es filtrar el log por ruta. Los commits anteriores a la
+importación guardan sus rutas originales (`src/pages/Home.tsx`, no
+`apps/landing/src/pages/Home.tsx`), así que `git log -- apps/landing` sólo
+devuelve el commit de merge. Para recorrer el historial previo de cada app hay
+dos tags que apuntan a la cabeza de cada repo original:
+
+```bash
+git log --oneline historia/landing
+git log --oneline historia/portal
 ```
