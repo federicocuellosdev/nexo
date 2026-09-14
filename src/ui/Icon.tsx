@@ -12,7 +12,10 @@ export interface IconProps {
 }
 
 const TONOS: Record<Tono, string> = {
-  marca: 'bg-brand text-white',
+  /* Plano como el resto de los tonos (`bg-{tono}-50` + `text-{tono}-700`), no
+     con el degradado. `Badge` ya usaba exactamente este par para el tono marca:
+     era `Icon` el que rompía la consistencia del sistema. 6.91:1 de contraste. */
+  marca: 'bg-marca-50 text-marca-700',
   ok: 'bg-ok-50 text-ok-700',
   warn: 'bg-warn-50 text-warn-700',
   danger: 'bg-danger-50 text-danger-700',

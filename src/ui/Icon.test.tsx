@@ -12,9 +12,13 @@ test('con etiqueta se anuncia como imagen con nombre', () => {
   expect(screen.getByRole('img', { name: 'Incluido' })).toBeInTheDocument();
 });
 
-test('el círculo del tono marca usa el degradado', () => {
+test('el círculo del tono marca es plano, como el resto de los tonos', () => {
+  // `Badge` ya pintaba el tono marca con este mismo par (`marca-50`/`marca-700`);
+  // era `Icon` el único que usaba el degradado y rompía la consistencia.
   const { container } = render(<Icon icono={Check} tono="marca" />);
-  expect(container.firstElementChild).toHaveClass('bg-brand');
+  expect(container.firstElementChild).toHaveClass('bg-marca-50');
+  expect(container.firstElementChild).toHaveClass('text-marca-700');
+  expect(container.firstElementChild).not.toHaveClass('bg-brand');
 });
 
 test('el tamaño sm reduce el círculo', () => {
