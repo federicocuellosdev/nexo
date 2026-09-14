@@ -15,22 +15,40 @@ export interface CoberturaCardProps {
   proximoVencimiento: string;
 }
 
-/** Patrón MercadoPago: título + dato grande + acción secundaria. */
+/**
+ * Patrón MercadoPago: título + dato grande + acción secundaria.
+ *
+ * Es el bloque MÁS importante de /inicio y /coberturas: responde "¿estoy
+ * cubierto y hasta cuándo?", que es a lo que se entra al portal. Por eso pesa
+ * más que el resto — anillo de marca suave en vez del neutro, más aire interno
+ * y el nombre del plan un paso más grande. Antes tenía exactamente el mismo
+ * tratamiento que un acceso rápido, que es sólo navegación.
+ *
+ * NO usa `Card destacada`: ese anillo (`ring-2 ring-marca-500`) significa "esta
+ * es la elegida ENTRE VARIAS" —el plan recomendado, el plan activo dentro de
+ * una grilla— y acá la tarjeta está sola, no compitiendo con hermanas. El
+ * `ring-marca-100` dice "esto importa", que es otra cosa.
+ */
 export function CoberturaCard({ plan, estado, proximoVencimiento }: CoberturaCardProps) {
   return (
-    <Card className="flex flex-col gap-4">
+    <Card className="flex flex-col gap-5 p-5 ring-marca-100 lg:p-6">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <Icon icono={ShieldCheck} tono="marca" />
           <div className="min-w-0">
             <p className="text-sm text-ink-500">Tu cobertura</p>
-            <h3 className="font-display text-xl text-ink-950">{plan.nombre}</h3>
+            {/* h2 y no h3: su único consumidor (Inicio.tsx) la monta dentro de
+                `<section aria-label="Tu cobertura">`, que no tiene encabezado
+                visible, así que este cuelga directo del h1 del saludo. Con h3
+                el documento saltaba un nivel (WCAG 1.3.1). Lo verifica
+                `src/pages/jerarquiaEncabezados.test.tsx`. */}
+            <h2 className="font-display text-2xl text-ink-950">{plan.nombre}</h2>
           </div>
         </div>
         <CoberturaEstado estado={estado} />
       </div>
 
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
+      <div className="flex flex-wrap items-baseline justify-between gap-2 border-t border-ink-100 pt-4">
         <Money monto={plan.precio} periodo="por mes" tamano="lg" />
         <span className="text-sm text-ink-500">{`Vence el ${proximoVencimiento}`}</span>
       </div>
@@ -48,10 +66,11 @@ export function CoberturaCard({ plan, estado, proximoVencimiento }: CoberturaCar
           </Link>
         </div>
       ) : estado === 'conCuentaSinPago' ? (
-        // NO ES CÓDIGO MUERTO, aunque hoy no se alcance: los dos consumidores
-        // de <CoberturaCard/> (Inicio.tsx, Coberturas.tsx) solo la montan
-        // cuando `planContratado(sesion)` devuelve un plan, y ese helper
-        // exige una orden PAGADA — mutuamente excluyente con conCuentaSinPago.
+        // NO ES CÓDIGO MUERTO, aunque hoy no se alcance: su único consumidor
+        // —Inicio.tsx; Coberturas.tsx dejó de usarla y arma su propia tarjeta—
+        // solo la monta cuando `planContratado(sesion)` devuelve un plan, y ese
+        // helper exige una orden PAGADA — mutuamente excluyente con
+        // conCuentaSinPago.
         // Ese hueco (elegir un plan y no pagarlo, sin ver ningún recordatorio)
         // se cerró en Inicio.tsx leyendo `sesion.intent` directamente, sin
         // pasar por acá. Esta rama queda para el día en que `plan` deje de
