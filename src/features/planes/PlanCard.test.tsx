@@ -2,25 +2,10 @@ import { MemoryRouter } from 'react-router';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { PlanCard } from '@/features/planes/PlanCard';
-import { buscarPlan, type Plan } from '@/mock/planes';
+import { buscarPlan } from '@/mock/planes';
 
 const NEXO_1 = buscarPlan('nexo-1')!;
 const NEXO_2 = buscarPlan('nexo-2')!;
-
-/** Plan sintético: 5 prestaciones incluidas, solo la 5ª pendiente de confirmar. */
-const PLAN_CON_RECORTE_PENDIENTE: Plan = {
-  slug: 'nexo-3',
-  nombre: 'Nexo Test',
-  precio: 10000,
-  bajada: 'Plan de prueba para el recorte del teaser.',
-  prestaciones: [
-    { label: 'Prestación 1', estado: 'incluido' },
-    { label: 'Prestación 2', estado: 'incluido' },
-    { label: 'Prestación 3', estado: 'incluido' },
-    { label: 'Prestación 4', estado: 'incluido' },
-    { label: 'Prestación 5', estado: 'incluido', pendiente: true },
-  ],
-};
 
 test('muestra nombre, bajada y precio del plan', () => {
   render(
@@ -30,46 +15,55 @@ test('muestra nombre, bajada y precio del plan', () => {
   );
   expect(screen.getByRole('heading', { name: 'Nexo II' })).toBeInTheDocument();
   expect(screen.getByText('Seguro de salud, farmacia y óptica, con telemedicina.')).toBeInTheDocument();
-  expect(screen.getByText('$12.000,00 por mes')).toBeInTheDocument();
+  expect(screen.getByText('$12.000')).toBeInTheDocument();
+  expect(screen.getByText('por mes')).toBeInTheDocument();
 });
 
-test('lista solo las prestaciones incluidas, hasta cuatro', () => {
+test('lista TODAS las prestaciones del plan, no sólo las incluidas', () => {
   render(
     <MemoryRouter>
       <PlanCard plan={NEXO_2} hrefDetalle="/planes/nexo-2" />
     </MemoryRouter>,
   );
-  expect(screen.getAllByRole('listitem')).toHaveLength(4);
-  expect(screen.queryByText('Emergencias médicas')).not.toBeInTheDocument();
+  // Nexo II tiene 8: incluidas, con coseguro y no incluidas. Antes la tarjeta
+  // filtraba a `incluido` y cortaba en 4, así que escondía los coseguros
+  // —prestaciones que SÍ tenés, con copago— y las exclusiones.
+  expect(screen.getAllByRole('listitem')).toHaveLength(NEXO_2.prestaciones.length);
 });
 
-test('si el recorte de cuatro descarta una prestación pendiente, muestra el chip "datos a confirmar"', () => {
-  render(
-    <MemoryRouter>
-      <PlanCard plan={PLAN_CON_RECORTE_PENDIENTE} hrefDetalle="/planes/test" />
-    </MemoryRouter>,
-  );
-  expect(screen.getAllByRole('listitem')).toHaveLength(4);
-  expect(screen.queryByText('Prestación 5')).not.toBeInTheDocument();
-  expect(screen.getByText('datos a confirmar')).toBeInTheDocument();
-});
-
-test('si el recorte no descarta ninguna prestación pendiente, no muestra el chip "datos a confirmar"', () => {
+test('muestra las prestaciones NO incluidas: no se asume por omisión', () => {
   render(
     <MemoryRouter>
       <PlanCard plan={NEXO_2} hrefDetalle="/planes/nexo-2" />
     </MemoryRouter>,
   );
-  expect(screen.queryByText('datos a confirmar')).not.toBeInTheDocument();
+  // `no-incluido` es un estado EXPLÍCITO en mock/planes.ts justamente para que
+  // nadie crea que un plan trae ambulancia porque nadie dijo lo contrario.
+  expect(screen.getByText('Emergencias médicas')).toBeInTheDocument();
+  expect(screen.getByText('Guardia odontológica')).toBeInTheDocument();
 });
 
-test('si una prestación pendiente no incluida no se muestra en el teaser, igual señala el chip "datos a confirmar"', () => {
+test('muestra los coseguros, que son prestaciones cubiertas con copago', () => {
+  render(
+    <MemoryRouter>
+      <PlanCard plan={NEXO_2} hrefDetalle="/planes/nexo-2" />
+    </MemoryRouter>,
+  );
+  expect(screen.getByText('Doc24 · Clínica')).toBeInTheDocument();
+  expect(screen.getByText('1 consulta sin cargo · luego $18.000')).toBeInTheDocument();
+});
+
+test('ya no existe el chip "datos a confirmar" de la tarjeta entera', () => {
+  // Existía sólo para avisar que el recorte de cuatro había tapado algo
+  // pendiente. Sin recorte no hay nada tapado, y cada prestación lleva su
+  // propio chip donde corresponde.
   render(
     <MemoryRouter>
       <PlanCard plan={NEXO_1} hrefDetalle="/planes/nexo-1" />
     </MemoryRouter>,
   );
-  expect(screen.getByText('datos a confirmar')).toBeInTheDocument();
+  expect(screen.queryByText('datos a confirmar')).not.toBeInTheDocument();
+  expect(screen.getAllByText('a confirmar').length).toBeGreaterThan(0);
 });
 
 test('las prestaciones sin confirmar llevan el chip "a confirmar"', () => {

@@ -7,13 +7,19 @@ import { ETIQUETA, GLIFO, TONO } from '@/features/planes/estadoPrestacion';
 
 export interface PlanPrestacionesProps {
   prestaciones: Prestacion[];
+  /**
+   * Versión apretada para las tarjetas de plan: sin líneas divisorias y con
+   * menos aire vertical. La ficha de plan usa la versión normal, donde la
+   * lista ES el contenido y puede respirar.
+   */
+  compacto?: boolean;
 }
 
-export function PlanPrestaciones({ prestaciones }: PlanPrestacionesProps) {
+export function PlanPrestaciones({ prestaciones, compacto = false }: PlanPrestacionesProps) {
   return (
-    <ul className="flex flex-col divide-y divide-ink-100">
+    <ul className={cn('flex flex-col', compacto ? 'gap-3' : 'divide-y divide-ink-100')}>
       {prestaciones.map((prestacion) => (
-        <li key={prestacion.label} className="flex items-start gap-3 py-3">
+        <li key={prestacion.label} className={cn('flex items-start gap-3', compacto ? '' : 'py-3')}>
           <Icon
             icono={GLIFO[prestacion.estado]}
             tono={TONO[prestacion.estado]}
@@ -24,7 +30,7 @@ export function PlanPrestaciones({ prestaciones }: PlanPrestacionesProps) {
             <div className="flex flex-wrap items-center gap-2">
               <span
                 className={cn(
-                  'text-base',
+                  compacto ? 'text-sm' : 'text-base',
                   prestacion.estado === 'no-incluido' ? 'text-ink-400 line-through' : 'text-ink-900',
                 )}
               >
@@ -36,7 +42,9 @@ export function PlanPrestaciones({ prestaciones }: PlanPrestacionesProps) {
                 </Chip>
               ) : null}
             </div>
-            {prestacion.detalle ? <p className="mt-0.5 text-sm text-ink-600">{prestacion.detalle}</p> : null}
+            {prestacion.detalle ? (
+              <p className={cn('mt-0.5 text-ink-600', compacto ? 'text-xs' : 'text-sm')}>{prestacion.detalle}</p>
+            ) : null}
           </div>
         </li>
       ))}

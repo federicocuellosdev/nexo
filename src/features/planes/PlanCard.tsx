@@ -1,11 +1,9 @@
 import { Link } from 'react-router';
-import { Check, CircleAlert } from 'lucide-react';
 import type { Plan } from '@/mock/planes';
+import { formatearPrecio } from '@/lib/formato';
+import { PlanPrestaciones } from '@/features/planes/PlanPrestaciones';
 import { Card } from '@/ui/Card';
 import { Badge } from '@/ui/Badge';
-import { Chip } from '@/ui/Chip';
-import { Icon } from '@/ui/Icon';
-import { Money } from '@/ui/Money';
 import { Button, clasesBoton } from '@/ui/Button';
 
 export interface PlanCardProps {
@@ -21,8 +19,24 @@ export interface PlanCardProps {
   etiquetaCta?: string;
 }
 
-const MAXIMO_PRESTACIONES = 4;
-
+/**
+ * Tarjeta de plan.
+ *
+ * Muestra la lista COMPLETA de prestaciones, incluidas las que el plan NO
+ * cubre (tachadas) y las que tienen coseguro. Antes filtraba a `incluido` y
+ * cortaba en cuatro, así que escondía dos cosas importantes: los coseguros
+ * —que son prestaciones que SÍ tenés, con copago— y las exclusiones.
+ *
+ * Ocultar una exclusión no es neutral: `mock/planes.ts` define `no-incluido`
+ * como un estado EXPLÍCITO justamente para que nadie asuma por omisión que
+ * un plan trae ambulancia. Una tarjeta que sólo lista lo bueno obliga a entrar
+ * a la ficha para descubrir lo que falta.
+ *
+ * Al mostrarse todo desapareció el chip "datos a confirmar" a nivel tarjeta:
+ * existía sólo para avisar que el recorte de cuatro había tapado algo
+ * pendiente. Sin recorte, cada prestación lleva su propio chip donde
+ * corresponde.
+ */
 export function PlanCard({
   plan,
   destacado = false,
@@ -31,12 +45,8 @@ export function PlanCard({
   onCta,
   etiquetaCta = 'Ver plan',
 }: PlanCardProps) {
-  const incluidas = plan.prestaciones.filter((p) => p.estado === 'incluido');
-  const mostradas = incluidas.slice(0, MAXIMO_PRESTACIONES);
-  const hayPendienteOculto = plan.prestaciones.some((p) => p.pendiente && !mostradas.includes(p));
-
   return (
-    <Card as="article" destacada={destacado || activo} className="flex flex-col gap-4">
+    <Card as="article" destacada={destacado || activo} className="flex h-full flex-col gap-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="font-display text-xl text-ink-950">{plan.nombre}</h3>
@@ -45,27 +55,16 @@ export function PlanCard({
         {activo ? <Badge tono="ok">Tu plan</Badge> : destacado ? <Badge tono="marca">Recomendado</Badge> : null}
       </div>
 
-      <Money monto={plan.precio} periodo="por mes" tamano="lg" />
+      {/* Precio grande y en tinta plena, NO en degradado como la referencia:
+          el degradado violeta→rosa da 2.97:1 sobre blanco en su extremo, y
+          este es el número más importante de la tarjeta. Es el peor lugar
+          posible para el peor contraste de la página. */}
+      <p className="flex items-baseline gap-1.5">
+        <span className="font-display text-4xl text-ink-950">{formatearPrecio(plan.precio)}</span>
+        <span className="text-sm text-ink-500">por mes</span>
+      </p>
 
-      <ul className="flex flex-col gap-2.5">
-        {mostradas.map((prestacion) => (
-          <li key={prestacion.label} className="flex items-center gap-2.5 text-sm text-ink-700">
-            <Icon icono={Check} tono="ok" tamano="sm" />
-            <span className="min-w-0 flex-1">{prestacion.label}</span>
-            {prestacion.pendiente ? (
-              <Chip tono="warn" icono={CircleAlert}>
-                a confirmar
-              </Chip>
-            ) : null}
-          </li>
-        ))}
-      </ul>
-
-      {hayPendienteOculto ? (
-        <Chip tono="warn" icono={CircleAlert}>
-          datos a confirmar
-        </Chip>
-      ) : null}
+      <PlanPrestaciones prestaciones={plan.prestaciones} compacto />
 
       <div className="mt-auto pt-1">
         {onCta ? (
