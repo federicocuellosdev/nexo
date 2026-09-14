@@ -6,6 +6,7 @@ import { Catalogo } from '@/pages/Catalogo';
 import { FichaPlan } from '@/pages/FichaPlan';
 import { FichaProducto } from '@/pages/FichaProducto';
 import { RevisaTuMail } from '@/pages/RevisaTuMail';
+import { Terminos } from '@/pages/Terminos';
 import { NoEncontrada } from '@/pages/NoEncontrada';
 
 /**
@@ -22,6 +23,7 @@ export const rutas: RouteObject[] = [
       { path: 'planes/:slug', element: <FichaPlan /> },
       { path: 'productos/:id', element: <FichaProducto /> },
       { path: 'revisa-tu-mail', element: <RevisaTuMail /> },
+      { path: 'terminos', element: <Terminos /> },
       { path: '*', element: <NoEncontrada /> },
     ],
   },
