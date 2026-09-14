@@ -39,6 +39,62 @@ cd apps/portal  && npm install && npm run dev   # http://localhost:5174
 
 La landing además tiene `npm run e2e` (Playwright).
 
+## Flujo de trabajo diario
+
+Git no sincroniza solo: los cambios llegan a GitHub cuando vos los mandás.
+
+```bash
+# 1. Traer lo último antes de empezar
+git pull
+
+# 2. Trabajar. Levantar la app que toque:
+cd apps/landing && npm run dev    # http://localhost:5173
+cd apps/portal  && npm run dev    # http://localhost:5174
+
+# 3. Antes de commitear, que la app que tocaste esté en verde
+npm run typecheck && npm test
+
+# 4. Commitear por unidad de trabajo, no por archivo suelto
+git add <archivos>
+git commit -m "feat(ambito): lo que se logró"
+
+# 5. Subir
+git push
+```
+
+### Antes del primer push del día
+
+El push usa **la cuenta de GitHub activa en `gh`**, y hay varias configuradas en
+la máquina. Sólo una tiene permiso de escritura:
+
+```bash
+gh api user --jq '.login'              # tiene que decir: previncanexo
+gh auth switch --user previncanexo     # si dice otra cosa
+```
+
+Si pushea con la cuenta equivocada, GitHub responde 403 sin más explicación.
+
+### Convención de commits
+
+Conventional commits **en español**, describiendo el resultado y no la lista de
+archivos:
+
+```
+feat(credencial): credencial digital descargable con QR de verificacion
+fix(a11y): permitir elegir el nivel de encabezado de EmptyState
+```
+
+Un commit = una unidad de trabajo terminada, con sus tests incluidos. Si el
+repo no compila después de aplicar sólo ese commit, el commit está mal cortado.
+
+### Los datos de planes están duplicados a propósito
+
+`src/mock/planes.ts` existe igual en las dos apps y un test los compara **byte a
+byte** (`apps/portal/src/mock/planes.paridad.test.ts`). Si tocás precios o
+prestaciones en una, replicalo en la otra o los tests fallan. Es a propósito:
+evita que el comparador de la landing y el pago del portal muestren números
+distintos.
+
 ## Despliegue
 
 Este repo es un monorepo sin workspaces: cada app se despliega como un proyecto
