@@ -1,0 +1,28 @@
+/* Fuentes auto-hospedadas (mismo origen, cache inmutable) con font-display: swap.
+   Cargarlas desde Google Fonts causaba FOIT en mobile en Nexo 2.0: el texto quedaba
+   invisible hasta que llegaba la fuente. Subset latin (á é í ó ú ñ ¿ ¡).
+   DM Sans es variable: un solo archivo cubre 100–1000. */
+
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 100 1000;
+  font-display: swap;
+  src: url('/fonts/dm-sans-latin.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'DM Serif Display';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/dm-serif-display-latin.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'DM Serif Display';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/dm-serif-display-italic-latin.woff2') format('woff2');
+}

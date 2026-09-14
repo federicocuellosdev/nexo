@@ -1,0 +1,31 @@
+/* Fuentes AUTO-HOSPEDADAS (mismo origen, cache inmutable) con font-display: swap.
+   Antes se cargaban desde Google Fonts (<link preload as=style onload>). En mobile eso
+   causaba FOIT: el texto quedaba INVISIBLE hasta que llegaba la fuente → pantalla "en
+   blanco y después todo junto". Con swap + mismo origen + preload, el texto sale al
+   instante en fuente de sistema y cambia a la de marca cuando llega, sin bloquear.
+   Subset latin (cubre español: á é í ó ú ñ ¿ ¡). DM Sans es fuente variable (un solo
+   archivo cubre 100–1000, incluido 300). */
+
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 100 1000;
+  font-display: swap;
+  src: url('/fonts/dm-sans-latin.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'DM Serif Display';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/dm-serif-display-latin.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'DM Serif Display';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/dm-serif-display-italic-latin.woff2') format('woff2');
+}

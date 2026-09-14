@@ -1,0 +1,153 @@
+/* Sistema de motion del PORTAL.
+
+   Es deliberadamente distinto al de la landing, y la diferencia no es de
+   cantidad sino de tipo.
+
+   La landing PERSUADE: el visitante decide, y ahí el movimiento acompaña la
+   lectura (reveals por scroll, parallax, entradas largas).
+
+   El portal OPERA: Camila entra a ver si su cobertura está activa y cuándo
+   vence. Todo movimiento que se interponga entre ella y ese dato es una
+   pérdida. Por eso acá NO hay reveals por scroll ni parallax: el contenido de
+   una herramienta se muestra, no se revela.
+
+   Lo que sí queda es movimiento que hace su trabajo:
+     - entrada al montar, para que una lista no aparezca de golpe
+     - feedback de hover y presión
+     - transición entre rutas, que da continuidad espacial
+
+   Misma regla de oro que en la landing: NADA acá puede dejar contenido
+   invisible por sí solo. Todo estado oculto vive detrás de `.js` en <html> y
+   de `prefers-reduced-motion: no-preference`. */
+
+/* ─────────────────────────────────────────────────────────────
+   Entrada al montar. No al scrollear.
+   ───────────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: no-preference) {
+  .js [data-entrada] > * {
+    animation: entrada-portal 420ms var(--ease-out-quart) both;
+    animation-delay: calc(var(--indice, 0) * 45ms);
+  }
+}
+
+/* 420ms y 45ms de stagger, contra los 700/80 de la landing: en una pantalla que
+   se visita todos los días, la misma animación que encanta la primera vez
+   estorba la décima. */
+@keyframes entrada-portal {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* El índice se asigna por posición en el DOM. Se cubren 8 posiciones porque las
+   listas del portal (movimientos, prestaciones) son más largas que las
+   secciones de la landing; a partir de la 9ª comparten el último retraso, que
+   a 360ms ya es imperceptible. */
+.js [data-entrada] > *:nth-child(2) {
+  --indice: 1;
+}
+.js [data-entrada] > *:nth-child(3) {
+  --indice: 2;
+}
+.js [data-entrada] > *:nth-child(4) {
+  --indice: 3;
+}
+.js [data-entrada] > *:nth-child(5) {
+  --indice: 4;
+}
+.js [data-entrada] > *:nth-child(6) {
+  --indice: 5;
+}
+.js [data-entrada] > *:nth-child(7) {
+  --indice: 6;
+}
+.js [data-entrada] > *:nth-child(n + 8) {
+  --indice: 7;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Hover y presión — gateado a punteros finos.
+   En touch, :hover se dispara al tocar y queda pegado.
+   ───────────────────────────────────────────────────────────── */
+
+@media (hover: hover) and (pointer: fine) {
+  [data-elevar] {
+    transition:
+      transform 160ms var(--ease-out-quart),
+      box-shadow 160ms var(--ease-out-quart);
+  }
+
+  [data-elevar]:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-elevada);
+  }
+}
+
+/* El -1px (contra los -2px de la landing) es a propósito: acá el hover confirma
+   que algo es accionable, no invita a explorarlo. */
+
+/* ─────────────────────────────────────────────────────────────
+   Celebración — el ÚNICO lugar del portal con presupuesto de delight
+   ───────────────────────────────────────────────────────────── */
+
+/* La confirmación de pago es del tier "raro / primera vez": se ve una vez por
+   contratación, no todos los días. Es exactamente donde una animación puede
+   permitirse ser expresiva sin volverse ruido.
+   Nada de esto se repite en bucle: un pulso infinito en una pantalla estática
+   deja de ser celebración y pasa a ser una alarma. */
+
+@media (prefers-reduced-motion: no-preference) {
+  .js [data-celebrar] {
+    animation: celebrar 600ms var(--ease-out-expo) both;
+  }
+
+  /* Un solo anillo que se expande y se apaga. Va en ::after para no necesitar
+     un elemento de más en el JSX. */
+  .js [data-celebrar]::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: 0 0 0 0 var(--color-ok-500);
+    animation: onda 900ms var(--ease-out-quart) 180ms both;
+  }
+}
+
+/* Arranca en 0.8, nunca en 0: nada en el mundo real aparece de la nada. */
+@keyframes celebrar {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
+
+@keyframes onda {
+  from {
+    box-shadow: 0 0 0 0 color-mix(in oklch, var(--color-ok-500) 45%, transparent);
+  }
+  to {
+    box-shadow: 0 0 0 18px transparent;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Transición entre rutas
+   ───────────────────────────────────────────────────────────── */
+
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 180ms;
+  animation-timing-function: var(--ease-out-quart);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @view-transition {
+    navigation: none;
+  }
+}

@@ -1,0 +1,84 @@
+import type { InitialEntry } from 'react-router';
+import { createMemoryRouter, RouterProvider } from 'react-router';
+import { render, screen } from '@testing-library/react';
+import { rutas } from '@/router';
+import { resetSession, seedDemo, setSession } from '@/mock/session';
+import { USUARIO_DEMO } from '@/mock/usuarios';
+
+function montar(entrada: InitialEntry = '/inicio') {
+  const router = createMemoryRouter(rutas, { initialEntries: [entrada] });
+  return render(<RouterProvider router={router} />);
+}
+
+beforeEach(() => {
+  resetSession();
+});
+
+test('saluda por el nombre', () => {
+  seedDemo('activo');
+  montar();
+  expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Hola, Camila');
+});
+
+test('muestra las novedades', () => {
+  seedDemo('activo');
+  montar();
+  expect(screen.getByRole('list', { name: 'Novedades' })).toBeInTheDocument();
+});
+
+test('con cobertura activa muestra la tarjeta del plan', () => {
+  seedDemo('activo');
+  montar();
+  // Por rol y no por texto: desde que /inicio muestra la credencial, el nombre
+  // del plan y el chip de estado aparecen DOS veces —una en la tarjeta de
+  // cobertura, otra en la credencial—. Antes esta aserción se apoyaba en que
+  // fueran únicos en el documento, que nunca fue lo que quería comprobar.
+  expect(screen.getByRole('heading', { name: 'Nexo II', level: 2 })).toBeInTheDocument();
+  expect(screen.getAllByText('Activa')).toHaveLength(2);
+});
+
+test('muestra los tres accesos rápidos', () => {
+  seedDemo('activo');
+  montar();
+  expect(screen.getByRole('link', { name: 'Ver coberturas' })).toHaveAttribute('href', '/coberturas');
+  expect(screen.getByRole('link', { name: 'Contratar producto' })).toHaveAttribute('href', '/planes');
+  expect(screen.getByRole('link', { name: 'Mis movimientos' })).toHaveAttribute('href', '/movimientos');
+});
+
+test('lista como mucho los últimos tres movimientos', () => {
+  seedDemo('activo');
+  montar();
+  const seccion = screen.getByRole('region', { name: 'Últimos movimientos' });
+  expect(seccion.querySelectorAll('li').length).toBeLessThanOrEqual(3);
+});
+
+test('sin plan contratado invita a elegir uno', () => {
+  setSession({ usuario: USUARIO_DEMO });
+  montar();
+  expect(screen.getByRole('heading', { name: 'Todavía no tenés un plan' })).toBeInTheDocument();
+});
+
+test('eligió un plan y no pagó: muestra el recordatorio de terminar la compra, no el genérico', () => {
+  setSession({ usuario: USUARIO_DEMO, intent: { tipo: 'plan', id: 'nexo-2' } });
+  montar();
+
+  expect(screen.queryByRole('heading', { name: 'Todavía no tenés un plan' })).not.toBeInTheDocument();
+  expect(screen.getByText(/Nexo II/)).toBeInTheDocument();
+  const cta = screen.getByRole('link', { name: /pagar/i });
+  expect(cta).toHaveAttribute('href', '/pago');
+});
+
+test('al venir de completar el perfil muestra el aviso de cobertura activa', () => {
+  seedDemo('activo');
+  montar({ pathname: '/inicio', state: { coberturaActivada: true } });
+  expect(screen.getByRole('status')).toHaveTextContent('Cobertura activa');
+});
+
+test('el aviso de cobertura activa no aparece si el estado real no es activo', () => {
+  // El state de navegación miente (o quedó viejo): el estado real de la
+  // sesión manda. Sin pago no hay cobertura que activar.
+  setSession({ usuario: USUARIO_DEMO });
+  montar({ pathname: '/inicio', state: { coberturaActivada: true } });
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Todavía no tenés un plan' })).toBeInTheDocument();
+});
