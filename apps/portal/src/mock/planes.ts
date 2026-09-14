@@ -4,8 +4,9 @@
  * `ON_DEMAND`, con los tipos redefinidos acá (spec §8). Todo lo demás del
  * archivo original era mecánica del 2.0 y no viaja.
  *
- * Este archivo se COPIA tal cual al repo `nexo-3.0-portal`: cualquier cambio
- * acá hay que replicarlo allá.
+ * Este archivo está DUPLICADO a propósito entre `apps/landing` y `apps/portal`
+ * (spec §2). El test de paridad los compara byte a byte: cualquier cambio acá
+ * hay que replicarlo en la otra app.
  */
 
 /**

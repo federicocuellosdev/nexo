@@ -18,8 +18,8 @@ import heroNexo3 from '@/assets/banner-comunidad-2.webp';
 
 /**
  * Foto de portada por plan. Vive acá y NO en `mock/planes.ts` a propósito: ese
- * archivo lo compara byte a byte el test de paridad del repo hermano
- * (`nexo-3.0-portal/src/mock/planes.paridad.test.ts`), así que agregarle un
+ * archivo lo compara byte a byte el test de paridad de la otra app
+ * (`apps/portal/src/mock/planes.paridad.test.ts`), así que agregarle un
  * campo `imagen` rompería el portal. Además la foto es una decisión de esta
  * landing, no un dato del producto.
  *

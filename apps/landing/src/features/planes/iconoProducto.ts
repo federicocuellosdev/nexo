@@ -5,7 +5,7 @@ import { BriefcaseMedical, House, Building2, HeartHandshake, TreeDeciduous } fro
  * Ícono por producto on demand.
  *
  * Vive acá y NO en `mock/planes.ts` a propósito: ese archivo lo compara byte a
- * byte el test de paridad del repo hermano (`nexo-3.0-portal`), así que
+ * byte el test de paridad de la otra app (`apps/portal`), así que
  * agregarle un campo `icono` rompería el portal. Y además el ícono es una
  * decisión de presentación, no un dato del producto.
  *
