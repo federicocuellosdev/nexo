@@ -1,0 +1,249 @@
+/* Sistema de motion de la landing.
+
+   Regla de oro: NADA en este archivo puede dejar contenido invisible por sí
+   solo. Todo estado oculto vive detrás de DOS puertas simultáneas:
+
+     1. `.js` en <html>  — la pone main.tsx. Sin JS, no hay nada oculto.
+     2. `prefers-reduced-motion: no-preference` para los desplazamientos.
+
+   Sin esas puertas, un fallo de JS o una preferencia de accesibilidad dejarían
+   la página en blanco: `global.css` fuerza `animation-duration: 0.01ms` bajo
+   movimiento reducido, así que un `opacity: 0` en la clase base nunca se
+   revertiría.
+
+   Sólo se animan `transform` y `opacity` (no disparan layout ni paint).
+
+   Se usa IntersectionObserver y no `animation-timeline: view()` para los
+   reveals: un reveal tiene que dispararse UNA VEZ al entrar, no scrubbear con
+   el scroll (scrollear despacio hacia atrás lo desharía a medias). Además IO
+   funciona en Safari y Firefox. El scroll timeline queda sólo para el parallax
+   del hero, donde el scrubbing sí es el efecto buscado. */
+
+/* ─────────────────────────────────────────────────────────────
+   Reveal por scroll
+   ───────────────────────────────────────────────────────────── */
+
+.js [data-revelar] {
+  opacity: 0;
+  transition:
+    opacity 600ms var(--ease-out-expo),
+    transform 600ms var(--ease-out-expo);
+  transition-delay: var(--retraso, 0ms);
+}
+
+/* El desplazamiento sólo existe si el usuario no pidió menos movimiento.
+   Con movimiento reducido queda un fundido limpio, que es el tiering que ya
+   usa el resto del proyecto (Dialog, Sheet). */
+@media (prefers-reduced-motion: no-preference) {
+  .js [data-revelar] {
+    transform: translateY(24px);
+  }
+
+  .js [data-revelar='lateral'] {
+    transform: translateX(-28px);
+  }
+
+  .js [data-revelar='escala'] {
+    transform: scale(0.97);
+  }
+}
+
+.js [data-revelar].revelado {
+  opacity: 1;
+  transform: none;
+}
+
+/* Stagger de hijos directos. 60ms es suficiente para que se lea como cascada
+   sin que el último elemento llegue tarde. */
+.js [data-revelar-grupo] > * {
+  --retraso: calc(var(--indice, 0) * 60ms);
+}
+
+/* El índice se asigna por posición en vez de pedirlo elemento por elemento:
+   una cascada es un hecho del orden en el DOM, no un dato que deba repetirse
+   a mano en cada hijo del JSX. Se cubren 6 posiciones porque ningún grupo de
+   la landing es más largo; a partir de la 7ª todos comparten el último retraso,
+   que a esa altura ya es imperceptible. */
+.js [data-revelar-grupo] > *:nth-child(2),
+.js [data-entrada] > *:nth-child(2) {
+  --indice: 1;
+}
+.js [data-revelar-grupo] > *:nth-child(3),
+.js [data-entrada] > *:nth-child(3) {
+  --indice: 2;
+}
+.js [data-revelar-grupo] > *:nth-child(4),
+.js [data-entrada] > *:nth-child(4) {
+  --indice: 3;
+}
+.js [data-revelar-grupo] > *:nth-child(5),
+.js [data-entrada] > *:nth-child(5) {
+  --indice: 4;
+}
+.js [data-revelar-grupo] > *:nth-child(n + 6),
+.js [data-entrada] > *:nth-child(n + 6) {
+  --indice: 5;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Entrada del hero (al cargar, no al scrollear)
+   ───────────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: no-preference) {
+  .js [data-entrada] > * {
+    animation: entrada-hero 700ms var(--ease-out-expo) both;
+    animation-delay: calc(120ms + var(--indice, 0) * 80ms);
+  }
+}
+
+@keyframes entrada-hero {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Parallax del hero — acá sí, scroll timeline
+   ───────────────────────────────────────────────────────────── */
+
+@supports (animation-timeline: scroll()) {
+  @media (prefers-reduced-motion: no-preference) {
+    [data-parallax] {
+      animation: deriva-y linear both;
+      animation-timeline: scroll();
+      animation-range: 0 100vh;
+      will-change: transform;
+    }
+  }
+}
+
+/* La escala se mantiene constante en 1.12 durante todo el recorrido y sólo
+   deriva la posición: si la foto arrancara en scale(1) y creciera, el
+   desplazamiento dejaría ver el borde inferior antes de que la escala alcance
+   a taparlo. El ±4% sobre una foto 12% más grande nunca descubre el marco. */
+@keyframes deriva-y {
+  from {
+    transform: translateY(-4%) scale(1.12);
+  }
+  to {
+    transform: translateY(4%) scale(1.12);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Hover — gateado a punteros finos.
+   En touch, :hover se dispara al tocar y queda pegado.
+   ───────────────────────────────────────────────────────────── */
+
+@media (hover: hover) and (pointer: fine) {
+  [data-elevar] {
+    transition:
+      transform 200ms var(--ease-out-quart),
+      box-shadow 200ms var(--ease-out-quart);
+  }
+
+  [data-elevar]:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-elevada);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Tira continua de fotos
+   ───────────────────────────────────────────────────────────── */
+
+/* `linear` y no una curva de entrada/salida: es movimiento CONSTANTE, no una
+   transición. Cualquier easing haría que la tira acelere y frene en cada
+   vuelta, delatando el punto de costura.
+   60s para 12 fotos es deliberadamente lento: la tira acompaña, no compite con
+   la lectura del resto de la página. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-tira] {
+    animation: desfile 60s linear infinite;
+  }
+
+  /* Pausa por hover (comodidad del mouse) y por el botón (requisito real de
+     WCAG 2.2.2, que el hover NO satisface porque no existe con teclado). */
+  .group:hover [data-tira],
+  [data-tira][data-pausada] {
+    animation-play-state: paused;
+  }
+}
+
+/* Con movimiento reducido la tira queda quieta: un desfile infinito es
+   justamente el patrón que dispara vértigo. Se sigue viendo el primer tramo de
+   fotos, así que la sección no queda vacía. */
+@keyframes desfile {
+  to {
+    /* Exactamente -50%: la lista está duplicada, así que al llegar acá la
+       segunda copia ocupa la posición inicial de la primera y el salto de
+       vuelta a 0 es invisible. */
+    transform: translateX(-50%);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Banda de fotos con fundido cruzado
+   ───────────────────────────────────────────────────────────── */
+
+/* Sólo cambia la opacidad: un fundido no mueve nada de lugar, así que no tira
+   del ojo mientras se lee el resto de la página. Un desplazamiento acá sí
+   competiría.
+   18s de ciclo para 3 fotos = 6s cada una: suficiente para mirarla, no tanto
+   como para que quien pasa scrolleando nunca vea el cambio. */
+@media (prefers-reduced-motion: no-preference) {
+  .js [data-fundido] {
+    opacity: 0;
+    animation: fundido-banner 18s linear infinite;
+  }
+
+  .js [data-fundido][data-pausada] {
+    animation-play-state: paused;
+  }
+}
+
+/* La PRIMERA foto queda visible sin JS y sin animación: si el bundle no llega
+   o hay movimiento reducido, la banda muestra una foto en vez de quedar negra.
+   Por eso el `opacity: 0` de arriba cuelga de `.js` y esta regla no. */
+[data-fundido]:not(:first-child) {
+  opacity: 0;
+}
+
+@keyframes fundido-banner {
+  0% {
+    opacity: 1;
+  }
+  28% {
+    opacity: 1;
+  }
+  36% {
+    opacity: 0;
+  }
+  92% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Transición entre rutas
+   ───────────────────────────────────────────────────────────── */
+
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 250ms;
+  animation-timing-function: var(--ease-out-quart);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @view-transition {
+    navigation: none;
+  }
+}

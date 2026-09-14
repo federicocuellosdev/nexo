@@ -1,0 +1,58 @@
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background-color: var(--color-app);
+    color: var(--color-ink-900);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-marca-500);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  ::selection {
+    background-color: var(--color-marca-100);
+  }
+}
+
+/* Reducción de movimiento POR NIVELES, no apagado total:
+   se conservan los fundidos de opacidad (que no producen vértigo) y se anulan
+   los desplazamientos, escalas y animaciones en bucle. */
+@media (prefers-reduced-motion: reduce) {
+  @layer base {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-property: opacity !important;
+      transition-duration: 150ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
