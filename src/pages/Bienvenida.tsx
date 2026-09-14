@@ -3,6 +3,7 @@ import { CircleAlert } from 'lucide-react';
 import { buscarPlan, buscarProducto } from '@/mock/planes';
 import { PlanPrestaciones } from '@/features/planes/PlanPrestaciones';
 import { useSession } from '@/mock/session';
+import { saludo } from '@/lib/identidad';
 import { Card } from '@/ui/Card';
 import { Chip } from '@/ui/Chip';
 import { Money } from '@/ui/Money';
@@ -10,8 +11,6 @@ import { clasesBoton } from '@/ui/Button';
 
 export function Bienvenida() {
   const sesion = useSession();
-  // El guard RequiereIntent garantiza usuario e intent; el `??` es solo para el tipo.
-  const nombre = sesion.usuario?.nombre ?? '';
   const intent = sesion.intent;
 
   const plan = intent?.tipo === 'plan' ? buscarPlan(intent.id) : undefined;
@@ -24,8 +23,11 @@ export function Bienvenida() {
   const planPendiente = plan?.prestaciones.some((p) => p.pendiente) ?? false;
 
   return (
-    <div className="mx-auto max-w-[560px]">
-      <h1 className="text-2xl text-ink-950">{`Hola, ${nombre}`}</h1>
+    <div data-entrada className="mx-auto max-w-[560px]">
+      {/* Mismo caso que /inicio: quien llegó por el enlace de login no tiene
+          nombre cargado, y `${nombre}` sobre cadena vacía dejaba "Hola, " con
+          la coma colgando. `saludo()` resuelve el caso en un solo lugar. */}
+      <h1 className="text-2xl text-ink-950">{saludo(sesion.usuario)}</h1>
       <p className="mt-2 text-sm text-ink-600">Esto es lo que estás por contratar.</p>
 
       {plan ? (

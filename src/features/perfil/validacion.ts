@@ -10,6 +10,17 @@ export type PasoPerfil = 1 | 2 | 3 | 4;
  * Los `| ''` representan "todavía no elegido" en los selects.
  */
 export interface BorradorPerfil {
+  /**
+   * Nombre y apellido NO forman parte de `PerfilPrevinca`: viven en `Usuario`,
+   * que es de donde la app los lee (saludo de /inicio, iniciales del avatar,
+   * /cuenta). Viajan en el borrador porque el wizard es quien los pide, y
+   * salen por `identidadDelBorrador()`, no por `aPerfil()`.
+   *
+   * Se piden porque quien entra por "Ya tengo cuenta" sólo dio un email, y sin
+   * esto se quedaba sin nombre para siempre.
+   */
+  nombre: string;
+  apellido: string;
   tipoDocumento: TipoDocumento;
   numeroDocumento: string;
   sexo: Sexo | '';
@@ -28,6 +39,8 @@ export interface BorradorPerfil {
 export type ErroresPerfil = Partial<Record<keyof BorradorPerfil, string>>;
 
 export const BORRADOR_INICIAL: BorradorPerfil = {
+  nombre: '',
+  apellido: '',
   tipoDocumento: 'DNI',
   numeroDocumento: '',
   sexo: '',
@@ -76,6 +89,8 @@ export function validarPaso(paso: PasoPerfil, borrador: BorradorPerfil, hoy: Dat
   }
 
   if (paso === 2) {
+    if (borrador.nombre.trim() === '') errores.nombre = 'Ingresá tu nombre';
+    if (borrador.apellido.trim() === '') errores.apellido = 'Ingresá tu apellido';
     if (borrador.sexo === '') errores.sexo = 'Elegí una opción';
 
     const fecha = borrador.fechaNacimiento;
@@ -138,9 +153,31 @@ export function aPerfil(borrador: BorradorPerfil): PerfilPrevinca {
   };
 }
 
-/** Para reabrir el wizard desde `/cuenta` con los datos ya cargados. */
-export function desdePerfil(perfil: PerfilPrevinca): BorradorPerfil {
+/**
+ * Nombre y apellido, listos para escribir sobre `Usuario`.
+ *
+ * Existe como función aparte de `aPerfil()` a propósito: son dos destinos
+ * distintos del store (`usuario` y `perfil`) y mezclarlos invitaría a guardar
+ * el nombre dentro del perfil, duplicando la fuente de verdad.
+ */
+export function identidadDelBorrador(borrador: BorradorPerfil): { nombre: string; apellido: string } {
+  return { nombre: borrador.nombre.trim(), apellido: borrador.apellido.trim() };
+}
+
+/**
+ * Para reabrir el wizard desde `/cuenta` con los datos ya cargados.
+ *
+ * `identidad` va aparte porque nombre y apellido no viven en el perfil sino en
+ * el usuario. Es opcional para no romper a quien sólo tenga el perfil a mano;
+ * en ese caso los campos abren vacíos y el paso 2 los pedirá.
+ */
+export function desdePerfil(
+  perfil: PerfilPrevinca,
+  identidad?: { nombre: string; apellido: string },
+): BorradorPerfil {
   return {
+    nombre: identidad?.nombre ?? '',
+    apellido: identidad?.apellido ?? '',
     tipoDocumento: perfil.tipoDocumento,
     numeroDocumento: perfil.numeroDocumento,
     sexo: perfil.sexo,

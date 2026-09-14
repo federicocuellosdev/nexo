@@ -5,7 +5,7 @@ import { CreditCard } from 'lucide-react';
 import type { PerfilPrevinca } from '@/mock/session';
 import { resetSession, setSession, useSession } from '@/mock/session';
 import { desdePerfil, type PasoPerfil } from '@/features/perfil/validacion';
-import { PerfilWizard } from '@/features/perfil/PerfilWizard';
+import { PerfilWizard, type DatosDelWizard } from '@/features/perfil/PerfilWizard';
 import { Card } from '@/ui/Card';
 import { Icon } from '@/ui/Icon';
 import { Badge } from '@/ui/Badge';
@@ -90,8 +90,11 @@ export function Cuenta() {
   const usuario = sesion.usuario;
   const [pasoEditado, setPasoEditado] = useState<PasoPerfil | null>(null);
 
-  function guardar(actualizado: PerfilPrevinca) {
-    setSession({ perfil: actualizado });
+  function guardar({ perfil: actualizado, identidad }: DatosDelWizard) {
+    // El nombre viaja a `usuario` y el resto a `perfil`: son dos destinos
+    // distintos del store. Editar "Datos personales" desde acá ahora también
+    // corrige el nombre, que es justo lo que le falta a quien entró por login.
+    setSession({ perfil: actualizado, ...(usuario ? { usuario: { ...usuario, ...identidad } } : {}) });
     setPasoEditado(null);
   }
 
@@ -198,7 +201,7 @@ export function Cuenta() {
         >
           <PerfilWizard
             pasoInicial={pasoEditado}
-            borradorInicial={desdePerfil(perfil)}
+            borradorInicial={desdePerfil(perfil, usuario)}
             soloEstePaso
             onGuardar={guardar}
           />

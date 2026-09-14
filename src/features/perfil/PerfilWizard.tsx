@@ -4,6 +4,7 @@ import type { PerfilPrevinca } from '@/mock/session';
 import {
   aPerfil,
   BORRADOR_INICIAL,
+  identidadDelBorrador,
   PASOS,
   validarPaso,
   type BorradorPerfil,
@@ -29,7 +30,20 @@ export interface PerfilWizardProps {
    * (4 pasos secuenciales) no pasa esta prop y sigue igual.
    */
   soloEstePaso?: boolean;
-  onGuardar: (perfil: PerfilPrevinca) => void;
+  onGuardar: (datos: DatosDelWizard) => void;
+}
+
+/**
+ * Lo que el wizard entrega al guardar, con los DOS destinos separados.
+ *
+ * `perfil` va a `sesion.perfil` e `identidad` a `sesion.usuario`. Van aparte a
+ * propósito: nombre y apellido no pertenecen a `PerfilPrevinca`, y devolverlos
+ * en un solo objeto invitaría a guardarlos ahí adentro, duplicando la fuente de
+ * verdad que hoy lee el saludo, el avatar y /cuenta.
+ */
+export interface DatosDelWizard {
+  perfil: PerfilPrevinca;
+  identidad: { nombre: string; apellido: string };
 }
 
 const TOTAL_PASOS = PASOS.length;
@@ -94,7 +108,7 @@ export function PerfilWizard({
       return;
     }
 
-    onGuardar(aPerfil(borrador));
+    onGuardar({ perfil: aPerfil(borrador), identidad: identidadDelBorrador(borrador) });
   }
 
   function volver() {
@@ -124,6 +138,11 @@ export function PerfilWizard({
             className="mt-2 h-1.5 w-full overflow-hidden rounded-pill bg-ink-100"
           >
             <div
+              // Este SÍ conserva el degradado de marca, y es el único lugar del
+              // portal que lo hace: no lleva texto ni glifo encima, así que no
+              // hay contraste que cumplir. Es el acento de marca de la pantalla.
+              // No "corregirlo" a sólido por consistencia con el botón: el
+              // motivo del cambio allá era de accesibilidad, y acá no aplica.
               className="h-full rounded-pill bg-brand transition-[width] duration-300 ease-out-expo"
               style={{ width: `${(paso / TOTAL_PASOS) * 100}%` }}
             />
@@ -164,6 +183,32 @@ export function PerfilWizard({
 
         {paso === 2 ? (
           <>
+            {/* Nombre y apellido primero: son lo más básico de "datos
+                personales" y, en el camino del alta, llegan precargados desde
+                lo que la persona ya escribió en la landing. Quien entró por
+                "Ya tengo cuenta" sólo dio un email, y sin este paso se quedaba
+                sin nombre para siempre — el saludo mostraba "Hola" pelado y el
+                avatar, un círculo sin letras. */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Nombre" htmlFor="perfil-nombre" error={errores.nombre} requerido>
+                <Input
+                  id="perfil-nombre"
+                  autoComplete="given-name"
+                  value={borrador.nombre}
+                  invalido={errores.nombre !== undefined}
+                  onChange={(evento) => actualizar('nombre', evento.target.value)}
+                />
+              </Field>
+              <Field label="Apellido" htmlFor="perfil-apellido" error={errores.apellido} requerido>
+                <Input
+                  id="perfil-apellido"
+                  autoComplete="family-name"
+                  value={borrador.apellido}
+                  invalido={errores.apellido !== undefined}
+                  onChange={(evento) => actualizar('apellido', evento.target.value)}
+                />
+              </Field>
+            </div>
             <Field label="Sexo" htmlFor="perfil-sexo" error={errores.sexo} requerido>
               <Select
                 id="perfil-sexo"

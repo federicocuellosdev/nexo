@@ -2,6 +2,7 @@ import {
   aPerfil,
   BORRADOR_INICIAL,
   desdePerfil,
+  identidadDelBorrador,
   validarPaso,
   type BorradorPerfil,
 } from '@/features/perfil/validacion';
@@ -10,6 +11,8 @@ import { PERFIL_DEMO } from '@/mock/usuarios';
 const HOY = new Date('2026-09-07T12:00:00Z');
 
 const COMPLETO: BorradorPerfil = {
+  nombre: 'Camila',
+  apellido: 'Pérez',
   tipoDocumento: 'DNI',
   numeroDocumento: '35123456',
   sexo: 'F',
@@ -115,4 +118,46 @@ test('aPerfil falla ruidosamente con un borrador incompleto', () => {
 
 test('desdePerfil y aPerfil son inversas', () => {
   expect(aPerfil(desdePerfil(PERFIL_DEMO))).toEqual(PERFIL_DEMO);
+});
+
+/* ── Nombre y apellido (paso 2) ──────────────────────────────────────────── */
+
+test('el paso 2 no pasa sin nombre ni apellido', () => {
+  // Quien entra por "Ya tengo cuenta" sólo dio un email: si el wizard no los
+  // pide, ese socio se queda sin nombre para siempre.
+  const errores = validarPaso(2, { ...COMPLETO, nombre: '', apellido: '' }, HOY);
+  expect(errores.nombre).toBe('Ingresá tu nombre');
+  expect(errores.apellido).toBe('Ingresá tu apellido');
+});
+
+test('un nombre con sólo espacios no cuenta como cargado', () => {
+  const errores = validarPaso(2, { ...COMPLETO, nombre: '   ' }, HOY);
+  expect(errores.nombre).toBe('Ingresá tu nombre');
+});
+
+test('identidadDelBorrador recorta los espacios', () => {
+  expect(identidadDelBorrador({ ...COMPLETO, nombre: '  Camila ', apellido: ' Pérez  ' })).toEqual({
+    nombre: 'Camila',
+    apellido: 'Pérez',
+  });
+});
+
+test('aPerfil NO mete el nombre dentro del perfil: ese dato vive en el usuario', () => {
+  // Es la garantía de que no se duplica la fuente de verdad. Si el nombre
+  // entrara acá, habría dos lugares donde corregirlo y uno quedaría viejo.
+  const perfil = aPerfil(COMPLETO) as unknown as Record<string, unknown>;
+  expect(perfil.nombre).toBeUndefined();
+  expect(perfil.apellido).toBeUndefined();
+});
+
+test('desdePerfil acepta la identidad para precargar el wizard desde /cuenta', () => {
+  const borrador = desdePerfil(PERFIL_DEMO, { nombre: 'Camila', apellido: 'Pérez' });
+  expect(borrador.nombre).toBe('Camila');
+  expect(borrador.apellido).toBe('Pérez');
+});
+
+test('desdePerfil sin identidad deja los campos vacíos para que el paso 2 los pida', () => {
+  const borrador = desdePerfil(PERFIL_DEMO);
+  expect(borrador.nombre).toBe('');
+  expect(borrador.apellido).toBe('');
 });

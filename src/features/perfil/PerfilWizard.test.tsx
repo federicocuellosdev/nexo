@@ -10,6 +10,8 @@ async function completarPaso1(usuario: ReturnType<typeof userEvent.setup>) {
 }
 
 async function completarPaso2(usuario: ReturnType<typeof userEvent.setup>) {
+  await usuario.type(screen.getByLabelText(/^Nombre/), 'Camila');
+  await usuario.type(screen.getByLabelText(/^Apellido/), 'Pérez');
   await usuario.selectOptions(screen.getByLabelText(/^Sexo/), 'F');
   await usuario.type(screen.getByLabelText(/^Fecha de nacimiento/), '1990-04-17');
   await usuario.click(screen.getByRole('button', { name: 'Continuar' }));
@@ -99,7 +101,12 @@ test('guardar entrega el perfil armado', async () => {
   await usuario.selectOptions(screen.getByLabelText(/^Tipo de contratación/), 'tomador-beneficiario');
   await usuario.click(screen.getByRole('button', { name: 'Guardar y activar' }));
 
-  expect(alGuardar).toHaveBeenCalledWith(PERFIL_DEMO);
+  // Dos destinos separados: `perfil` va a sesion.perfil e `identidad` a
+  // sesion.usuario. Nombre y apellido NO viajan dentro del perfil.
+  expect(alGuardar).toHaveBeenCalledWith({
+    perfil: PERFIL_DEMO,
+    identidad: { nombre: 'Camila', apellido: 'Pérez' },
+  });
 });
 
 test('puede abrir en un paso puntual con el borrador ya cargado', () => {
@@ -114,7 +121,7 @@ test('con soloEstePaso guarda el paso puntual en un solo clic, sin pedir los sig
   render(
     <PerfilWizard
       pasoInicial={1}
-      borradorInicial={desdePerfil(PERFIL_DEMO)}
+      borradorInicial={desdePerfil(PERFIL_DEMO, { nombre: 'Camila', apellido: 'Pérez' })}
       soloEstePaso
       onGuardar={alGuardar}
     />,
@@ -123,7 +130,10 @@ test('con soloEstePaso guarda el paso puntual en un solo clic, sin pedir los sig
   expect(screen.queryByRole('button', { name: 'Continuar' })).not.toBeInTheDocument();
   await usuario.click(screen.getByRole('button', { name: 'Guardar cambios' }));
 
-  expect(alGuardar).toHaveBeenCalledWith(PERFIL_DEMO);
+  expect(alGuardar).toHaveBeenCalledWith({
+    perfil: PERFIL_DEMO,
+    identidad: { nombre: 'Camila', apellido: 'Pérez' },
+  });
 });
 
 test('con soloEstePaso no ofrece volver a un paso anterior', () => {
