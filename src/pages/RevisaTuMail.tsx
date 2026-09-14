@@ -17,6 +17,7 @@ export function RevisaTuMail() {
       <div className="mx-auto max-w-[560px] px-4 py-16 lg:px-6">
         <EmptyState
           icono={MailQuestion}
+          como="h1"
           titulo="No hay una solicitud en curso"
           descripcion="Elegí un plan o un producto y completá el formulario para recibir tu enlace de acceso."
         >
@@ -32,15 +33,19 @@ export function RevisaTuMail() {
   const urlCallback = construirUrlCallback(handoff);
 
   return (
-    <div className="mx-auto max-w-[560px] px-4 py-12 text-center lg:px-6 lg:py-16">
+    // Momento transaccional, no de venta: el tratamiento editorial acá va
+    // medido. El título sube a serif itálica y gana aire, pero NO se va a 72px
+    // —el usuario está esperando un mail, no leyendo una portada— y la medida
+    // angosta se conserva para que el foco quede en una sola acción.
+    <div className="mx-auto max-w-[600px] px-4 py-20 text-center lg:px-8 lg:py-28">
       <div className="flex justify-center">
         <Icon icono={MailCheck} tono="marca" tamano="lg" />
       </div>
 
-      <h1 className="mt-6 text-2xl text-ink-950">Revisá tu mail</h1>
-      <p className="mt-3 text-base text-ink-600">
-        Te enviamos un enlace de acceso a <span className="font-medium text-ink-900">{email}</span>. Abrilo
-        desde el celular y entrás sin contraseña.
+      <h1 className="mt-8 font-display text-4xl text-ink-950 italic">Revisá tu mail</h1>
+      <p className="mt-5 text-lg text-ink-600">
+        Te enviamos un enlace de acceso a <span className="font-medium text-ink-900">{email}</span>. Abrilo desde el
+        celular y entrás sin contraseña.
       </p>
 
       {/* Vista previa del mail: en la maqueta no hay servidor de correo, así que
