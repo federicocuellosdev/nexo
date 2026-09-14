@@ -1,5 +1,5 @@
 import { createMemoryRouter, RouterProvider } from 'react-router';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { rutas } from '@/router';
 
 function montarEn(ruta: string) {
@@ -16,7 +16,12 @@ test('muestra el nombre, la bajada y el precio del plan', () => {
 
 test('lista todas las prestaciones con su estado', () => {
   montarEn('/planes/nexo-2');
-  expect(screen.getAllByRole('listitem')).toHaveLength(8);
+  // Acotado a su sección: el pie del sitio también usa listas (servicios,
+  // contacto, redes, información), que es la semántica correcta para una lista
+  // de enlaces. Contar los `listitem` de todo el documento medía la página
+  // entera, no las prestaciones del plan.
+  const seccion = screen.getByRole('region', { name: 'Prestaciones del plan' });
+  expect(within(seccion).getAllByRole('listitem')).toHaveLength(8);
 });
 
 test('muestra el comparador contra los otros dos planes', () => {
