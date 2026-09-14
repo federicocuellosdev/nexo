@@ -98,8 +98,16 @@
 }
 
 /* El degradado de marca vive como UTILIDAD y no como `--color-*` a propósito:
-   así no aparece en `bg-*` genéricos y queda acotado al CTA primario y a los
-   acentos (avatar, icono de cobertura), como pide el spec §7. */
+   así no puede colarse en un `bg-*` genérico.
+
+   Dónde se usa hoy: SOLO en el logotipo (`LogoNexo`, que lo aplica como
+   máscara CSS). Salió del CTA primario y del `Icon` tono marca por contraste:
+   con texto blanco el degradado da entre 4.26:1 y 2.97:1, y WCAG AA pide 4.5:1
+   para texto normal. Ver la nota en `src/ui/Button.tsx`.
+
+   Que quede definido y casi sin usar es deliberado, no código muerto: el
+   degradado ES la marca, y su lugar es el logo. Si algún día vuelve a hacer
+   falta como acento, que sea UNO por pantalla y nunca detrás de texto. */
 @utility bg-brand {
   background-image: linear-gradient(135deg, #8660ef 0%, #ee5cd0 100%);
 }

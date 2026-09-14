@@ -17,7 +17,10 @@ export function RevisaTuMail({ email, hrefEnlace }: RevisaTuMailProps) {
   return (
     <div className="text-center">
       <div className="flex justify-center">
-        <span className="inline-flex size-20 items-center justify-center rounded-pill bg-brand text-white">
+        {/* Plano, como el resto de los tonos del sistema (`Icon`, `Badge`): el
+            degradado detrás de un glifo no llega al 3:1 que pide WCAG 1.4.11
+            para elementos gráficos. `marca-700` sobre `marca-50` da 6.91:1. */}
+        <span className="inline-flex size-20 items-center justify-center rounded-pill bg-marca-50 text-marca-700">
           <MailCheck size={32} strokeWidth={1.5} aria-hidden="true" />
         </span>
       </div>

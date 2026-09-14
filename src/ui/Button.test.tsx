@@ -7,14 +7,26 @@ test('renderiza un botón de tipo button por defecto para no enviar formularios 
   expect(screen.getByRole('button', { name: 'Contratar' })).toHaveAttribute('type', 'button');
 });
 
-test('el CTA primario usa el degradado de marca', () => {
+test('el CTA primario usa violeta sólido y no el degradado', () => {
+  // El degradado `#8660ef → #ee5cd0` con texto blanco daba entre 4.26:1 y
+  // 2.97:1 de contraste: falla WCAG AA (4.5:1) de punta a punta. `marca-600`
+  // da 5.82:1. Este test fija esa decisión para que no vuelva por descuido.
   render(<Button>Contratar</Button>);
-  expect(screen.getByRole('button', { name: 'Contratar' })).toHaveClass('bg-brand');
+  const boton = screen.getByRole('button', { name: 'Contratar' });
+  expect(boton).toHaveClass('bg-marca-600');
+  expect(boton).not.toHaveClass('bg-brand');
 });
 
-test('la variante secundaria no usa el degradado', () => {
+test('el hover del primario oscurece a marca-700, que también cumple AA', () => {
+  render(<Button>Contratar</Button>);
+  expect(screen.getByRole('button', { name: 'Contratar' })).toHaveClass('hover:bg-marca-700');
+});
+
+test('la variante secundaria no usa el violeta de fondo', () => {
   render(<Button variante="secundario">Ver planes</Button>);
-  expect(screen.getByRole('button', { name: 'Ver planes' })).not.toHaveClass('bg-brand');
+  const boton = screen.getByRole('button', { name: 'Ver planes' });
+  expect(boton).not.toHaveClass('bg-marca-600');
+  expect(boton).not.toHaveClass('bg-brand');
 });
 
 test('ancho full ocupa todo el contenedor', () => {
