@@ -54,6 +54,9 @@ export function Coberturas() {
         </div>
         <EmptyState
           icono={ShieldCheck}
+          // h2 y no el h3 por defecto: cuelga directo del h1 de la pantalla,
+          // sin ningún encabezado intermedio. Antes saltaba de h1 a h3.
+          como="h2"
           titulo="Todavía no tenés coberturas"
           descripcion="Cuando contrates un plan lo vas a ver acá con todas sus prestaciones."
         >
