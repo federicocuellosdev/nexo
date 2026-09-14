@@ -8,9 +8,14 @@ export function PagoExito() {
   const faltaPerfil = sesion.perfil === undefined;
 
   return (
-    <div className="mx-auto max-w-[480px] text-center">
+    <div data-entrada className="mx-auto max-w-[480px] text-center">
       <div className="flex justify-center">
-        <span className="inline-flex size-20 items-center justify-center rounded-pill bg-ok-50 text-ok-700">
+        {/* `relative` porque la onda de celebración vive en el ::after de este
+            mismo elemento (motion.css, `[data-celebrar]`). */}
+        <span
+          data-celebrar
+          className="relative inline-flex size-20 items-center justify-center rounded-pill bg-ok-50 text-ok-700"
+        >
           <CircleCheck size={36} strokeWidth={1.5} aria-hidden="true" />
         </span>
       </div>

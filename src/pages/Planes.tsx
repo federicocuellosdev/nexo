@@ -33,7 +33,7 @@ export function Planes() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div data-entrada className="flex flex-col gap-6">
       <div>
         <h1 className="text-2xl text-ink-950">Planes y productos</h1>
         <p className="mt-1 text-sm text-ink-600">Cambiá de plan o sumá una cobertura adicional.</p>

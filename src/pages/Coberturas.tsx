@@ -42,13 +42,11 @@ export function Coberturas() {
 
   if (plan === undefined && productos.length === 0) {
     return (
-      <div className="flex flex-col gap-8">
+      <div data-entrada className="flex flex-col gap-8">
         <div>
           {/*
-            El h1 de la página se conserva también en el camino vacío: EmptyState
-            usa un h3 como único heading, y sin este h1 el documento arrancaría
-            directo en h3 (mismo patrón ya correcto en Inicio.tsx y Planes.tsx).
-            Acá es el caso más frecuente: dispara para sinCuenta y
+            El h1 de la pantalla se conserva también en el camino vacío: es el
+            título de la página, no un parche. Dispara para sinCuenta y
             conCuentaSinPago, los dos estados más comunes de un visitante nuevo.
           */}
           <h1 className="text-2xl text-ink-950">Mis coberturas</h1>
@@ -68,7 +66,7 @@ export function Coberturas() {
   }
 
   return (
-    <div className="flex flex-col gap-8">
+    <div data-entrada className="flex flex-col gap-8">
       <div>
         <h1 className="text-2xl text-ink-950">Mis coberturas</h1>
         <p className="mt-1 text-sm text-ink-600">Lo que tenés contratado y cómo usarlo.</p>
