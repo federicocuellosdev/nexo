@@ -95,6 +95,10 @@ leadsRouter.post('/leads', async (req, res) => {
     type: 'magiclink',
     email: datos.email.toLowerCase(),
     options: {
+      // En staging/prod el portal vive como subpath `/app` del dominio único
+      // nexo-front (landing + portal sirviéndose juntos). En dev local, el
+      // portal corre en su propio Vite en 5174: PORTAL_URL puede incluir
+      // `/app` o no según el entorno, por eso no lo hardcodeamos acá.
       redirectTo: `${config.portalUrl}/auth/callback?leadId=${leadInsertado.id}`,
     },
   });
