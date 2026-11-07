@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router';
-import { CircleAlert } from 'lucide-react';
 import { Sheet } from '@/ui/Sheet';
 import { Field } from '@/ui/Field';
 import { Input } from '@/ui/Input';
 import { Button } from '@/ui/Button';
 import { Money } from '@/ui/Money';
-import { Chip } from '@/ui/Chip';
 import { guardarHandoff } from '@/lib/handoff';
+import { crearLead, ApiError } from '@/lib/api';
 import {
   DATOS_ALTA_VACIOS,
   hayErrores,
@@ -36,7 +35,7 @@ type Modo = 'alta' | 'login';
 
 // Orden visual de los campos (de arriba hacia abajo): decide a cuál volver el
 // foco cuando el envío falla con más de un error a la vez.
-const ORDEN_CAMPOS: Array<keyof DatosAlta> = ['nombre', 'apellido', 'email', 'telefono'];
+const ORDEN_CAMPOS: Array<keyof DatosAlta> = ['nombre', 'apellido', 'email', 'dni'];
 
 function idDelCampo(campo: keyof DatosAlta): string {
   return `alta-${campo}`;
@@ -55,6 +54,11 @@ export function AltaDialog({ abierto, onCambio, item }: AltaDialogProps) {
   const [modo, setModo] = useState<Modo>('alta');
   const [datos, setDatos] = useState<DatosAlta>(DATOS_ALTA_VACIOS);
   const [errores, setErrores] = useState<ErroresAlta>({});
+  // `enviando` deshabilita el submit mientras el request a /api/leads está en
+  // vuelo (evita doble click → doble lead). `errorEnvio` muestra un mensaje
+  // general cuando el backend devuelve error no atribuible a un campo.
+  const [enviando, setEnviando] = useState(false);
+  const [errorEnvio, setErrorEnvio] = useState<string | null>(null);
 
   // Al reabrir el popup arranca siempre en modo alta, sin datos ni errores de
   // un intento anterior: si alguien cerró estando en modo login, o cerró
@@ -64,6 +68,8 @@ export function AltaDialog({ abierto, onCambio, item }: AltaDialogProps) {
     setModo('alta');
     setDatos(DATOS_ALTA_VACIOS);
     setErrores({});
+    setErrorEnvio(null);
+    setEnviando(false);
   }, [abierto]);
 
   // Radix enfoca por defecto el primer elemento tabulable del diálogo, que es
@@ -88,8 +94,9 @@ export function AltaDialog({ abierto, onCambio, item }: AltaDialogProps) {
     setDatos((previos) => ({ ...previos, [campo]: valor }));
   }
 
-  function enviar(evento: FormEvent<HTMLFormElement>) {
+  async function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
+    if (enviando) return;
 
     if (modo === 'login') {
       const errorEmail = validarEmail(datos.email);
@@ -111,18 +118,65 @@ export function AltaDialog({ abierto, onCambio, item }: AltaDialogProps) {
       return;
     }
 
-    guardarHandoff({
-      intent: 'alta',
-      tipo: item.tipo,
-      id: item.id,
-      usuario: {
-        nombre: datos.nombre.trim(),
-        apellido: datos.apellido.trim(),
-        email: datos.email.trim(),
-        telefono: datos.telefono.trim(),
-      },
-    });
-    void navegar('/revisa-tu-mail');
+    const usuario = {
+      nombre: datos.nombre.trim(),
+      apellido: datos.apellido.trim(),
+      email: datos.email.trim(),
+      dni: datos.dni.trim(),
+    };
+
+    setEnviando(true);
+    setErrorEnvio(null);
+
+    try {
+      await crearLead({
+        tipo: item.tipo,
+        itemId: item.id,
+        itemNombre: item.nombre,
+        ...usuario,
+      });
+
+      // El handoff queda en sessionStorage sólo para que `/revisa-tu-mail`
+      // pueda mostrar el email al que se mandó el link, sin tener que
+      // volver a pedirlo con otro fetch. El lead real ya vive en la DB.
+      guardarHandoff({
+        intent: 'alta',
+        tipo: item.tipo,
+        id: item.id,
+        usuario,
+      });
+      void navegar('/revisa-tu-mail');
+    } catch (err) {
+      if (err instanceof ApiError) {
+        if (err.cuerpo.error === 'payload_invalido' && err.cuerpo.detalles) {
+          // El server rechazó algún campo específico (ej. DNI mal formateado)
+          // → lo mostramos sobre el input correspondiente.
+          const porCampo: ErroresAlta = {};
+          for (const [campo, mensajes] of Object.entries(err.cuerpo.detalles)) {
+            const primero = mensajes?.[0];
+            if (primero && campo in DATOS_ALTA_VACIOS) {
+              porCampo[campo as keyof DatosAlta] = primero;
+            }
+          }
+          if (Object.keys(porCampo).length > 0) {
+            setErrores(porCampo);
+            const primerCampoConError = ORDEN_CAMPOS.find((campo) => porCampo[campo] !== undefined);
+            if (primerCampoConError) enfocarCampo(idDelCampo(primerCampoConError));
+            setErrorEnvio(null);
+          } else {
+            setErrorEnvio('Revisá los datos e intentá de nuevo.');
+          }
+        } else if (err.cuerpo.error === 'email_send_error') {
+          setErrorEnvio('No pudimos enviarte el email ahora. Intentá en unos minutos.');
+        } else {
+          setErrorEnvio('Algo falló en el servidor. Intentá de nuevo.');
+        }
+      } else {
+        setErrorEnvio('No pudimos conectar con el servidor. Revisá tu conexión.');
+      }
+    } finally {
+      setEnviando(false);
+    }
   }
 
   const campoEmail = (
@@ -142,22 +196,12 @@ export function AltaDialog({ abierto, onCambio, item }: AltaDialogProps) {
   return (
     <Sheet abierto={abierto} onCambio={onCambio} titulo={`Contratar ${item.nombre}`}>
       {/* Resumen visible de lo que se contrata: el usuario tiene que ver qué
-          está por pagar sin volver atrás. El chip "a confirmar" va en su
-          propia línea debajo del precio, nunca junto a él: el precio de este
-          ítem puede estar confirmado aunque otro dato (prestaciones de un
-          plan, o el precio de un producto) todavía no lo esté. */}
+          está por pagar sin volver atrás. */}
       <div className="mb-5 rounded-campo bg-ink-50 px-4 py-3">
         <div className="flex items-center justify-between gap-3">
           <span className="text-sm font-medium text-ink-800">{item.nombre}</span>
           <Money monto={item.precio} periodo="por mes" />
         </div>
-        {item.pendiente ? (
-          <div className="mt-2">
-            <Chip tono="warn" icono={CircleAlert}>
-              {item.tipo === 'plan' ? 'Prestaciones a confirmar' : 'Precio a confirmar'}
-            </Chip>
-          </div>
-        ) : null}
       </div>
 
       <form onSubmit={enviar} noValidate className="flex flex-col gap-4">
@@ -189,21 +233,21 @@ export function AltaDialog({ abierto, onCambio, item }: AltaDialogProps) {
 
             {campoEmail}
 
-            <Field
-              label="Teléfono"
-              htmlFor={idDelCampo('telefono')}
-              error={errores.telefono}
-              ayuda="Sin 0 ni 15"
-              requerido
-            >
+            {/* DNI: SF lo usa como clave de reconocimiento del Prospecto
+                (documentType=DNI + documentNumber). Sin esto el envío a
+                /leads rebota 400. El resto de datos personales (teléfono,
+                fecha de nacimiento, domicilio) se completa después en el
+                portal para el enrich. */}
+            <Field label="DNI" htmlFor={idDelCampo('dni')} error={errores.dni} requerido>
               <Input
-                id={idDelCampo('telefono')}
-                name="telefono"
-                type="tel"
-                inputMode="tel"
-                autoComplete="tel"
-                value={datos.telefono}
-                onChange={(evento) => actualizar('telefono', evento.target.value)}
+                id={idDelCampo('dni')}
+                name="dni"
+                type="text"
+                inputMode="numeric"
+                maxLength={8}
+                autoComplete="off"
+                value={datos.dni}
+                onChange={(evento) => actualizar('dni', evento.target.value.replace(/\D/g, ''))}
               />
             </Field>
           </>
@@ -211,8 +255,17 @@ export function AltaDialog({ abierto, onCambio, item }: AltaDialogProps) {
           campoEmail
         )}
 
-        <Button type="submit" ancho="full" tamano="lg">
-          {modo === 'alta' ? 'Crear mi cuenta' : 'Enviarme el enlace'}
+        {errorEnvio ? (
+          <div
+            role="alert"
+            className="rounded-campo border border-danger-500/30 bg-danger-50 px-4 py-3 text-sm text-danger-700"
+          >
+            {errorEnvio}
+          </div>
+        ) : null}
+
+        <Button type="submit" ancho="full" tamano="lg" disabled={enviando}>
+          {enviando ? 'Enviando…' : modo === 'alta' ? 'Crear cuenta' : 'Enviarme el enlace'}
         </Button>
 
         <p className="text-center text-sm text-ink-600">

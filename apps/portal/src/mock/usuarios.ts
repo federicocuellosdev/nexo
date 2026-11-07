@@ -21,10 +21,12 @@ export const PERFIL_DEMO: PerfilPrevinca = {
   domicilio: {
     calle: 'Córdoba',
     numero: '1234',
-    piso: '3 B',
+    piso: '3',
+    departamento: 'B',
     localidad: 'Rosario',
     provincia: 'Santa Fe',
     cp: '2000',
+    pais: 'Argentina',
   },
   tieneObraSocial: true,
   obraSocial: 'OSDE',

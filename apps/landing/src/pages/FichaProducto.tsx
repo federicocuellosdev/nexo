@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
-import { CircleAlert, Info, SearchX } from 'lucide-react';
+import { Info, SearchX } from 'lucide-react';
 import { buscarProducto, PLANES } from '@/mock/planes';
 import { formatearPrecio, precioDesde } from '@/lib/formato';
 import portadaPoliza from '@/assets/carta-seguros.webp';
@@ -22,7 +22,6 @@ const PORTADA: Partial<Record<string, { src: string; alt: string }>> = {
 };
 import { AltaDialog } from '@/features/alta/AltaDialog';
 import { Money } from '@/ui/Money';
-import { Chip } from '@/ui/Chip';
 import { Icon } from '@/ui/Icon';
 import { Button, clasesBoton } from '@/ui/Button';
 import { EmptyState } from '@/ui/EmptyState';
@@ -94,11 +93,6 @@ export function FichaProducto() {
           <p className="mt-4 max-w-[46ch] text-lg text-white/85">{producto.detalle}</p>
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <Money monto={producto.precio} periodo="por mes" tamano="lg" tono="claro" />
-            {producto.pendiente ? (
-              <Chip tono="warn" icono={CircleAlert}>
-                a confirmar
-              </Chip>
-            ) : null}
           </div>
         </div>
       </section>

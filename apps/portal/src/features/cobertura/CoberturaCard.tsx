@@ -54,17 +54,12 @@ export function CoberturaCard({ plan, estado, proximoVencimiento }: CoberturaCar
       </div>
 
       {estado === 'pagadoSinPerfil' ? (
-        <div className="rounded-campo bg-warn-50 p-3">
-          <p className="text-sm text-warn-700">
-            Falta un paso: completá tu perfil para que la cobertura quede activa.
-          </p>
-          <Link
-            to="/perfil/completar"
-            className={clasesBoton({ tamano: 'sm', ancho: 'full', className: 'mt-3' })}
-          >
-            Completar perfil
-          </Link>
-        </div>
+        // El aviso "Falta un paso: completá tu perfil" ya no vive adentro de la
+        // tarjeta: lo monta /inicio como columna hermana a la izquierda. Dejar
+        // la tarjeta sin acción propia es intencional — el estado se lee en el
+        // chip "Pendiente de activación" del encabezado y la acción es
+        // responsabilidad del aviso externo.
+        null
       ) : estado === 'conCuentaSinPago' ? (
         // NO ES CÓDIGO MUERTO, aunque hoy no se alcance: su único consumidor
         // —Inicio.tsx; Coberturas.tsx dejó de usarla y arma su propia tarjeta—
@@ -77,13 +72,13 @@ export function CoberturaCard({ plan, estado, proximoVencimiento }: CoberturaCar
         // exigir pago (ej. mostrar el plan intentado ANTES de pagar) — no
         // borrar por "inalcanzable" sin resolver antes ese rediseño, y no
         // asumir que hoy está viva.
-        <div className="rounded-campo bg-danger-50 p-3">
+        <div className="flex flex-col items-stretch gap-3 rounded-campo bg-danger-50 p-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-danger-700">
             Todavía no registramos tu pago. La cobertura arranca cuando lo hagas.
           </p>
           <Link
             to="/pago"
-            className={clasesBoton({ tamano: 'sm', ancho: 'full', className: 'mt-3' })}
+            className={clasesBoton({ tamano: 'sm', ancho: 'full', className: 'sm:w-auto sm:shrink-0' })}
           >
             Pagar mi plan
           </Link>

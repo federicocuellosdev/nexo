@@ -28,15 +28,33 @@ export interface BorradorPerfil {
   calle: string;
   numero: string;
   piso: string;
+  departamento: string;
+  torre: string;
   localidad: string;
   provincia: string;
   cp: string;
+  pais: string;
   tieneObraSocial: 'si' | 'no' | '';
   obraSocial: string;
   tipoContratacion: TipoContratacion | '';
 }
 
 export type ErroresPerfil = Partial<Record<keyof BorradorPerfil, string>>;
+
+/**
+ * Únicas localidades que la operación de Previnca factura hoy — las mismas que
+ * listaba el `<select>` del alta de la 2.0 (`RegistroForm.tsx`). Todas caen
+ * bajo Santa Fe, así que la provincia se autocompleta al elegir una. Si en el
+ * futuro se amplía la cobertura a otras provincias, hay que convertir esto en
+ * pares `{ localidad, provincia }` y adaptar el Select del wizard.
+ */
+export const LOCALIDADES: readonly string[] = [
+  'Rosario',
+  'Granadero Baigorria',
+  'Villa Gobernador Gálvez',
+];
+
+export const PROVINCIA_POR_DEFECTO = 'Santa Fe';
 
 export const BORRADOR_INICIAL: BorradorPerfil = {
   nombre: '',
@@ -48,12 +66,48 @@ export const BORRADOR_INICIAL: BorradorPerfil = {
   calle: '',
   numero: '',
   piso: '',
+  departamento: '',
+  torre: '',
   localidad: '',
   provincia: '',
   cp: '',
+  pais: 'Argentina',
   tieneObraSocial: '',
   obraSocial: '',
-  tipoContratacion: '',
+  // El wizard ya no lo pregunta: quien completa el perfil desde el portal
+  // siempre se da de alta como tomador y beneficiario de su propia cuota.
+  // Si en el futuro vuelve a haber alta de "solo tomador" o "solo
+  // beneficiario", el campo sigue en el borrador para no romper los
+  // consumidores (aPerfil, desdePerfil, SF intake) — hoy queda fijado.
+  tipoContratacion: 'tomador-beneficiario',
+};
+
+/**
+ * Borrador con datos de prueba, para pre-cargar el wizard de /perfil/completar
+ * en la maqueta. Hace que recorrer el flujo clickeable no requiera tipear
+ * nada en cada paso: Enter → Enter → Enter → Guardar. Si hace falta probar
+ * errores de validación, se borra manualmente el campo correspondiente.
+ *
+ * NO se usa desde /cuenta: ahí la precarga viene de `desdePerfil(perfil)` con
+ * los valores reales de la sesión. Y si en algún momento la maqueta pasa a
+ * ser demo con usuarios reales, hay que vaciarlo a `BORRADOR_INICIAL` desde
+ * `PerfilCompletar.tsx`.
+ */
+export const BORRADOR_DEMO: BorradorPerfil = {
+  ...BORRADOR_INICIAL,
+  numeroDocumento: '35123456',
+  sexo: 'F',
+  fechaNacimiento: '1990-04-17',
+  calle: 'Córdoba',
+  numero: '1234',
+  piso: '3',
+  departamento: 'B',
+  torre: '',
+  localidad: 'Rosario',
+  provincia: PROVINCIA_POR_DEFECTO,
+  cp: '2000',
+  tieneObraSocial: 'si',
+  obraSocial: 'OSDE',
 };
 
 export const PASOS: readonly { numero: PasoPerfil; titulo: string }[] = [
@@ -89,8 +143,9 @@ export function validarPaso(paso: PasoPerfil, borrador: BorradorPerfil, hoy: Dat
   }
 
   if (paso === 2) {
-    if (borrador.nombre.trim() === '') errores.nombre = 'Ingresá tu nombre';
-    if (borrador.apellido.trim() === '') errores.apellido = 'Ingresá tu apellido';
+    // Nombre y apellido ya se piden en el alta de la landing (AltaDialog); si
+    // la persona entró por "Ya tengo cuenta" los suma después desde /cuenta.
+    // Por eso el paso 2 no los valida — sólo sexo y fecha de nacimiento.
     if (borrador.sexo === '') errores.sexo = 'Elegí una opción';
 
     const fecha = borrador.fechaNacimiento;
@@ -115,13 +170,15 @@ export function validarPaso(paso: PasoPerfil, borrador: BorradorPerfil, hoy: Dat
     if (borrador.localidad.trim() === '') errores.localidad = 'Ingresá la localidad';
     if (borrador.provincia.trim() === '') errores.provincia = 'Ingresá la provincia';
     if (!/^\d{4}$/.test(borrador.cp.trim())) errores.cp = 'El código postal son 4 dígitos';
-    // `piso` es opcional a propósito: hay domicilios sin piso.
+    if (borrador.pais.trim() === '') errores.pais = 'Ingresá el país';
+    // `piso`, `departamento` y `torre` son opcionales a propósito: no todos los
+    // domicilios tienen piso o viven en una torre.
     return errores;
   }
 
-  // Paso 4. La obra social NO bloquea: su obligatoriedad está en debate
-  // (docs/CONTEXTO.md) y en la maqueta lleva el badge "opcional · a definir".
-  if (borrador.tipoContratacion === '') errores.tipoContratacion = 'Elegí el tipo de contratación';
+  // Paso 4. Ni la obra social ni el tipo de contratación bloquean:
+  // la primera por obligatoriedad en debate; el segundo porque el wizard
+  // ya no lo pregunta (ver `BORRADOR_INICIAL.tipoContratacion`).
   return errores;
 }
 
@@ -129,8 +186,12 @@ export function aPerfil(borrador: BorradorPerfil): PerfilPrevinca {
   if (borrador.sexo === '' || borrador.tipoContratacion === '') {
     throw new Error('El borrador del perfil está incompleto');
   }
+  // `tipoContratacion` nunca llega vacío desde el wizard (ver
+  // `BORRADOR_INICIAL`), pero el check se mantiene por si entra por otra vía.
 
   const piso = borrador.piso.trim();
+  const departamento = borrador.departamento.trim();
+  const torre = borrador.torre.trim();
 
   return {
     tipoDocumento: borrador.tipoDocumento,
@@ -141,9 +202,12 @@ export function aPerfil(borrador: BorradorPerfil): PerfilPrevinca {
       calle: borrador.calle.trim(),
       numero: borrador.numero.trim(),
       ...(piso !== '' ? { piso } : {}),
+      ...(departamento !== '' ? { departamento } : {}),
+      ...(torre !== '' ? { torre } : {}),
       localidad: borrador.localidad.trim(),
       provincia: borrador.provincia.trim(),
       cp: borrador.cp.trim(),
+      pais: borrador.pais.trim(),
     },
     tieneObraSocial: borrador.tieneObraSocial === 'si',
     ...(borrador.tieneObraSocial === 'si' && borrador.obraSocial.trim() !== ''
@@ -185,9 +249,12 @@ export function desdePerfil(
     calle: perfil.domicilio.calle,
     numero: perfil.domicilio.numero,
     piso: perfil.domicilio.piso ?? '',
+    departamento: perfil.domicilio.departamento ?? '',
+    torre: perfil.domicilio.torre ?? '',
     localidad: perfil.domicilio.localidad,
     provincia: perfil.domicilio.provincia,
     cp: perfil.domicilio.cp,
+    pais: perfil.domicilio.pais,
     tieneObraSocial: perfil.tieneObraSocial ? 'si' : 'no',
     obraSocial: perfil.obraSocial ?? '',
     tipoContratacion: perfil.tipoContratacion,

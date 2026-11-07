@@ -37,6 +37,12 @@ export function TopBar({ marca, acciones, sobreContenido = false }: TopBarProps)
   const centinela = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Al navegar entre rutas, `sobreContenido` puede cambiar (ej. / → /catalogo).
+    // Resetear `solida` al valor que corresponde al nuevo modo evita que la
+    // barra arrastre el estado de la ruta anterior (home sobre foto →
+    // catálogo sin foto quedaba transparente hasta scrollear).
+    setSolida(!sobreContenido);
+
     if (!sobreContenido) return;
 
     const nodo = centinela.current;
@@ -53,8 +59,12 @@ export function TopBar({ marca, acciones, sobreContenido = false }: TopBarProps)
   }, [sobreContenido]);
 
   const base = sobreContenido ? 'fixed inset-x-0 top-0' : 'sticky top-0';
+  // Blanco sólido + sombra más pronunciada cuando la barra es "sólida":
+  // el body también es claro (bg-app), un `shadow-sm` casi no se ve y la
+  // barra se funde con el contenido. `shadow-md` + border más marcado la
+  // despegan sin romper el estado transparente del hero.
   const fondo = solida
-    ? 'border-b border-ink-100 bg-white/85 backdrop-blur-md'
+    ? 'border-b border-ink-200 bg-white shadow-[0_2px_8px_rgba(20,18,28,0.06)]'
     : 'border-b border-transparent bg-transparent';
 
   return (

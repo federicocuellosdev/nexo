@@ -13,8 +13,16 @@ export function Card({ children, className, destacada = false, as: Etiqueta = 'd
   return (
     <Etiqueta
       className={cn(
-        'rounded-card bg-white p-5 shadow-card',
-        destacada ? 'ring-2 ring-marca-500' : 'ring-1 ring-ink-100',
+        // `min-w-0` para que la card respete el ancho del grid padre y no
+        // se pase por hijos con nowrap (CTAs con labels largos). Sin esto,
+        // un botón "Ver Seguro de Hogar · hasta 1er piso" fuerza la card
+        // a crecer y rompe el viewport mobile.
+        //
+        // Fondo: la variante destacada lleva un lavado violeta muy sutil
+        // (marca-50) además del anillo, para que el "Recomendado" sea
+        // lecturable sin tener que fijarse en el borde. Blanco en el resto.
+        'min-w-0 rounded-card p-5 shadow-card',
+        destacada ? 'bg-marca-50/60 ring-2 ring-marca-500' : 'bg-white ring-1 ring-ink-100',
         className,
       )}
     >

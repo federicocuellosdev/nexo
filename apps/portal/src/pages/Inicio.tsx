@@ -82,13 +82,21 @@ export function Inicio() {
         aria-label="Tu cobertura"
         className={cn(
           'flex flex-col gap-4',
-          // Dos columnas SÓLO cuando hay credencial. Si se dejara la grilla
-          // puesta siempre, con la cobertura inactiva quedaría un único hijo
-          // ocupando la columna flexible y una segunda columna vacía al lado.
-          // 420px fijos y NO `auto`: con `auto` la columna se comprimía a 332px
-          // y el número de farmacia quedaba a cero de holgura contra el QR
-          // —medido: 24+168+16+100+24 = 332 exactos—. Ancho fijo, holgura real.
-          credencial && 'lg:grid lg:grid-cols-[1fr_420px] lg:items-start',
+          // Tres layouts de columnas, mutuamente excluyentes por estado:
+          // 1. Con credencial (activo): 1fr + 420px, tarjeta a la izquierda y
+          //    credencial a la derecha. 420px fijos y NO `auto`: con `auto` la
+          //    columna se comprimía a 332px y el nº de farmacia quedaba a cero
+          //    de holgura contra el QR (medido: 24+168+16+100+24 = 332).
+          // 2. Pagado sin perfil: 1fr + 340px, tarjeta de estado a la izquierda
+          //    y aviso "Falta un paso" a la derecha. El DOM lee primero la
+          //    tarjeta de estado y después la acción.
+          // 3. El resto (sin plan, con intent sin pago): columna única capeada
+          //    en 720px para que el bloque no quede estirado al ancho del main.
+          credencial
+            ? 'lg:grid lg:grid-cols-[1fr_420px] lg:items-start'
+            : estado === 'pagadoSinPerfil'
+              ? 'lg:grid lg:grid-cols-[1fr_340px] lg:items-start'
+              : 'lg:max-w-[720px]',
         )}
       >
         {plan && vencimiento ? (
@@ -118,6 +126,31 @@ export function Inicio() {
             </Link>
           </EmptyState>
         )}
+
+        {estado === 'pagadoSinPerfil' ? (
+          // Aviso + CTA extraído del CoberturaCard: ahora es columna hermana.
+          // Va DESPUÉS de la tarjeta en el DOM para que caiga en la segunda
+          // columna del grid (1fr + 340px) y la lectura siga el orden visual
+          // de izquierda a derecha.
+          //
+          // Sin anillo externo: `warn-200` no existe en los tokens (sólo
+          // 50/500/700), así que `ring-warn-200` caía al negro por default y
+          // chocaba contra el `warn-50` del fondo. El contraste del fill solo
+          // ya marca el bloque; si en el futuro hace falta borde, se agrega
+          // `ring-warn-500/15` que se mezcla naturalmente con el fondo.
+          <div className="flex flex-col gap-3 rounded-card bg-warn-50 p-5 ring-1 ring-warn-500/40 lg:h-full lg:self-stretch">
+            <p className="text-sm font-medium text-warn-700">Falta un paso para activar tu cobertura</p>
+            <p className="text-sm text-warn-700">
+              Completá tu perfil: cuatro pasos cortos y la cobertura queda operativa.
+            </p>
+            <Link
+              to="/perfil/completar"
+              className={clasesBoton({ tamano: 'sm', ancho: 'full', className: 'mt-auto' })}
+            >
+              Completar perfil
+            </Link>
+          </div>
+        ) : null}
 
         {/* La credencial va en /inicio y no en /coberturas: es lo que el socio
             MUESTRA, no lo que consulta. El momento de uso real es el mostrador

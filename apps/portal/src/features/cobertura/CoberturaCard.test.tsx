@@ -57,12 +57,16 @@ test('con cuenta y sin pago ofrece pagar, no ver la cobertura', () => {
   expect(screen.queryByRole('link', { name: 'Ver mi cobertura' })).not.toBeInTheDocument();
 });
 
-test('pendiente de activación ofrece completar el perfil', () => {
+test('pendiente de activación muestra el chip de estado pero NO el CTA interno', () => {
+  // El CTA "Completar perfil" se extrajo de esta tarjeta: vive como columna
+  // hermana que arma /inicio. Acá se verifica que la tarjeta sólo informa el
+  // estado y no duplica la acción.
   render(
     <MemoryRouter>
       <CoberturaCard plan={NEXO_2} estado="pagadoSinPerfil" proximoVencimiento="01/10/2026" />
     </MemoryRouter>,
   );
   expect(screen.getByText('Pendiente de activación')).toBeInTheDocument();
-  expect(screen.getByRole('link', { name: 'Completar perfil' })).toHaveAttribute('href', '/perfil/completar');
+  expect(screen.queryByRole('link', { name: 'Completar perfil' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('link', { name: 'Ver mi cobertura' })).not.toBeInTheDocument();
 });

@@ -1,0 +1,31 @@
+import type { LucideIcon } from 'lucide-react';
+import { cn } from '@/lib/cn';
+
+export interface CardHeroProps {
+  icono: LucideIcon;
+  className?: string;
+}
+
+/**
+ * Banda superior de las cards de plan y producto: degradado sutil de marca
+ * (marca-50 → acento-50) con el ícono de referencia centrado en marca-700.
+ *
+ * Rompe el `p-5` del `Card` con márgenes negativos para llegar al borde; los
+ * tonos siguen `Icon` (`bg-marca-50`/`text-marca-700`) y el degradado se queda
+ * en la tipografía/50s para no competir con el precio ni el CTA. El ícono es
+ * decorativo: la card ya lo nombra con el `h3`, así que `aria-hidden`.
+ */
+export function CardHero({ icono: Glifo, className }: CardHeroProps) {
+  return (
+    <div
+      aria-hidden="true"
+      className={cn(
+        '-mx-5 -mt-5 flex h-28 items-center justify-center rounded-t-card',
+        'bg-gradient-to-br from-marca-50 to-acento-50 text-marca-700',
+        className,
+      )}
+    >
+      <Glifo size={44} strokeWidth={1.5} />
+    </div>
+  );
+}

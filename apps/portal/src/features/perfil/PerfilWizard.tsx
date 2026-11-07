@@ -5,17 +5,19 @@ import {
   aPerfil,
   BORRADOR_INICIAL,
   identidadDelBorrador,
+  LOCALIDADES,
   PASOS,
+  PROVINCIA_POR_DEFECTO,
   validarPaso,
   type BorradorPerfil,
   type ErroresPerfil,
   type PasoPerfil,
 } from '@/features/perfil/validacion';
+import { BirthDatePicker } from '@/features/perfil/BirthDatePicker';
 import { Field } from '@/ui/Field';
 import { Input } from '@/ui/Input';
 import { Select } from '@/ui/Select';
 import { Button } from '@/ui/Button';
-import { Badge } from '@/ui/Badge';
 import { Card } from '@/ui/Card';
 
 export interface PerfilWizardProps {
@@ -64,14 +66,7 @@ const OPCIONES_OBRA_SOCIAL = [
   { value: 'no', label: 'No' },
 ];
 
-const OPCIONES_CONTRATACION = [
-  { value: 'beneficiario', label: 'Beneficiario' },
-  { value: 'tomador', label: 'Tomador' },
-  { value: 'tomador-beneficiario', label: 'Tomador y beneficiario' },
-];
-
-/** Badge de los campos cuya obligatoriedad Previnca todavía no cerró. */
-const EN_DEBATE = <Badge tono="warn">opcional · a definir</Badge>;
+const OPCIONES_LOCALIDAD = LOCALIDADES.map((l) => ({ value: l, label: l }));
 
 export function PerfilWizard({
   pasoInicial = 1,
@@ -158,9 +153,7 @@ export function PerfilWizard({
                 id="perfil-tipo-doc"
                 opciones={OPCIONES_DOCUMENTO}
                 value={borrador.tipoDocumento}
-                onChange={(evento) =>
-                  actualizar('tipoDocumento', evento.target.value as BorradorPerfil['tipoDocumento'])
-                }
+                onChange={(valor) => actualizar('tipoDocumento', valor as BorradorPerfil['tipoDocumento'])}
               />
             </Field>
             <Field
@@ -183,32 +176,11 @@ export function PerfilWizard({
 
         {paso === 2 ? (
           <>
-            {/* Nombre y apellido primero: son lo más básico de "datos
-                personales" y, en el camino del alta, llegan precargados desde
-                lo que la persona ya escribió en la landing. Quien entró por
-                "Ya tengo cuenta" sólo dio un email, y sin este paso se quedaba
-                sin nombre para siempre — el saludo mostraba "Hola" pelado y el
-                avatar, un círculo sin letras. */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Nombre" htmlFor="perfil-nombre" error={errores.nombre} requerido>
-                <Input
-                  id="perfil-nombre"
-                  autoComplete="given-name"
-                  value={borrador.nombre}
-                  invalido={errores.nombre !== undefined}
-                  onChange={(evento) => actualizar('nombre', evento.target.value)}
-                />
-              </Field>
-              <Field label="Apellido" htmlFor="perfil-apellido" error={errores.apellido} requerido>
-                <Input
-                  id="perfil-apellido"
-                  autoComplete="family-name"
-                  value={borrador.apellido}
-                  invalido={errores.apellido !== undefined}
-                  onChange={(evento) => actualizar('apellido', evento.target.value)}
-                />
-              </Field>
-            </div>
+            {/* Nombre y apellido NO se piden acá: ya se cargaron en el alta de
+                la landing (AltaDialog) o quedan vacíos para el camino de login,
+                donde los suma /cuenta. Mantenerlos en el borrador (vía
+                `BORRADOR_INICIAL` + precarga de PerfilCompletar) alcanza para
+                que `identidad` siga llegando a `sesion.usuario`. */}
             <Field label="Sexo" htmlFor="perfil-sexo" error={errores.sexo} requerido>
               <Select
                 id="perfil-sexo"
@@ -216,7 +188,7 @@ export function PerfilWizard({
                 placeholder="Elegí una opción"
                 value={borrador.sexo}
                 invalido={errores.sexo !== undefined}
-                onChange={(evento) => actualizar('sexo', evento.target.value as BorradorPerfil['sexo'])}
+                onChange={(valor) => actualizar('sexo', valor as BorradorPerfil['sexo'])}
               />
             </Field>
             <Field
@@ -226,12 +198,11 @@ export function PerfilWizard({
               ayuda="Necesitamos verificar que seas mayor de edad"
               requerido
             >
-              <Input
+              <BirthDatePicker
                 id="perfil-nacimiento"
-                type="date"
                 value={borrador.fechaNacimiento}
                 invalido={errores.fechaNacimiento !== undefined}
-                onChange={(evento) => actualizar('fechaNacimiento', evento.target.value)}
+                onChange={(iso) => actualizar('fechaNacimiento', iso)}
               />
             </Field>
           </>
@@ -260,23 +231,52 @@ export function PerfilWizard({
               </Field>
             </div>
 
-            <Field label="Piso y departamento" htmlFor="perfil-piso" extra={EN_DEBATE}>
-              <Input
-                id="perfil-piso"
-                autoComplete="address-line2"
-                value={borrador.piso}
-                onChange={(evento) => actualizar('piso', evento.target.value)}
-              />
-            </Field>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Field label="Piso" htmlFor="perfil-piso">
+                <Input
+                  id="perfil-piso"
+                  autoComplete="address-line2"
+                  value={borrador.piso}
+                  onChange={(evento) => actualizar('piso', evento.target.value)}
+                />
+              </Field>
+              <Field label="Departamento" htmlFor="perfil-departamento">
+                <Input
+                  id="perfil-departamento"
+                  autoComplete="address-line3"
+                  value={borrador.departamento}
+                  onChange={(evento) => actualizar('departamento', evento.target.value)}
+                />
+              </Field>
+              <Field label="Torre" htmlFor="perfil-torre">
+                <Input
+                  id="perfil-torre"
+                  value={borrador.torre}
+                  onChange={(evento) => actualizar('torre', evento.target.value)}
+                />
+              </Field>
+            </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Localidad" htmlFor="perfil-localidad" error={errores.localidad} requerido>
-                <Input
+                <Select
                   id="perfil-localidad"
-                  autoComplete="address-level2"
+                  opciones={OPCIONES_LOCALIDAD}
+                  placeholder="Elegí tu localidad"
                   value={borrador.localidad}
                   invalido={errores.localidad !== undefined}
-                  onChange={(evento) => actualizar('localidad', evento.target.value)}
+                  // Al elegir una localidad, auto-rellena la provincia: hoy
+                  // las tres cubiertas (Rosario / Granadero / Villa Gálvez)
+                  // son de Santa Fe. Si la provincia no estaba ya cargada se
+                  // sugiere el default; si venía otra (p.ej. editada a mano
+                  // en una sesión previa) se la respeta.
+                  onChange={(valor) => {
+                    setBorrador((previo) => ({
+                      ...previo,
+                      localidad: valor,
+                      provincia: previo.provincia.trim() === '' ? PROVINCIA_POR_DEFECTO : previo.provincia,
+                    }));
+                  }}
                 />
               </Field>
               <Field label="Provincia" htmlFor="perfil-provincia" error={errores.provincia} requerido>
@@ -290,35 +290,44 @@ export function PerfilWizard({
               </Field>
             </div>
 
-            <Field label="Código postal" htmlFor="perfil-cp" error={errores.cp} requerido>
-              <Input
-                id="perfil-cp"
-                inputMode="numeric"
-                autoComplete="postal-code"
-                value={borrador.cp}
-                invalido={errores.cp !== undefined}
-                onChange={(evento) => actualizar('cp', evento.target.value)}
-              />
-            </Field>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Código postal" htmlFor="perfil-cp" error={errores.cp} requerido>
+                <Input
+                  id="perfil-cp"
+                  inputMode="numeric"
+                  autoComplete="postal-code"
+                  value={borrador.cp}
+                  invalido={errores.cp !== undefined}
+                  onChange={(evento) => actualizar('cp', evento.target.value)}
+                />
+              </Field>
+              <Field label="País" htmlFor="perfil-pais" error={errores.pais} requerido>
+                <Input
+                  id="perfil-pais"
+                  autoComplete="country-name"
+                  value={borrador.pais}
+                  invalido={errores.pais !== undefined}
+                  onChange={(evento) => actualizar('pais', evento.target.value)}
+                />
+              </Field>
+            </div>
           </>
         ) : null}
 
         {paso === 4 ? (
           <>
-            <Field label="¿Tenés obra social o prepaga?" htmlFor="perfil-tiene-os" extra={EN_DEBATE}>
+            <Field label="¿Tenés obra social o prepaga?" htmlFor="perfil-tiene-os">
               <Select
                 id="perfil-tiene-os"
                 opciones={OPCIONES_OBRA_SOCIAL}
                 placeholder="Elegí una opción"
                 value={borrador.tieneObraSocial}
-                onChange={(evento) =>
-                  actualizar('tieneObraSocial', evento.target.value as BorradorPerfil['tieneObraSocial'])
-                }
+                onChange={(valor) => actualizar('tieneObraSocial', valor as BorradorPerfil['tieneObraSocial'])}
               />
             </Field>
 
             {borrador.tieneObraSocial === 'si' ? (
-              <Field label="¿Cuál?" htmlFor="perfil-os" extra={EN_DEBATE}>
+              <Field label="¿Cuál?" htmlFor="perfil-os">
                 <Input
                   id="perfil-os"
                   value={borrador.obraSocial}
@@ -326,24 +335,6 @@ export function PerfilWizard({
                 />
               </Field>
             ) : null}
-
-            <Field
-              label="Tipo de contratación"
-              htmlFor="perfil-contratacion"
-              error={errores.tipoContratacion}
-              requerido
-            >
-              <Select
-                id="perfil-contratacion"
-                opciones={OPCIONES_CONTRATACION}
-                placeholder="Elegí una opción"
-                value={borrador.tipoContratacion}
-                invalido={errores.tipoContratacion !== undefined}
-                onChange={(evento) =>
-                  actualizar('tipoContratacion', evento.target.value as BorradorPerfil['tipoContratacion'])
-                }
-              />
-            </Field>
           </>
         ) : null}
 

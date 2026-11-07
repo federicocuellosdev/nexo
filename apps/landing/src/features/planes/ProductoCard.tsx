@@ -1,10 +1,8 @@
 import { Link } from 'react-router';
-import { CircleAlert } from 'lucide-react';
 import type { Producto } from '@/mock/planes';
 import { iconoDeProducto } from '@/features/planes/iconoProducto';
 import { Card } from '@/ui/Card';
 import { Icon } from '@/ui/Icon';
-import { Chip } from '@/ui/Chip';
 import { Money } from '@/ui/Money';
 import { Button, clasesBoton } from '@/ui/Button';
 
@@ -37,21 +35,28 @@ export function ProductoCard({
 
       <div className="flex flex-wrap items-center gap-2">
         <Money monto={producto.precio} periodo="por mes" />
-        {producto.pendiente ? (
-          <Chip tono="warn" icono={CircleAlert}>
-            a confirmar
-          </Chip>
-        ) : null}
       </div>
 
       <div className="mt-auto pt-1">
+        {/* Label genérico cuando corresponde: "Ver Seguro de Hogar · hasta
+            1er piso" pisaba el ancho de la card en mobile. Mantengo el nombre
+            completo en el aria-label por accesibilidad. */}
         {onCta ? (
-          <Button variante="secundario" ancho="full" onClick={() => onCta(producto)}>
-            {etiquetaCta}
+          <Button
+            variante="secundario"
+            ancho="full"
+            onClick={() => onCta(producto)}
+            aria-label={etiquetaCta}
+          >
+            Ver producto
           </Button>
         ) : hrefDetalle ? (
-          <Link to={hrefDetalle} className={clasesBoton({ variante: 'secundario', ancho: 'full' })}>
-            {etiquetaCta}
+          <Link
+            to={hrefDetalle}
+            aria-label={etiquetaCta}
+            className={clasesBoton({ variante: 'secundario', ancho: 'full' })}
+          >
+            Ver producto
           </Link>
         ) : null}
       </div>

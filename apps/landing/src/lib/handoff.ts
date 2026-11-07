@@ -4,7 +4,7 @@ export interface DatosUsuarioAlta {
   nombre: string;
   apellido: string;
   email: string;
-  telefono: string;
+  dni: string;
 }
 
 export interface HandoffAlta {
@@ -39,7 +39,7 @@ export function construirUrlCallback(handoff: Handoff, base: string = portalUrl(
     parametros.set('nombre', handoff.usuario.nombre);
     parametros.set('apellido', handoff.usuario.apellido);
     parametros.set('email', handoff.usuario.email);
-    parametros.set('tel', handoff.usuario.telefono);
+    parametros.set('dni', handoff.usuario.dni);
   } else {
     parametros.set('email', handoff.email);
   }

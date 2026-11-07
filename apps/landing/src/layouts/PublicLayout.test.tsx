@@ -25,6 +25,20 @@ test('el botón Ingresar apunta al portal', () => {
   expect(screen.getByRole('link', { name: 'Ingresar' })).toHaveAttribute('href', `${portalUrl()}/ingresar`);
 });
 
+test('el botón Crear cuenta lleva al catálogo (porque el alta exige elegir plan)', () => {
+  montar();
+  expect(screen.getByRole('link', { name: 'Crear cuenta' })).toHaveAttribute('href', '/catalogo');
+});
+
+test('el CTA "Hablar con un vendedor" abre WhatsApp en pestaña nueva', () => {
+  montar();
+  const vendedor = screen.getByRole('link', { name: 'Hablar con un vendedor' });
+  // 54 9 341 5056130 — es el mismo número que figura en el FAQ de soporte.
+  expect(vendedor).toHaveAttribute('href', 'https://wa.me/5493415056130');
+  expect(vendedor).toHaveAttribute('target', '_blank');
+  expect(vendedor).toHaveAttribute('rel', 'noopener noreferrer');
+});
+
 test('el pie aclara que es una maqueta de demostración', () => {
   montar();
   expect(screen.getByRole('contentinfo')).toHaveTextContent('Maqueta de demostración');

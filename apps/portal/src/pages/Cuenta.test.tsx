@@ -14,23 +14,52 @@ beforeEach(() => {
   resetSession();
 });
 
-test('muestra los datos del usuario base', () => {
+test('la tarjeta de perfil muestra avatar, nombre, apellido y cantidad de familiares', () => {
   seedDemo('activo');
   montar();
-  // Acotado a `main`: el nombre también aparece en el bloque de identidad del
-  // Sidebar, que está fuera de la pantalla. Buscarlo en todo el documento
-  // encontraba dos y fallaba por ambigüedad, no porque la pantalla estuviera
-  // mal. Así el test verifica lo que dice verificar: los datos EN /cuenta.
-  const pantalla = within(screen.getByRole('main'));
-  expect(pantalla.getByText('Camila Pérez')).toBeInTheDocument();
-  expect(pantalla.getByText('camila.perez@ejemplo.com')).toBeInTheDocument();
-  expect(pantalla.getByText('3415551234')).toBeInTheDocument();
+  const perfil = within(screen.getByRole('region', { name: 'Perfil' }));
+  expect(perfil.getByText('Camila')).toBeInTheDocument();
+  expect(perfil.getByText('Pérez')).toBeInTheDocument();
+  expect(perfil.getByText('Familiares')).toBeInTheDocument();
+  // 2 familiares seedeados en `seedDemo('activo')`.
+  expect(perfil.getByText('2')).toBeInTheDocument();
 });
 
-test('muestra el domicilio cargado en el perfil', () => {
+test('arma 3 cards top-level con los campos de /leads: personales, documento y contacto', () => {
   seedDemo('activo');
   montar();
-  expect(screen.getByText('Córdoba 1234, 3 B · Rosario, Santa Fe (2000)')).toBeInTheDocument();
+  // Acotado por región: el nombre también vive en el Sidebar y la tarjeta de
+  // perfil, y colisiona si se busca en todo el documento.
+  const personales = within(screen.getByRole('region', { name: 'Datos personales' }));
+  expect(personales.getByText('Camila')).toBeInTheDocument();
+  expect(personales.getByText('Pérez')).toBeInTheDocument();
+  expect(personales.getByText('Femenino')).toBeInTheDocument();
+  expect(personales.getByText('1990-04-17')).toBeInTheDocument();
+
+  const documento = within(screen.getByRole('region', { name: 'Documento' }));
+  expect(documento.getByText('DNI')).toBeInTheDocument();
+  expect(documento.getByText('35123456')).toBeInTheDocument();
+
+  // La card se titula "Contacto" (y no "Datos de contacto") para no colisionar
+  // con el espíritu del bloque de contacto del propio flujo /leads: acá sólo
+  // viven los canales de comunicación (email y teléfono).
+  const contacto = within(screen.getByRole('region', { name: 'Contacto' }));
+  expect(contacto.getByText('camila.perez@ejemplo.com')).toBeInTheDocument();
+  expect(contacto.getByText('3415551234')).toBeInTheDocument();
+});
+
+test('muestra los datos de domicilio con todos los campos que /leads solicita', () => {
+  seedDemo('activo');
+  montar();
+  const seccion = within(screen.getByRole('region', { name: 'Datos de domicilio' }));
+  expect(seccion.getByText('Córdoba')).toBeInTheDocument();
+  expect(seccion.getByText('1234')).toBeInTheDocument();
+  expect(seccion.getByText('3')).toBeInTheDocument();
+  expect(seccion.getByText('B')).toBeInTheDocument();
+  expect(seccion.getByText('Rosario')).toBeInTheDocument();
+  expect(seccion.getByText('Santa Fe')).toBeInTheDocument();
+  expect(seccion.getByText('2000')).toBeInTheDocument();
+  expect(seccion.getByText('Argentina')).toBeInTheDocument();
 });
 
 test('editar el domicilio abre el wizard en la sección de Domicilio, sin los otros pasos', async () => {
@@ -38,11 +67,14 @@ test('editar el domicilio abre el wizard en la sección de Domicilio, sin los ot
   seedDemo('activo');
   montar();
 
-  const seccion = screen.getByRole('region', { name: 'Domicilio' });
+  const seccion = screen.getByRole('region', { name: 'Datos de domicilio' });
   await usuario.click(within(seccion).getByRole('button', { name: 'Editar' }));
 
   const dialogo = screen.getByRole('dialog', { name: 'Editar tus datos' });
-  expect(within(dialogo).getByLabelText(/^Localidad/)).toHaveValue('Rosario');
+  // Localidad es un combobox custom: el valor se lee del texto del botón,
+  // no de `.value`. País sigue siendo un `<input>` y conserva `.value`.
+  expect(within(dialogo).getByLabelText(/^Localidad/)).toHaveTextContent('Rosario');
+  expect(within(dialogo).getByLabelText(/^País/)).toHaveValue('Argentina');
   // Edición de sección puntual: sin navegación a otros pasos.
   expect(within(dialogo).queryByRole('button', { name: 'Continuar' })).not.toBeInTheDocument();
   expect(within(dialogo).queryByRole('button', { name: 'Volver' })).not.toBeInTheDocument();
@@ -53,15 +85,18 @@ test('guardar el domicilio desde el diálogo actualiza el perfil en un solo clic
   seedDemo('activo');
   montar();
 
-  const seccion = screen.getByRole('region', { name: 'Domicilio' });
+  const seccion = screen.getByRole('region', { name: 'Datos de domicilio' });
   await usuario.click(within(seccion).getByRole('button', { name: 'Editar' }));
 
   const dialogo = screen.getByRole('dialog', { name: 'Editar tus datos' });
-  await usuario.clear(within(dialogo).getByLabelText(/^Localidad/));
-  await usuario.type(within(dialogo).getByLabelText(/^Localidad/), 'Funes');
+  // Localidad es un combobox con catálogo cerrado (3 opciones): se cambia
+  // abriendo el popover y clickeando otra opción, no tipeando. Antes se
+  // tipeaba texto libre ("Funes"), pero el nuevo Select ya no lo permite.
+  await usuario.click(within(dialogo).getByLabelText(/^Localidad/));
+  await usuario.click(within(dialogo).getByRole('option', { name: 'Granadero Baigorria' }));
   await usuario.click(within(dialogo).getByRole('button', { name: 'Guardar cambios' }));
 
-  expect(getSession().perfil?.domicilio.localidad).toBe('Funes');
+  expect(getSession().perfil?.domicilio.localidad).toBe('Granadero Baigorria');
 });
 
 test('editar Documento (paso 1) desde /cuenta guarda en un solo clic', async () => {
@@ -82,16 +117,61 @@ test('editar Documento (paso 1) desde /cuenta guarda en un solo clic', async () 
   expect(screen.queryByRole('dialog', { name: 'Editar tus datos' })).not.toBeInTheDocument();
 });
 
-test('sin perfil cargado invita a completarlo en vez de mostrar campos vacíos', () => {
+test('sin perfil cargado las cards se renderizan igual con "—" en los campos sin cargar', () => {
+  // Se removió el CTA "Completar perfil" en esta pantalla: la invitación vive
+  // en otros puntos del portal (sidebar, inicio) y acá sumaba ruido. Las
+  // cards se renderizan igual pero con "—" como marcador de "sin cargar",
+  // para que la pantalla no cambie de estructura según el estado del perfil.
   setSession({ usuario: USUARIO_DEMO });
   montar();
-  expect(screen.getByRole('link', { name: 'Completar perfil' })).toHaveAttribute('href', '/perfil/completar');
+  expect(screen.queryByRole('link', { name: 'Completar perfil' })).not.toBeInTheDocument();
+  expect(screen.getByRole('region', { name: 'Datos personales' })).toBeInTheDocument();
+  expect(screen.getByRole('region', { name: 'Documento' })).toBeInTheDocument();
+  expect(screen.getByRole('region', { name: 'Contacto' })).toBeInTheDocument();
+  expect(screen.getByRole('region', { name: 'Datos de domicilio' })).toBeInTheDocument();
+  expect(screen.getByRole('region', { name: 'Datos de facturación' })).toBeInTheDocument();
 });
 
-test('muestra el medio de pago ficticio', () => {
+test('muestra el email de MercadoPago en el bloque de facturación', () => {
   seedDemo('activo');
   montar();
-  expect(screen.getByText(/•••• 4242/)).toBeInTheDocument();
+  const seccion = within(screen.getByRole('region', { name: 'Datos de facturación' }));
+  expect(seccion.getByText('camila.perez@ejemplo.com')).toBeInTheDocument();
+});
+
+test('editar el email de facturación actualiza la sesión', async () => {
+  const usuario = userEvent.setup();
+  seedDemo('activo');
+  montar();
+
+  const seccion = screen.getByRole('region', { name: 'Datos de facturación' });
+  await usuario.click(within(seccion).getByRole('button', { name: 'Editar' }));
+
+  const dialogo = screen.getByRole('dialog', { name: 'Email de facturación' });
+  await usuario.clear(within(dialogo).getByLabelText(/^Email de MercadoPago/));
+  await usuario.type(within(dialogo).getByLabelText(/^Email de MercadoPago/), 'camila.mp@ejemplo.com');
+  await usuario.click(within(dialogo).getByRole('button', { name: 'Guardar cambios' }));
+
+  expect(getSession().emailPago).toBe('camila.mp@ejemplo.com');
+  expect(screen.queryByRole('dialog', { name: 'Email de facturación' })).not.toBeInTheDocument();
+});
+
+test('un email de facturación mal formado se rechaza antes de guardar', async () => {
+  const usuario = userEvent.setup();
+  seedDemo('activo');
+  montar();
+
+  const seccion = screen.getByRole('region', { name: 'Datos de facturación' });
+  await usuario.click(within(seccion).getByRole('button', { name: 'Editar' }));
+
+  const dialogo = screen.getByRole('dialog', { name: 'Email de facturación' });
+  await usuario.clear(within(dialogo).getByLabelText(/^Email de MercadoPago/));
+  await usuario.type(within(dialogo).getByLabelText(/^Email de MercadoPago/), 'esto-no-es-un-email');
+  await usuario.click(within(dialogo).getByRole('button', { name: 'Guardar cambios' }));
+
+  expect(within(dialogo).getByRole('alert')).toHaveTextContent('Revisá el formato del email');
+  // La sesión no se tocó.
+  expect(getSession().emailPago).toBe('camila.perez@ejemplo.com');
 });
 
 test('las notificaciones son interruptores sin efecto, marcados como demo', () => {

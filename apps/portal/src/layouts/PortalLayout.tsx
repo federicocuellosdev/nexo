@@ -118,17 +118,7 @@ export function PortalLayout() {
             </Link>
           ) : null
         }
-        pie={
-          <div className="flex flex-col gap-1">
-            <a
-              href={landingUrl()}
-              className="flex items-center gap-3 rounded-campo px-3 py-2.5 text-sm font-medium text-ink-600 transition-colors duration-200 hover:bg-ink-50 hover:text-ink-900"
-            >
-              Ver catálogo
-            </a>
-            {cerrarSesion}
-          </div>
-        }
+        pie={<div className="flex flex-col gap-1">{cerrarSesion}</div>}
       />
 
       <div className="lg:pl-64">

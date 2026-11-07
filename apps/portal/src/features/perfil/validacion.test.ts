@@ -19,20 +19,25 @@ const COMPLETO: BorradorPerfil = {
   fechaNacimiento: '1990-04-17',
   calle: 'Córdoba',
   numero: '1234',
-  piso: '3 B',
+  piso: '3',
+  departamento: 'B',
+  torre: '',
   localidad: 'Rosario',
   provincia: 'Santa Fe',
   cp: '2000',
+  pais: 'Argentina',
   tieneObraSocial: 'si',
   obraSocial: 'OSDE',
   tipoContratacion: 'tomador-beneficiario',
 };
 
-test('el borrador inicial no pasa ningún paso', () => {
+test('el borrador inicial no pasa los pasos 1 a 3; el 4 ya no bloquea', () => {
   expect(validarPaso(1, BORRADOR_INICIAL, HOY).numeroDocumento).toBe('Ingresá tu número de documento');
   expect(validarPaso(2, BORRADOR_INICIAL, HOY).sexo).toBe('Elegí una opción');
   expect(validarPaso(3, BORRADOR_INICIAL, HOY).calle).toBe('Ingresá la calle');
-  expect(validarPaso(4, BORRADOR_INICIAL, HOY).tipoContratacion).toBe('Elegí el tipo de contratación');
+  // El paso 4 dejó de pedir tipo de contratación: hoy queda fijado en
+  // "tomador-beneficiario" y la obra social sigue en debate. No bloquea nada.
+  expect(validarPaso(4, BORRADOR_INICIAL, HOY)).toEqual({});
 });
 
 test('el borrador completo pasa los cuatro pasos', () => {
@@ -93,6 +98,20 @@ test('el piso es opcional', () => {
   expect(validarPaso(3, { ...COMPLETO, piso: '' }, HOY)).toEqual({});
 });
 
+test('departamento y torre son opcionales: no todos los domicilios los tienen', () => {
+  expect(validarPaso(3, { ...COMPLETO, departamento: '', torre: '' }, HOY)).toEqual({});
+});
+
+test('el país es obligatorio: /leads lo pide y Previnca lo necesita para facturar', () => {
+  expect(validarPaso(3, { ...COMPLETO, pais: '' }, HOY).pais).toBe('Ingresá el país');
+});
+
+test('aPerfil omite departamento y torre vacíos en vez de guardar cadenas vacías', () => {
+  const perfil = aPerfil({ ...COMPLETO, departamento: '  ', torre: '' });
+  expect(perfil.domicilio.departamento).toBeUndefined();
+  expect(perfil.domicilio.torre).toBeUndefined();
+});
+
 test('la obra social no bloquea el avance: está en debate', () => {
   expect(validarPaso(4, { ...COMPLETO, tieneObraSocial: '', obraSocial: '' }, HOY)).toEqual({});
 });
@@ -122,17 +141,10 @@ test('desdePerfil y aPerfil son inversas', () => {
 
 /* ── Nombre y apellido (paso 2) ──────────────────────────────────────────── */
 
-test('el paso 2 no pasa sin nombre ni apellido', () => {
-  // Quien entra por "Ya tengo cuenta" sólo dio un email: si el wizard no los
-  // pide, ese socio se queda sin nombre para siempre.
-  const errores = validarPaso(2, { ...COMPLETO, nombre: '', apellido: '' }, HOY);
-  expect(errores.nombre).toBe('Ingresá tu nombre');
-  expect(errores.apellido).toBe('Ingresá tu apellido');
-});
-
-test('un nombre con sólo espacios no cuenta como cargado', () => {
-  const errores = validarPaso(2, { ...COMPLETO, nombre: '   ' }, HOY);
-  expect(errores.nombre).toBe('Ingresá tu nombre');
+test('el paso 2 NO pide nombre ni apellido: ya se cargan en el alta de la landing', () => {
+  // El AltaDialog pide nombre/apellido antes del magic link. El wizard de
+  // perfil sólo exige sexo y fecha; nombre/apellido vacíos no bloquean.
+  expect(validarPaso(2, { ...COMPLETO, nombre: '', apellido: '' }, HOY)).toEqual({});
 });
 
 test('identidadDelBorrador recorta los espacios', () => {

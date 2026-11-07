@@ -65,6 +65,11 @@ export function LogoNexo({ alto = 20, variante = 'marca', etiqueta = ETIQUETA_MA
         WebkitMaskPosition: 'center',
         background:
           variante === 'blanca' ? '#ffffff' : 'linear-gradient(135deg, var(--color-marca-600) 0%, var(--color-marca-300) 100%)',
+        // La variante blanca vive sobre fotos con zonas claras y oscuras (hero
+        // de la home). Sin sombra, el logo desaparece cuando pasa sobre una
+        // ventana iluminada. Un drop-shadow sutil lo despega del fondo sin
+        // sumar ruido en superficies mayormente oscuras.
+        filter: variante === 'blanca' ? 'drop-shadow(0 1px 2px rgba(0,0,0,0.45))' : undefined,
         // En `forced-colors` (alto contraste de Windows) el user-agent pisa
         // `background` y no queda nada visible debajo (esto es un `<span>`
         // enmascarado, no un `<img>` con su propio contenido). Sin esto el

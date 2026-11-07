@@ -14,7 +14,12 @@ test('muestra el email al que se envió el enlace', () => {
     intent: 'alta',
     tipo: 'plan',
     id: 'nexo-2',
-    usuario: { nombre: 'Camila', apellido: 'Pérez', email: 'camila.perez@ejemplo.com', telefono: '3415551234' },
+    usuario: {
+      nombre: 'Camila',
+      apellido: 'Pérez',
+      email: 'camila.perez@ejemplo.com',
+      dni: '34567890',
+    },
   });
   montar();
   expect(screen.getByText('camila.perez@ejemplo.com')).toBeInTheDocument();
@@ -25,13 +30,18 @@ test('el botón de la vista previa del mail apunta al callback del portal con to
     intent: 'alta',
     tipo: 'plan',
     id: 'nexo-2',
-    usuario: { nombre: 'Camila', apellido: 'Pérez', email: 'camila.perez@ejemplo.com', telefono: '3415551234' },
+    usuario: {
+      nombre: 'Camila',
+      apellido: 'Pérez',
+      email: 'camila.perez@ejemplo.com',
+      dni: '34567890',
+    },
   });
   montar();
   expect(screen.getByRole('link', { name: 'Abrir el mail (demo)' })).toHaveAttribute(
     'href',
     'http://localhost:5174/auth/callback?token=demo&intent=alta&tipo=plan&id=nexo-2' +
-      '&nombre=Camila&apellido=P%C3%A9rez&email=camila.perez%40ejemplo.com&tel=3415551234',
+      '&nombre=Camila&apellido=P%C3%A9rez&email=camila.perez%40ejemplo.com&dni=34567890',
   );
 });
 

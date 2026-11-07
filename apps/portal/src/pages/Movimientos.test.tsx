@@ -1,6 +1,5 @@
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { render, screen, within } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { rutas } from '@/router';
 import { agregarOrden, resetSession, seedDemo, setSession } from '@/mock/session';
 import { USUARIO_DEMO } from '@/mock/usuarios';
@@ -24,27 +23,14 @@ beforeEach(() => {
   });
 });
 
-test('arranca mostrando todos los movimientos', () => {
+test('muestra todos los movimientos sin filtros intermedios', () => {
+  // Se eliminó el selector Todos/Pagos/Contrataciones: la lista es
+  // cronológica y el ícono por fila ya distingue plan de producto. Verifica
+  // que las tres órdenes (dos del seed `activo` + la de producto) aparecen.
   montar();
   const contenido = within(screen.getByRole('main'));
-  expect(screen.getByRole('tab', { name: 'Todos' })).toHaveAttribute('aria-selected', 'true');
+  expect(screen.queryByRole('tab')).not.toBeInTheDocument();
   expect(contenido.getAllByRole('listitem')).toHaveLength(3);
-});
-
-test('el filtro Pagos deja solo las cuotas del plan', async () => {
-  const usuario = userEvent.setup();
-  montar();
-  const contenido = within(screen.getByRole('main'));
-  await usuario.click(screen.getByRole('tab', { name: 'Pagos' }));
-  expect(contenido.getAllByRole('listitem')).toHaveLength(2);
-});
-
-test('el filtro Contrataciones deja solo los productos', async () => {
-  const usuario = userEvent.setup();
-  montar();
-  const contenido = within(screen.getByRole('main'));
-  await usuario.click(screen.getByRole('tab', { name: 'Contrataciones' }));
-  expect(contenido.getAllByRole('listitem')).toHaveLength(1);
   expect(screen.getByText('Seguro de Hogar · hasta 1er piso · cuota mensual')).toBeInTheDocument();
 });
 

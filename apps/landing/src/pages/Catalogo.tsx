@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { useSearchParams } from 'react-router';
-import { ON_DEMAND, PLANES } from '@/mock/planes';
+import { ON_DEMAND, PLANES, type Plan, type Producto } from '@/mock/planes';
 import { PlanCard } from '@/features/planes/PlanCard';
 import { ProductoCard } from '@/features/planes/ProductoCard';
 import { PlanComparador } from '@/features/planes/PlanComparador';
+import { AltaDialog, type ItemAlta } from '@/features/alta/AltaDialog';
 import { TabPanel, Tabs, type ItemTab } from '@/ui/Tabs';
 import { Revelar } from '@/ui/Revelar';
 import { EncabezadoSeccion } from '@/ui/EncabezadoSeccion';
@@ -24,26 +26,63 @@ const RECOMENDADO = PLANES.find((plan) => plan.recomendado === true) ?? PLANES[0
 export function Catalogo() {
   const [parametros, setParametros] = useSearchParams();
   const pestana: Pestana = parametros.get('tab') === 'productos' ? 'productos' : 'planes';
+  // Un único AltaDialog compartido para toda la página: el item se arma a
+  // demanda cuando el usuario clickea "Contratar X" en una card. Así evitamos
+  // navegar a la ficha intermedia y dejamos el alta a un solo clic desde el
+  // catálogo.
+  const [itemAlta, setItemAlta] = useState<ItemAlta | null>(null);
 
   function cambiarPestana(valor: Pestana) {
     setParametros(valor === 'planes' ? {} : { tab: valor }, { replace: true });
   }
 
+  function abrirAltaPlan(plan: Plan) {
+    setItemAlta({
+      tipo: 'plan',
+      id: plan.slug,
+      nombre: plan.nombre,
+      precio: plan.precio,
+      pendiente: plan.prestaciones.some((p) => p.pendiente),
+    });
+  }
+
+  function abrirAltaProducto(producto: Producto) {
+    setItemAlta({
+      tipo: 'producto',
+      id: producto.id,
+      nombre: producto.nombre,
+      precio: producto.precio,
+      pendiente: producto.pendiente,
+    });
+  }
+
   return (
-    // Mismo ancho (1200) y mismo aire (py-20/28) que la home: es la pantalla
-    // a la que se llega desde "Ver planes", así que si acá el ritmo cambia,
-    // el clic se siente como caerse a otro sitio.
-    <div className="mx-auto max-w-[1200px] px-4 py-20 lg:px-8 lg:py-28">
+    // Mismo ancho (1200) que la home. Padding superior ajustado para que
+    // el título quede más cerca del header. Reducimos el aire en ambos
+    // breakpoints — pedido reiterado de diseño.
+    <div className="mx-auto max-w-[1200px] px-4 pt-5 pb-20 lg:px-8 lg:pt-12 lg:pb-28">
       <Revelar>
         <EncabezadoSeccion eyebrow="Todo junto" titulo="Catálogo" como="h1" />
       </Revelar>
       <Revelar>
-        <p className="mt-6 max-w-[52ch] text-base text-ink-600">
-          Planes mensuales y coberturas que se contratan aparte. Los precios son mensuales.
+        {/* `text-pretty` reparte el quiebre de línea para evitar que la
+            última palabra quede sola (viuda). `son mensuales.` suma un
+            non-breaking space como refuerzo para los engines que todavía no
+            soportan text-wrap:pretty. */}
+        <p className="mt-6 max-w-[52ch] text-base text-ink-600 text-pretty">
+          Planes mensuales y coberturas que se contratan aparte. Los precios son&nbsp;mensuales.
         </p>
       </Revelar>
 
-      <div className="mt-12">
+      {/* Divisor tenue entre la introducción y los tabs: al ocupar el ancho
+          completo del contenedor marca visualmente el fin del "encabezado"
+          y el inicio del contenido explorable. */}
+      <hr className="mt-10 border-0 border-t border-ink-200" aria-hidden="true" />
+
+      {/* El contenedor de tabs entra con la misma animación de revelado que
+          usan el resto de secciones; así el componente no "aparece" seco
+          mientras el título ya terminó su transición. */}
+      <Revelar className="mt-8">
         <Tabs valor={pestana} onCambio={cambiarPestana} items={ITEMS} etiqueta="Catálogo">
           <TabPanel<Pestana> valor="planes">
             {/* Encabezado sólo para lectores de pantalla: las tarjetas traen un
@@ -61,8 +100,8 @@ export function Catalogo() {
                   <PlanCard
                     plan={plan}
                     destacado={plan.recomendado === true}
-                    hrefDetalle={`/planes/${plan.slug}`}
-                    etiquetaCta={`Ver plan ${plan.nombre}`}
+                    onCta={abrirAltaPlan}
+                    etiquetaCta={`Contratar ${plan.nombre}`}
                   />
                 </Revelar>
               ))}
@@ -88,15 +127,28 @@ export function Catalogo() {
                 <Revelar key={producto.id} className="h-full [&>*]:h-full">
                   <ProductoCard
                     producto={producto}
-                    hrefDetalle={`/productos/${producto.id}`}
-                    etiquetaCta={`Ver ${producto.nombre}`}
+                    onCta={abrirAltaProducto}
+                    etiquetaCta={`Contratar ${producto.nombre}`}
                   />
                 </Revelar>
               ))}
             </div>
           </TabPanel>
         </Tabs>
-      </div>
+      </Revelar>
+
+      {/* Dialog único: `item` arranca en null para que el componente no monte
+          formulario hasta que haya elección real. Al cerrarlo lo limpiamos
+          para que la próxima apertura sea un reset. */}
+      {itemAlta ? (
+        <AltaDialog
+          abierto={itemAlta !== null}
+          onCambio={(abierto) => {
+            if (!abierto) setItemAlta(null);
+          }}
+          item={itemAlta}
+        />
+      ) : null}
     </div>
   );
 }

@@ -1,21 +1,28 @@
+/**
+ * Alta de la landing v3: campos mínimos para obtener el `sfLeadId` desde
+ * SF /leads (nombre + apellido + DNI) + email para mandar el magic link.
+ *
+ * El resto de datos (teléfono, fecha de nacimiento, domicilio, CP) se
+ * completa después, dentro del portal, para alimentar el /enrich de SF
+ * y pasar el Prospect a `readyToSell: true`.
+ */
 export interface DatosAlta {
   nombre: string;
   apellido: string;
   email: string;
-  telefono: string;
+  dni: string;
 }
 
 export type ErroresAlta = Partial<Record<keyof DatosAlta, string>>;
 
-export const DATOS_ALTA_VACIOS: DatosAlta = { nombre: '', apellido: '', email: '', telefono: '' };
+export const DATOS_ALTA_VACIOS: DatosAlta = { nombre: '', apellido: '', email: '', dni: '' };
 
 /**
  * Validación deliberadamente laxa: un email "correcto" según la RFC igual puede
  * no existir. Lo único que se atrapa acá son los errores de tipeo evidentes.
  */
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-
-const MINIMO_DIGITOS_TELEFONO = 8;
+const DNI = /^\d{7,8}$/;
 
 export function validarEmail(email: string): string | undefined {
   const valor = email.trim();
@@ -33,9 +40,7 @@ export function validarAlta(datos: DatosAlta): ErroresAlta {
   const email = validarEmail(datos.email);
   if (email !== undefined) errores.email = email;
 
-  if (datos.telefono.replace(/\D/g, '').length < MINIMO_DIGITOS_TELEFONO) {
-    errores.telefono = `Ingresá un teléfono de al menos ${MINIMO_DIGITOS_TELEFONO} dígitos`;
-  }
+  if (!DNI.test(datos.dni.trim())) errores.dni = 'DNI de 7 u 8 dígitos';
 
   return errores;
 }

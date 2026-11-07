@@ -68,7 +68,6 @@ export const PLANES: Plan[] = [
     nombre: 'Nexo I',
     precio: 20000,
     bajada: 'La cobertura completa: emergencias, odontología y farmacia.',
-    recomendado: true,
     prestaciones: [
       { label: 'Emergencias médicas', estado: 'incluido' },
       { label: 'Guardia odontológica', estado: 'incluido' },
@@ -85,6 +84,7 @@ export const PLANES: Plan[] = [
     nombre: 'Nexo II',
     precio: 12000,
     bajada: 'Seguro de salud, farmacia y óptica, con telemedicina.',
+    recomendado: true,
     prestaciones: [
       { label: 'Seguro de Salud I', estado: 'incluido', detalle: 'Alta complejidad, internación y trasplante' },
       { label: 'Farmacia', estado: 'incluido' },

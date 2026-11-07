@@ -1,8 +1,22 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { PerfilWizard } from '@/features/perfil/PerfilWizard';
-import { desdePerfil } from '@/features/perfil/validacion';
+import { BORRADOR_INICIAL, desdePerfil } from '@/features/perfil/validacion';
 import { PERFIL_DEMO } from '@/mock/usuarios';
+
+/**
+ * El `<Select>` del portal es un combobox custom (botón + popover de listbox),
+ * así que `userEvent.selectOptions` no sirve: hay que abrir el popover y
+ * clickear la opción como lo haría una persona.
+ */
+async function elegirDelSelect(
+  usuario: ReturnType<typeof userEvent.setup>,
+  etiqueta: RegExp | string,
+  opcionLabel: string,
+) {
+  await usuario.click(screen.getByLabelText(etiqueta));
+  await usuario.click(screen.getByRole('option', { name: opcionLabel }));
+}
 
 async function completarPaso1(usuario: ReturnType<typeof userEvent.setup>) {
   await usuario.type(screen.getByLabelText(/^Número de documento/), '35123456');
@@ -10,20 +24,28 @@ async function completarPaso1(usuario: ReturnType<typeof userEvent.setup>) {
 }
 
 async function completarPaso2(usuario: ReturnType<typeof userEvent.setup>) {
-  await usuario.type(screen.getByLabelText(/^Nombre/), 'Camila');
-  await usuario.type(screen.getByLabelText(/^Apellido/), 'Pérez');
-  await usuario.selectOptions(screen.getByLabelText(/^Sexo/), 'F');
-  await usuario.type(screen.getByLabelText(/^Fecha de nacimiento/), '1990-04-17');
+  // Nombre y apellido ya no viven en el paso 2 (vienen del alta); sólo
+  // sexo y fecha de nacimiento siguen en este paso. La fecha es un combo de
+  // 3 selects (Día / Mes / Año) — mismo pattern que el BirthDatePicker real.
+  await elegirDelSelect(usuario, /^Sexo/, 'Femenino');
+  await elegirDelSelect(usuario, 'Día', '17');
+  await elegirDelSelect(usuario, 'Mes', 'abril');
+  await elegirDelSelect(usuario, 'Año', '1990');
   await usuario.click(screen.getByRole('button', { name: 'Continuar' }));
 }
 
 async function completarPaso3(usuario: ReturnType<typeof userEvent.setup>) {
   await usuario.type(screen.getByLabelText(/^Calle/), 'Córdoba');
   await usuario.type(screen.getByLabelText(/^Número/), '1234');
-  await usuario.type(screen.getByLabelText('Piso y departamento'), '3 B');
-  await usuario.type(screen.getByLabelText(/^Localidad/), 'Rosario');
-  await usuario.type(screen.getByLabelText(/^Provincia/), 'Santa Fe');
+  await usuario.type(screen.getByLabelText(/^Piso/), '3');
+  await usuario.type(screen.getByLabelText(/^Departamento/), 'B');
+  // Torre queda vacía a propósito: no todos los domicilios viven en una.
+  // Localidad es un Select con el catálogo heredado de v2 (3 opciones de
+  // Santa Fe). Al elegirla, Provincia se autocompleta con "Santa Fe".
+  await elegirDelSelect(usuario, /^Localidad/, 'Rosario');
   await usuario.type(screen.getByLabelText(/^Código postal/), '2000');
+  // Provincia y País: el pick de localidad y el borrador inicial dejan los
+  // valores correctos, así que no hace falta tipearlos.
   await usuario.click(screen.getByRole('button', { name: 'Continuar' }));
 }
 
@@ -69,36 +91,45 @@ test('el paso 1 no ofrece volver porque no hay a dónde', () => {
   expect(screen.queryByRole('button', { name: 'Volver' })).not.toBeInTheDocument();
 });
 
-test('los campos en debate llevan el badge "opcional · a definir"', async () => {
+test('el paso 4 no bloquea: ni obra social ni tipo de contratación son requeridos', async () => {
+  // La obra social sigue en debate (opcional) y el tipo de contratación
+  // dejó de preguntarse (queda fijo en "tomador-beneficiario" en el
+  // borrador inicial). El wizard puede guardarse sin tocar nada del paso 4.
   const usuario = userEvent.setup();
-  render(<PerfilWizard onGuardar={vi.fn()} />);
+  const alGuardar = vi.fn();
+  render(
+    <PerfilWizard
+      borradorInicial={{ ...BORRADOR_INICIAL, nombre: 'Camila', apellido: 'Pérez' }}
+      onGuardar={alGuardar}
+    />,
+  );
   await completarPaso1(usuario);
   await completarPaso2(usuario);
   await completarPaso3(usuario);
-  expect(screen.getAllByText('opcional · a definir').length).toBeGreaterThan(0);
-});
-
-test('el paso 4 pide el tipo de contratación pero no la obra social', async () => {
-  const usuario = userEvent.setup();
-  render(<PerfilWizard onGuardar={vi.fn()} />);
-  await completarPaso1(usuario);
-  await completarPaso2(usuario);
-  await completarPaso3(usuario);
+  expect(screen.queryByLabelText(/^Tipo de contratación/)).not.toBeInTheDocument();
   await usuario.click(screen.getByRole('button', { name: 'Guardar y activar' }));
-  expect(screen.getByRole('alert')).toHaveTextContent('Elegí el tipo de contratación');
+  expect(alGuardar).toHaveBeenCalled();
 });
 
 test('guardar entrega el perfil armado', async () => {
   const usuario = userEvent.setup();
   const alGuardar = vi.fn();
-  render(<PerfilWizard onGuardar={alGuardar} />);
+  // Nombre/apellido se precargan desde el borrador porque /perfil/completar
+  // los pasa desde el alta — el wizard ya no los pide en el paso 2.
+  render(
+    <PerfilWizard
+      borradorInicial={{ ...BORRADOR_INICIAL, nombre: 'Camila', apellido: 'Pérez' }}
+      onGuardar={alGuardar}
+    />,
+  );
 
   await completarPaso1(usuario);
   await completarPaso2(usuario);
   await completarPaso3(usuario);
-  await usuario.selectOptions(screen.getByLabelText('¿Tenés obra social o prepaga?'), 'si');
+  // Paso 4: sólo obra social sigue en el formulario (el tipo de contratación
+  // ya no se pregunta y viaja fijo en el borrador).
+  await elegirDelSelect(usuario, '¿Tenés obra social o prepaga?', 'Sí');
   await usuario.type(screen.getByLabelText('¿Cuál?'), 'OSDE');
-  await usuario.selectOptions(screen.getByLabelText(/^Tipo de contratación/), 'tomador-beneficiario');
   await usuario.click(screen.getByRole('button', { name: 'Guardar y activar' }));
 
   // Dos destinos separados: `perfil` va a sesion.perfil e `identidad` a
@@ -112,7 +143,9 @@ test('guardar entrega el perfil armado', async () => {
 test('puede abrir en un paso puntual con el borrador ya cargado', () => {
   render(<PerfilWizard pasoInicial={3} borradorInicial={desdePerfil(PERFIL_DEMO)} onGuardar={vi.fn()} />);
   expect(screen.getByText('Paso 3 de 4')).toBeInTheDocument();
-  expect(screen.getByLabelText(/^Localidad/)).toHaveValue('Rosario');
+  // Localidad es un combobox custom (no un `<select>`): no tiene `.value`,
+  // el valor elegido se muestra como texto dentro del botón.
+  expect(screen.getByLabelText(/^Localidad/)).toHaveTextContent('Rosario');
 });
 
 test('con soloEstePaso guarda el paso puntual en un solo clic, sin pedir los siguientes', async () => {

@@ -1,12 +1,10 @@
 import { Link } from 'react-router';
 import { ChevronDown, CreditCard, MousePointerClick, UserPlus } from 'lucide-react';
-import { ON_DEMAND, PLANES } from '@/mock/planes';
+import { PLANES } from '@/mock/planes';
 import { FAQ } from '@/mock/faq';
 import { TESTIMONIOS } from '@/mock/testimonios';
 import { TestimonioCard } from '@/features/testimonios/TestimonioCard';
 import { formatearPrecio, precioDesde } from '@/lib/formato';
-import { PlanCard } from '@/features/planes/PlanCard';
-import { ProductoCard } from '@/features/planes/ProductoCard';
 import { clasesBoton } from '@/ui/Button';
 import { Icon } from '@/ui/Icon';
 import { Revelar } from '@/ui/Revelar';
@@ -61,14 +59,6 @@ const PASOS = [
   { icono: CreditCard, titulo: 'Pagás y listo', texto: 'Abonás la primera cuota y tu cobertura queda activa.' },
 ];
 
-/**
- * Pill con puntito de color, mayúsculas y tracking amplio para los CTA
- * SECUNDARIOS de sección. El CTA primario (Button `variante="primario"`) no
- * lleva este tratamiento: sigue siendo el único lugar con el degradado de marca.
- */
-const ENLACE_SECUNDARIO =
-  'inline-flex items-center gap-2 rounded-pill border border-ink-200 bg-white px-4 py-2 text-xs font-semibold tracking-[0.08em] text-ink-700 uppercase transition-colors duration-200 ease-out-quart hover:border-marca-300 hover:text-marca-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca-500';
-
 export function Home() {
   const desde = precioDesde(PLANES);
 
@@ -79,7 +69,7 @@ export function Home() {
           contenido queda cortado justo al cargar. La foto deriva con el scroll
           (motion.css, `[data-parallax]`), gateado por @supports y por
           prefers-reduced-motion. */}
-      <section className="relative isolate flex min-h-[100svh] items-end overflow-hidden bg-ink-950">
+      <section className="relative isolate flex min-h-[100svh] items-center overflow-hidden bg-ink-950 sm:items-end">
         <img
           src={heroWoman}
           alt="Mujer sonriendo mientras mira la app de Nexo en su celular, sentada en el living de su casa"
@@ -100,12 +90,21 @@ export function Home() {
         />
         <div
           aria-hidden="true"
-          className="absolute inset-0 -z-10 bg-[radial-gradient(120%_85%_at_75%_25%,transparent_45%,rgba(20,18,28,0.4)_100%)]"
+          className="absolute inset-0 -z-10 bg-[radial-gradient(120%_85%_at_75%_25%,#00000033_45%,rgba(20,18,28,0.4)_100%)]"
+        />
+        {/* Vignette extra en la esquina superior izquierda: la zona donde
+            viven el logo blanco y el botón "Hablar con un vendedor" cae sobre
+            una parte muy iluminada de la foto y el texto se pierde. Un radial
+            corto, denso al centro y transparente al 65%, oscurece justo ese
+            cuadrante sin afectar el resto de la imagen. */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 -z-10 bg-[radial-gradient(60%_50%_at_0%_0%,rgba(20,18,28,0.55)_0%,rgba(20,18,28,0.25)_30%,transparent_65%)]"
         />
 
         <div
           data-entrada
-          className="mx-auto w-full max-w-[1200px] px-4 pt-32 pb-16 lg:px-8 lg:pt-40 lg:pb-24"
+          className="mx-auto w-full max-w-[1200px] px-4 pt-20 pb-32 lg:px-8 lg:pt-40 lg:pb-24"
         >
           <p className="font-display text-lg text-marca-100 italic lg:text-xl">(Previnca Salud)</p>
           <h1 className="mt-4 max-w-[14ch] text-4xl text-white lg:text-6xl">Tu salud, resuelta desde el celular</h1>
@@ -120,20 +119,12 @@ export function Home() {
           <p className="mt-8 text-lg text-white">
             Planes <strong className="font-semibold">desde {formatearPrecio(desde)} por mes</strong>
           </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link to="/catalogo" className={clasesBoton({ tamano: 'lg', ancho: 'full', className: 'sm:w-auto' })}>
+          {/* CTA del hero: oculto en mobile porque la acción principal vive
+              en la barra flotante inferior (PublicLayout). En desktop (sm+)
+              aparece acá como único CTA del hero. */}
+          <div className="mt-8 hidden sm:block">
+            <Link to="/catalogo" className={clasesBoton({ tamano: 'lg' })}>
               Ver planes
-            </Link>
-            <Link
-              to="/catalogo?tab=productos"
-              className={clasesBoton({
-                variante: 'secundario',
-                tamano: 'lg',
-                ancho: 'full',
-                className: 'sm:w-auto',
-              })}
-            >
-              Ver productos
             </Link>
           </div>
         </div>
@@ -194,6 +185,28 @@ export function Home() {
         </div>
       </section>
 
+      {/* CTA band a ancho completo. Va PEGADO al final de "Cómo funciona"
+          para capturar la intención del visitante que recién entendió el
+          flujo. Fondo violeta sólido (marca-600, no gradient — el gradient
+          vive sólo en el logo y el primario default) + texto blanco. El
+          botón es blanco con texto marca para que destaque sobre el fondo. */}
+      <section aria-label="Explorar planes" className="bg-marca-600">
+        <div className="mx-auto flex max-w-[720px] flex-col items-center gap-8 px-4 py-16 text-center lg:py-20">
+          <div>
+            <h2 className="font-display text-3xl text-white lg:text-4xl">¿Listo para empezar?</h2>
+            <p className="mx-auto mt-3 max-w-[48ch] text-base text-white/85 lg:text-lg">
+              Comparalos uno al lado del otro y quedate con el que te sirve.
+            </p>
+          </div>
+          <Link
+            to="/catalogo"
+            className="inline-flex items-center justify-center gap-2 rounded-pill bg-white px-7 py-4 text-base font-semibold whitespace-nowrap text-marca-700 shadow-card transition-colors hover:bg-ink-50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+          >
+            Ver planes →
+          </Link>
+        </div>
+      </section>
+
       {/* Corte a sangre. No agrega mensaje ni promesa nueva: es respiración
           entre dos bloques densos, que es lo que sostiene el ritmo de una
           landing editorial larga.
@@ -218,63 +231,29 @@ export function Home() {
       {/* Planes — sin bg propio: deja ver el app-tone de PublicLayout,
           alternando con el blanco de arriba. Motivo decorativo: círculo pálido
           en marca-100, sin blur (evita el bug conocido de iOS Safari con
-          fondos difusos en mobile). */}
+          fondos difusos en mobile).
+          En la home NO listamos las 3 cards ni los productos on demand: la
+          decisión de plan vive en /catalogo. Acá sólo quedó la sección como
+          puerta de entrada con un CTA jerarquizado que lleva al catálogo. */}
       <section aria-label="Nuestros planes" className="relative overflow-hidden">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute -top-32 -right-32 size-[480px] rounded-full bg-marca-100/70 lg:size-[640px]"
         />
-        <div className="relative mx-auto max-w-[1200px] px-4 py-24 lg:px-8 lg:py-40">
-          {/* La píldora va DEBAJO del título, no al lado. A 40px convivían en
-              una fila; a 72px el título ocupa dos líneas y el `justify-between`
-              dejaba la píldora flotando en el medio del bloque. */}
+        <div className="relative mx-auto flex max-w-[1200px] flex-col items-center px-4 py-24 text-center lg:px-8 lg:py-40">
           <Revelar>
             <EncabezadoSeccion eyebrow="Elegí el tuyo" titulo="Nuestros planes" />
           </Revelar>
           <Revelar>
-            <Link to="/catalogo" className={`${ENLACE_SECUNDARIO} mt-8`}>
-              <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-marca-500" />
-              Ver el catálogo completo
-            </Link>
-          </Revelar>
-          {/* `h-full` en el wrapper y en la tarjeta: al envolver PlanCard en un
-              elemento intermedio, el `align-items: stretch` de la grilla estira
-              el wrapper pero no la tarjeta, y las tres quedaban de alto
-              distinto. */}
-          <div data-revelar-grupo className="mt-14 grid items-stretch gap-4 md:grid-cols-3">
-            {PLANES.map((plan) => (
-              <Revelar key={plan.slug} className="h-full [&>*]:h-full">
-                <PlanCard plan={plan} destacado={plan.recomendado === true} hrefDetalle={`/planes/${plan.slug}`} />
-              </Revelar>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* On demand — bg blanco, vuelve a alternar. */}
-      <section id="productos" aria-label="Productos on demand" className="bg-white">
-        <div className="mx-auto max-w-[1200px] px-4 py-24 lg:px-8 lg:py-40">
-          <Revelar>
-            <EncabezadoSeccion eyebrow="Cuando los necesites" titulo="Productos on demand" />
-          </Revelar>
-          <Revelar>
-            <p className="mt-6 max-w-[52ch] text-base text-ink-600">
-              Coberturas que se suman aparte de la cuota. Requieren un plan activo.
+            <p className="mx-auto mt-6 max-w-[52ch] text-base text-ink-600">
+              Tres planes mensuales con telemedicina, emergencias y beneficios para cuidarte. Comparalos uno al lado del otro y quedate con el que te sirve.
             </p>
           </Revelar>
-          <Revelar>
-            <Link to="/catalogo?tab=productos" className={`${ENLACE_SECUNDARIO} mt-8`}>
-              <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-marca-500" />
-              Ver todos los productos
+          <Revelar className="mt-10">
+            <Link to="/catalogo" className={clasesBoton({ tamano: 'lg' })}>
+              Ver planes de salud →
             </Link>
           </Revelar>
-          <div data-revelar-grupo className="mt-14 grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {ON_DEMAND.map((producto) => (
-              <Revelar key={producto.id} className="h-full [&>*]:h-full">
-                <ProductoCard producto={producto} hrefDetalle={`/productos/${producto.id}`} />
-              </Revelar>
-            ))}
-          </div>
         </div>
       </section>
 

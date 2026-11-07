@@ -14,9 +14,12 @@ export interface Domicilio {
   calle: string;
   numero: string;
   piso?: string;
+  departamento?: string;
+  torre?: string;
   localidad: string;
   provincia: string;
   cp: string;
+  pais: string;
 }
 
 export type TipoDocumento = 'DNI' | 'Pasaporte';
@@ -59,6 +62,19 @@ export interface Session {
   perfil?: PerfilPrevinca;
   intent?: Intent;
   ordenes: Orden[];
+  /**
+   * Email de la cuenta de MercadoPago sobre la que se emiten las facturas y por
+   * el que llegan los avisos de cobro. Se separa de `usuario.email` a propósito:
+   * mucha gente usa un email para contacto y otro para su billetera de MP.
+   */
+  emailPago?: string;
+  /**
+   * Cantidad de familiares adicionales que entran en la cobertura, además del
+   * Tomador. Mapea a `beneficiaries.length` del /sales de Salesforce — no al
+   * `declaredMembersCount`, que incluye al Tomador. Se guarda en la sesión y no
+   * en `PerfilPrevinca` porque es un dato del plan, no del Tomador.
+   */
+  familiares?: number;
   /**
    * N° de afiliado. Es el ÚNICO dato de la credencial que se guarda: todo lo
    * demás se deriva (el estado de `derivarEstado`, la vigencia de la última
@@ -263,6 +279,8 @@ export function seedDemo(preset: PresetDemo): void {
           // del contador mostraría 1500, que se lee como marcador de posición.
           // 1547 se lee como un afiliado real.
           numeroAfiliado: '1547',
+          emailPago: 'camila.perez@ejemplo.com',
+          familiares: 2,
         },
   );
 }

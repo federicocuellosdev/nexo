@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router';
 import { setSession, useSession } from '@/mock/session';
 import { PerfilWizard, type DatosDelWizard } from '@/features/perfil/PerfilWizard';
-import { BORRADOR_INICIAL } from '@/features/perfil/validacion';
+import { BORRADOR_DEMO } from '@/features/perfil/validacion';
 
 export function PerfilCompletar() {
   const navegar = useNavigate();
@@ -22,12 +22,15 @@ export function PerfilCompletar() {
         Previnca necesita estos datos para activar tu cobertura. Son cuatro pasos cortos.
       </p>
       <div className="mt-6">
-        {/* Precargado con lo que ya se sabe: quien vino por el alta desde la
-            landing escribió nombre y apellido en el formulario, así que sólo
-            los confirma. Quien vino por login los completa acá. */}
+        {/* Pre-cargado con datos de prueba (BORRADOR_DEMO) para facilitar el
+            recorrido clickeable de la maqueta: recorrer el wizard es
+            Enter → Enter → Enter → Guardar. Nombre y apellido vienen del alta
+            de la landing; si no están (login sólo con email) quedan vacíos.
+            Cuando esto deje de ser maqueta, cambiar `BORRADOR_DEMO` por
+            `BORRADOR_INICIAL`. */}
         <PerfilWizard
           borradorInicial={{
-            ...BORRADOR_INICIAL,
+            ...BORRADOR_DEMO,
             nombre: usuario?.nombre ?? '',
             apellido: usuario?.apellido ?? '',
           }}

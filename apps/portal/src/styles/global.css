@@ -7,6 +7,10 @@
 
   html {
     -webkit-text-size-adjust: 100%;
+    /* Reserva el ancho del scrollbar incluso cuando no se muestra: así el
+       layout no salta cuando una pantalla pasa de caber a desbordar
+       (ej. al desplegar el acordeón de prestaciones). */
+    scrollbar-gutter: stable;
   }
 
   body {

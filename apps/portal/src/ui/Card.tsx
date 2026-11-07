@@ -14,7 +14,7 @@ export function Card({ children, className, destacada = false, as: Etiqueta = 'd
     <Etiqueta
       className={cn(
         'rounded-card bg-white p-5 shadow-card',
-        destacada ? 'ring-2 ring-marca-500' : 'ring-1 ring-ink-100',
+        destacada ? 'ring-2 ring-marca-500' : 'ring-1 ring-ink-200',
         className,
       )}
     >

@@ -4,7 +4,7 @@ const VALIDOS = {
   nombre: 'Camila',
   apellido: 'Pérez',
   email: 'camila.perez@ejemplo.com',
-  telefono: '3415551234',
+  dni: '34567890',
 };
 
 test('los datos completos no producen errores', () => {
@@ -12,9 +12,9 @@ test('los datos completos no producen errores', () => {
   expect(hayErrores(validarAlta(VALIDOS))).toBe(false);
 });
 
-test('el formulario vacío marca los cuatro campos', () => {
+test('el formulario vacío marca los cuatro campos requeridos', () => {
   const errores = validarAlta(DATOS_ALTA_VACIOS);
-  expect(Object.keys(errores).sort()).toEqual(['apellido', 'email', 'nombre', 'telefono']);
+  expect(Object.keys(errores).sort()).toEqual(['apellido', 'dni', 'email', 'nombre']);
 });
 
 test('un nombre de una sola letra no alcanza', () => {
@@ -41,9 +41,9 @@ test('un email válido no devuelve error', () => {
   expect(validarEmail('camila.perez@ejemplo.com')).toBeUndefined();
 });
 
-test('el teléfono se valida por cantidad de dígitos, ignorando guiones y espacios', () => {
-  expect(validarAlta({ ...VALIDOS, telefono: '341 555-1234' }).telefono).toBeUndefined();
-  expect(validarAlta({ ...VALIDOS, telefono: '341-55' }).telefono).toBe(
-    'Ingresá un teléfono de al menos 8 dígitos',
-  );
+test('el DNI debe tener 7 u 8 dígitos', () => {
+  expect(validarAlta({ ...VALIDOS, dni: '34567890' }).dni).toBeUndefined();
+  expect(validarAlta({ ...VALIDOS, dni: '1234567' }).dni).toBeUndefined();
+  expect(validarAlta({ ...VALIDOS, dni: '12345' }).dni).toBe('DNI de 7 u 8 dígitos');
+  expect(validarAlta({ ...VALIDOS, dni: 'abc12345' }).dni).toBe('DNI de 7 u 8 dígitos');
 });

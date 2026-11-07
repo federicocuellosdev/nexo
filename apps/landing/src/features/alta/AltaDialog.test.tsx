@@ -78,7 +78,7 @@ test('el plan elegido viaja como campo oculto', () => {
 test('enviar vacío muestra los cuatro errores y no navega', async () => {
   const usuario = userEvent.setup();
   montar();
-  await usuario.click(screen.getByRole('button', { name: 'Crear mi cuenta' }));
+  await usuario.click(screen.getByRole('button', { name: 'Crear cuenta' }));
   expect(screen.getAllByRole('alert')).toHaveLength(4);
   expect(screen.queryByText('pantalla revisa tu mail')).not.toBeInTheDocument();
 });
@@ -89,7 +89,7 @@ test('un email mal escrito muestra el error del email', async () => {
   await completarDatosValidos(usuario);
   await usuario.clear(screen.getByLabelText(/^Email/));
   await usuario.type(screen.getByLabelText(/^Email/), 'camila.ejemplo.com');
-  await usuario.click(screen.getByRole('button', { name: 'Crear mi cuenta' }));
+  await usuario.click(screen.getByRole('button', { name: 'Crear cuenta' }));
   expect(screen.getByRole('alert')).toHaveTextContent('Revisá el email: falta el @ o el dominio');
 });
 
@@ -97,7 +97,7 @@ test('el envío válido guarda el handoff de alta y navega a revisá tu mail', a
   const usuario = userEvent.setup();
   montar();
   await completarDatosValidos(usuario);
-  await usuario.click(screen.getByRole('button', { name: 'Crear mi cuenta' }));
+  await usuario.click(screen.getByRole('button', { name: 'Crear cuenta' }));
 
   expect(screen.getByText('pantalla revisa tu mail')).toBeInTheDocument();
   expect(leerHandoff()).toEqual({

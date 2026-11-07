@@ -93,12 +93,6 @@ test('cerrar sesión limpia la sesión y apunta a la landing', async () => {
   expect(getSession().usuario).toBeUndefined();
 });
 
-test('el enlace Ver catálogo lleva a la landing', () => {
-  setSession({ usuario: USUARIO_DEMO });
-  montar();
-  expect(screen.getByRole('link', { name: 'Ver catálogo' })).toHaveAttribute('href', 'http://localhost:5173');
-});
-
 /* ── Modo enfocado en checkout ───────────────────────────────────────────── */
 
 test.each(['/bienvenida', '/pago', '/perfil/completar'])(
@@ -111,8 +105,7 @@ test.each(['/bienvenida', '/pago', '/perfil/completar'])(
     expect(screen.queryByRole('navigation', { name: 'Navegación principal' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Coberturas' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Movimientos' })).not.toBeInTheDocument();
-    // Tampoco las salidas del pie, que sacan del portal entero.
-    expect(screen.queryByRole('link', { name: 'Ver catálogo' })).not.toBeInTheDocument();
+    // Tampoco la salida del pie, que saca del portal entero.
     expect(screen.queryByRole('link', { name: 'Cerrar sesión' })).not.toBeInTheDocument();
   },
 );
