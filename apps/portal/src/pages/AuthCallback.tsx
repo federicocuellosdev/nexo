@@ -51,8 +51,10 @@ export function AuthCallback() {
           ...(leadId ? { intent: { tipo: 'plan', id: leadId } } : {}),
         });
         // Hard navigate para que Supabase limpie el hash del URL — el
-        // router mantendría el hash en el history.
-        window.location.replace('/bienvenida');
+        // router mantendría el hash en el history. `BASE_URL` incluye el
+        // subpath (`/app/`) en el deploy unificado landing+portal, y `/` en
+        // dev local → la misma línea sirve para ambos.
+        window.location.replace(`${import.meta.env.BASE_URL}bienvenida`);
       })();
       return;
     }

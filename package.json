@@ -1,0 +1,15 @@
+{
+  "name": "nexo-v3-front",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Workspace root para el deploy unificado landing + portal (nexo-front en Vercel). El backend vive en la rama `back` y se deploya aparte.",
+  "scripts": {
+    "install:apps": "npm --prefix apps/landing install && npm --prefix apps/portal install",
+    "build:landing": "npm --prefix apps/landing run build",
+    "build:portal": "npm --prefix apps/portal run build",
+    "build": "npm run build:landing && npm run build:portal && node ./scripts/copiar-portal.mjs",
+    "dev:landing": "npm --prefix apps/landing run dev",
+    "dev:portal": "npm --prefix apps/portal run dev"
+  },
+  "engines": { "node": ">=22" }
+}

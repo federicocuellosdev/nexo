@@ -22,5 +22,8 @@ export function landingUrl(): string {
  * portal esté publicado. Se lee en cada llamada, como `landingUrl()`.
  */
 export function portalUrl(): string {
-  return window.location.origin.replace(/\/+$/, '');
+  // Incluimos `BASE_URL` para soportar el deploy unificado landing+portal en
+  // el que el portal vive bajo `/app/*`. En dev standalone `BASE_URL === "/"`
+  // y el resultado es el origin pelado como siempre.
+  return (window.location.origin + import.meta.env.BASE_URL).replace(/\/+$/, '');
 }

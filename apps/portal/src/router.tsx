@@ -65,4 +65,10 @@ export const rutas: RouteObject[] = [
   },
 ];
 
-export const router = createBrowserRouter(rutas);
+// `basename` derivado del `base` de Vite. En dev es `/` → React Router no
+// necesita basename. En staging/prod el portal se sirve bajo `/app/*`
+// (ver apps/portal/vite.config.ts): sacamos el trailing slash y pasamos
+// `basename: "/app"` para que los <Link>/useNavigate armen URLs correctas.
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
+
+export const router = createBrowserRouter(rutas, basePath ? { basename: basePath } : undefined);
