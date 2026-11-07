@@ -71,8 +71,17 @@ export function TopBar({ marca, acciones, sobreContenido = false }: TopBarProps)
     <>
       {/* Centinela de 1px en el tope del documento. Cuando sale de cuadro,
           la barra pasa a sólida. Se prefiere a un listener de scroll porque
-          el observer no corre en cada frame de scroll. */}
-      {sobreContenido ? <div ref={centinela} aria-hidden="true" className="h-px" /> : null}
+          el observer no corre en cada frame de scroll.
+          `fixed` + `pointer-events-none` lo saca del flujo: si vive en el
+          flujo normal, con header `fixed` encima aparece una franja de 1px
+          del bg del body (blanco) arriba del header — visible sobre el hero. */}
+      {sobreContenido ? (
+        <div
+          ref={centinela}
+          aria-hidden="true"
+          className="pointer-events-none fixed left-0 top-0 h-px w-px"
+        />
+      ) : null}
 
       <header className={`${base} z-30 transition-[background-color,border-color] duration-200 ease-out-quart ${fondo}`}>
         <div className="mx-auto flex h-14 max-w-[1200px] items-center justify-between gap-3 px-4 lg:h-16 lg:px-8">
