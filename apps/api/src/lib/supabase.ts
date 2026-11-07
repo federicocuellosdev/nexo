@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { config } from '@/config.js';
+import { config } from '../config.js';
 
 /**
  * Cliente admin: usa el service_role_key, puede saltarse RLS y llamar a

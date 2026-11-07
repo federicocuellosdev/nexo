@@ -1,5 +1,5 @@
 import { Resend } from 'resend';
-import { config } from '@/config.js';
+import { config } from '../config.js';
 
 /**
  * Wrapper sobre Resend. Si `RESEND_API_KEY` no está seteado (típico en dev

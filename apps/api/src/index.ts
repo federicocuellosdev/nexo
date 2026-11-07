@@ -1,5 +1,5 @@
-import { crearApp } from '@/app.js';
-import { config } from '@/config.js';
+import { crearApp } from './app.js';
+import { config } from './config.js';
 
 /**
  * Entry point para dev local (`npm run dev`). En producción (Vercel) no se

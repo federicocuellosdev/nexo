@@ -1,4 +1,4 @@
-import { config } from '@/config.js';
+import { config } from '../config.js';
 
 /**
  * Cliente HTTP para la API REST custom de Salesforce (`/services/apexrest/previnca/v1`).

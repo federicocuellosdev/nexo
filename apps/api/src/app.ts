@@ -1,7 +1,7 @@
 import express, { type Express } from 'express';
 import cors from 'cors';
-import { config } from '@/config.js';
-import { leadsRouter } from '@/routes/leads.js';
+import { config } from './config.js';
+import { leadsRouter } from './routes/leads.js';
 
 /**
  * Crea la app Express. Se extrajo de `index.ts` para que la misma app sea

@@ -1,4 +1,4 @@
-import { LOGO_DATA_URI } from '@/emails/logo.js';
+import { LOGO_DATA_URI } from './logo.js';
 
 /**
  * Email de verificación de dirección. Un único propósito: que el usuario

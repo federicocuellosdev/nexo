@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import { config } from '@/config.js';
-import { sfPost } from '@/sf/client.js';
+import { config } from '../config.js';
+import { sfPost } from './client.js';
 
 /**
  * Datos del lead que ya tenemos en `v3.leads`. Lo que el server necesita para

@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { supabaseAdmin } from '@/lib/supabase.js';
-import { emailClient } from '@/lib/resend.js';
-import { config } from '@/config.js';
-import { asuntoBienvenida, htmlBienvenida } from '@/emails/bienvenida.js';
-import { sendLeadIntake } from '@/sf/leads.js';
+import { supabaseAdmin } from '../lib/supabase.js';
+import { emailClient } from '../lib/resend.js';
+import { config } from '../config.js';
+import { asuntoBienvenida, htmlBienvenida } from '../emails/bienvenida.js';
+import { sendLeadIntake } from '../sf/leads.js';
 
 export const leadsRouter = Router();
 
