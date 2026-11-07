@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "mkdir -p public",
+  "buildCommand": "echo 'no build step; serving api/* as Functions'",
   "outputDirectory": "public",
   "functions": {
     "api/index.ts": {
