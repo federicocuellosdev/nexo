@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router';
-import { LayoutGrid, Receipt, ShieldCheck, Sparkles } from 'lucide-react';
-import { useSession } from '@/mock/session';
+import { LayoutGrid, Receipt, ShieldCheck, Sparkles, Users } from 'lucide-react';
+import { setSession, useSession } from '@/mock/session';
 import { cn } from '@/lib/cn';
 import { saludo } from '@/lib/identidad';
 import { buscarPlan, buscarProducto } from '@/mock/planes';
@@ -120,6 +120,47 @@ export function Inicio() {
             <div>
               <p className="mb-2 text-sm font-medium text-ink-900">Tu cobertura incluye</p>
               <PlanPrestaciones prestaciones={planElegido.prestaciones} />
+            </div>
+
+            {/* Alta familiar: la cantidad se guarda en sesion.familiares — es
+                lo que mapea a beneficiaries.length del /sales de SF (sin
+                incluir al titular). 0 = contrata solo para sí. El precio por
+                familiar no se calcula acá: se resuelve en /pago contra el
+                pricing final de Previnca. */}
+            <div className="rounded-card bg-ink-50/60 p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <Users size={16} className="text-marca-600" aria-hidden="true" />
+                <p className="text-sm font-medium text-ink-900">¿Agregás familiares al plan?</p>
+              </div>
+              <p className="mb-3 text-xs text-ink-600">
+                Cónyuge, hijos u otros convivientes con la misma cobertura.
+              </p>
+              <div
+                role="radiogroup"
+                aria-label="Cantidad de familiares adicionales"
+                className="flex flex-wrap gap-2"
+              >
+                {[0, 1, 2, 3, 4, 5].map((n) => {
+                  const seleccionado = (sesion.familiares ?? 0) === n;
+                  return (
+                    <button
+                      key={n}
+                      type="button"
+                      role="radio"
+                      aria-checked={seleccionado}
+                      onClick={() => setSession({ familiares: n })}
+                      className={cn(
+                        'h-10 min-w-[48px] rounded-pill px-4 text-sm font-medium transition-colors cursor-pointer',
+                        seleccionado
+                          ? 'bg-marca-600 text-white'
+                          : 'bg-white text-ink-700 ring-1 ring-ink-200 hover:ring-ink-300',
+                      )}
+                    >
+                      {n === 0 ? 'Solo yo' : `+${n}`}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <Link to="/pago" className={clasesBoton({ ancho: 'full' })}>
