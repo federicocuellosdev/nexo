@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Link, useLocation } from 'react-router';
-import { LayoutGrid, Receipt, ShieldCheck, Sparkles, Users } from 'lucide-react';
+import { CircleAlert, LayoutGrid, Receipt, ShieldCheck, Sparkles, Users } from 'lucide-react';
 import { setSession, useSession } from '@/mock/session';
 import { cn } from '@/lib/cn';
 import { saludo } from '@/lib/identidad';
@@ -8,10 +8,10 @@ import { buscarPlan, buscarProducto } from '@/mock/planes';
 import { derivarEstado } from '@/lib/estado';
 import { portalUrl } from '@/lib/urls';
 import { obtenerUltimoLead } from '@/lib/api';
+import { ETIQUETA, GLIFO, TONO } from '@/features/planes/estadoPrestacion';
 import { NOVEDADES } from '@/mock/novedades';
 import { NovedadesCarousel } from '@/features/novedades/NovedadesCarousel';
 import { CoberturaCard } from '@/features/cobertura/CoberturaCard';
-import { PlanPrestaciones } from '@/features/planes/PlanPrestaciones';
 import { CredencialConDescarga } from '@/features/credencial/CredencialConDescarga';
 import { credencialDeLaSesion } from '@/features/credencial/datos';
 import { formatearFecha, planContratado, proximoVencimiento } from '@/features/cobertura/contrataciones';
@@ -120,79 +120,173 @@ export function Inicio() {
             ? 'lg:grid lg:grid-cols-[1fr_420px] lg:items-start'
             : estado === 'pagadoSinPerfil'
               ? 'lg:grid lg:grid-cols-[1fr_340px] lg:items-start'
-              : 'lg:max-w-[720px]',
+              : // Cuando hay plan pendiente de pago renderizamos resumen full-width
+                // + tabla de cobertura debajo: el bloque ocupa todo el contenedor
+                // para que la tabla respire. En el resto de casos (EmptyState)
+                // mantenemos la medida angosta para que el aviso no quede flotando.
+                faltaTerminarCompra && (planElegido || productoElegido)
+                ? undefined
+                : 'lg:max-w-[720px]',
         )}
       >
         {plan && vencimiento ? (
           <CoberturaCard plan={plan} estado={estado} proximoVencimiento={vencimiento} />
         ) : faltaTerminarCompra && planElegido ? (
           // El usuario eligió un plan y verificó el email, pero todavía no pagó.
-          // Mostramos el plan completo con sus prestaciones acá: así continúa
-          // la contratación sin tener que ir a /planes a recordar qué eligió.
-          <Card className="flex flex-col gap-5 p-5 ring-marca-100 lg:p-6">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-sm text-ink-500">Tu plan elegido</p>
-                <h2 className="font-display text-2xl text-ink-950">{planElegido.nombre}</h2>
-                <p className="mt-1 text-sm text-ink-600">{planElegido.bajada}</p>
+          // Dos bloques apilados: (1) Card resumen con los datos clave y CTA,
+          // (2) Card con la tabla de coberturas. Fragment para que ambas caigan
+          // como hijas directas del section y hereden su flex-col/gap.
+          <>
+            <Card className="flex flex-col gap-5 p-5 ring-marca-100 lg:p-6">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm text-ink-500">Tu plan elegido</p>
+                  <h2 className="font-display text-2xl text-ink-950">{planElegido.nombre}</h2>
+                  <p className="mt-1 text-sm text-ink-600">{planElegido.bajada}</p>
+                </div>
+                <Chip tono="warn">Pago pendiente</Chip>
               </div>
-              <Chip tono="warn">Pago pendiente</Chip>
-            </div>
 
-            <div className="border-t border-ink-100 pt-4">
-              <Money monto={planElegido.precio} periodo="por mes" tamano="lg" />
-            </div>
-
-            <div>
-              <p className="mb-2 text-sm font-medium text-ink-900">Tu cobertura incluye</p>
-              <PlanPrestaciones prestaciones={planElegido.prestaciones} />
-            </div>
-
-            {/* Alta familiar: la cantidad se guarda en sesion.familiares — es
-                lo que mapea a beneficiaries.length del /sales de SF (sin
-                incluir al titular). 0 = contrata solo para sí. El precio por
-                familiar no se calcula acá: se resuelve en /pago contra el
-                pricing final de Previnca. */}
-            <div className="rounded-card bg-ink-50/60 p-4">
-              <div className="mb-3 flex items-center gap-2">
-                <Users size={16} className="text-marca-600" aria-hidden="true" />
-                <p className="text-sm font-medium text-ink-900">¿Agregás familiares al plan?</p>
+              <div className="border-t border-ink-100 pt-4">
+                <Money monto={planElegido.precio} periodo="por mes" tamano="lg" />
               </div>
-              <p className="mb-3 text-xs text-ink-600">
-                Cónyuge, hijos u otros convivientes con la misma cobertura.
-              </p>
-              <div
-                role="radiogroup"
-                aria-label="Cantidad de familiares adicionales"
-                className="flex flex-wrap gap-2"
-              >
-                {[0, 1, 2, 3, 4, 5].map((n) => {
-                  const seleccionado = (sesion.familiares ?? 0) === n;
-                  return (
-                    <button
-                      key={n}
-                      type="button"
-                      role="radio"
-                      aria-checked={seleccionado}
-                      onClick={() => setSession({ familiares: n })}
-                      className={cn(
-                        'h-10 min-w-[48px] rounded-pill px-4 text-sm font-medium transition-colors cursor-pointer',
-                        seleccionado
-                          ? 'bg-marca-600 text-white'
-                          : 'bg-white text-ink-700 ring-1 ring-ink-200 hover:ring-ink-300',
-                      )}
-                    >
-                      {n === 0 ? 'Solo yo' : `+${n}`}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
 
-            <Link to="/pago" className={clasesBoton({ ancho: 'full' })}>
-              Terminar de pagar
-            </Link>
-          </Card>
+              {/* Alta familiar: la cantidad se guarda en sesion.familiares —
+                  es lo que mapea a beneficiaries.length del /sales de SF (sin
+                  incluir al titular). 0 = contrata solo para sí. El precio por
+                  familiar no se calcula acá: se resuelve en /pago contra el
+                  pricing final de Previnca. */}
+              <div className="rounded-card bg-ink-50/60 p-4">
+                <div className="mb-3 flex items-center gap-2">
+                  <Users size={16} className="text-marca-600" aria-hidden="true" />
+                  <p className="text-sm font-medium text-ink-900">¿Agregás familiares al plan?</p>
+                </div>
+                <p className="mb-3 text-xs text-ink-600">
+                  Cónyuge, hijos u otros convivientes con la misma cobertura.
+                </p>
+                <div
+                  role="radiogroup"
+                  aria-label="Cantidad de familiares adicionales"
+                  className="flex flex-wrap gap-2"
+                >
+                  {[0, 1, 2, 3, 4, 5].map((n) => {
+                    const seleccionado = (sesion.familiares ?? 0) === n;
+                    return (
+                      <button
+                        key={n}
+                        type="button"
+                        role="radio"
+                        aria-checked={seleccionado}
+                        onClick={() => setSession({ familiares: n })}
+                        className={cn(
+                          'h-10 min-w-[48px] rounded-pill px-4 text-sm font-medium transition-colors cursor-pointer',
+                          seleccionado
+                            ? 'bg-marca-600 text-white'
+                            : 'bg-white text-ink-700 ring-1 ring-ink-200 hover:ring-ink-300',
+                        )}
+                      >
+                        {n === 0 ? 'Solo yo' : `+${n}`}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <Link to="/pago" className={clasesBoton({ ancho: 'full' })}>
+                Terminar de pagar
+              </Link>
+            </Card>
+
+            {/* Tabla de cobertura: tres columnas (prestación / estado /
+                detalle). Prefiero tabla real y no un grid de divs porque es
+                datos tabulares genuinos — la semántica ayuda a screen readers
+                y al copy/paste. En mobile cae a cards verticales para que no
+                se desborde el ancho. */}
+            <Card className="p-0 overflow-hidden">
+              <div className="border-b border-ink-100 px-5 py-4 lg:px-6">
+                <h3 className="text-base font-medium text-ink-950">Tabla de cobertura</h3>
+                <p className="mt-0.5 text-sm text-ink-600">
+                  Prestaciones incluidas, con coseguro y no cubiertas por este plan.
+                </p>
+              </div>
+
+              {/* Desktop: tabla. Mobile (hasta sm): ver más abajo. */}
+              <table className="hidden w-full border-collapse sm:table">
+                <thead>
+                  <tr className="border-b border-ink-100 bg-ink-50/50 text-left text-xs font-medium uppercase tracking-wide text-ink-500">
+                    <th scope="col" className="px-5 py-3 lg:px-6">Prestación</th>
+                    <th scope="col" className="px-5 py-3 lg:px-6">Estado</th>
+                    <th scope="col" className="px-5 py-3 lg:px-6">Detalle</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-ink-100">
+                  {planElegido.prestaciones.map((prestacion) => (
+                    <tr key={prestacion.label} className="align-top">
+                      <td className="px-5 py-3 lg:px-6">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span
+                            className={cn(
+                              'text-sm',
+                              prestacion.estado === 'no-incluido'
+                                ? 'text-ink-400 line-through'
+                                : 'text-ink-900',
+                            )}
+                          >
+                            {prestacion.label}
+                          </span>
+                          {prestacion.pendiente ? (
+                            <Chip tono="warn" icono={CircleAlert}>
+                              a confirmar
+                            </Chip>
+                          ) : null}
+                        </div>
+                      </td>
+                      <td className="px-5 py-3 lg:px-6">
+                        <Chip tono={TONO[prestacion.estado]} icono={GLIFO[prestacion.estado]}>
+                          {ETIQUETA[prestacion.estado]}
+                        </Chip>
+                      </td>
+                      <td className="px-5 py-3 text-sm text-ink-600 lg:px-6">
+                        {prestacion.detalle ?? '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {/* Mobile: cards apiladas con los mismos datos. Una tabla real en
+                  320-640px rompe por el ancho mínimo del contenido. */}
+              <ul className="divide-y divide-ink-100 sm:hidden">
+                {planElegido.prestaciones.map((prestacion) => (
+                  <li key={prestacion.label} className="flex flex-col gap-2 px-5 py-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span
+                        className={cn(
+                          'text-sm font-medium',
+                          prestacion.estado === 'no-incluido'
+                            ? 'text-ink-400 line-through'
+                            : 'text-ink-900',
+                        )}
+                      >
+                        {prestacion.label}
+                      </span>
+                      {prestacion.pendiente ? (
+                        <Chip tono="warn" icono={CircleAlert}>
+                          a confirmar
+                        </Chip>
+                      ) : null}
+                    </div>
+                    <Chip tono={TONO[prestacion.estado]} icono={GLIFO[prestacion.estado]}>
+                      {ETIQUETA[prestacion.estado]}
+                    </Chip>
+                    {prestacion.detalle ? (
+                      <p className="text-sm text-ink-600">{prestacion.detalle}</p>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          </>
         ) : faltaTerminarCompra && productoElegido ? (
           // Mismo caso pero para un producto on demand (no un plan mensual).
           // Sin lista de prestaciones: los productos son una línea sola.
