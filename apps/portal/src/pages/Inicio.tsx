@@ -137,7 +137,9 @@ export function Inicio() {
           // (2) Card con la tabla de coberturas. Fragment para que ambas caigan
           // como hijas directas del section y hereden su flex-col/gap.
           <>
-            <Card className="flex flex-col gap-5 p-5 ring-marca-100 lg:p-6">
+            {/* Desktop: dos columnas — izquierda datos del plan, derecha
+                precio + copy + CTA. Mobile: apilado. */}
+            <Card className="grid gap-6 p-5 ring-marca-100 lg:grid-cols-[1fr_320px] lg:items-stretch lg:gap-8 lg:p-6">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-sm text-ink-500">Tu plan elegido</p>
@@ -147,54 +149,72 @@ export function Inicio() {
                 <Chip tono="warn">Pago pendiente</Chip>
               </div>
 
-              <div className="border-t border-ink-100 pt-4">
+              <div className="flex flex-col gap-4 lg:border-l lg:border-ink-100 lg:pl-8">
                 <Money monto={planElegido.precio} periodo="por mes" tamano="lg" />
+                <p className="text-sm text-ink-600">
+                  Contratá un plan de salud y obtené cobertura para vos y tu familia.
+                </p>
+                <Link to="/pago" className={clasesBoton({ ancho: 'full', className: 'lg:mt-auto' })}>
+                  Terminar de pagar
+                </Link>
               </div>
+            </Card>
 
-              {/* Alta familiar: la cantidad se guarda en sesion.familiares —
-                  es lo que mapea a beneficiaries.length del /sales de SF (sin
-                  incluir al titular). 0 = contrata solo para sí. El precio por
-                  familiar no se calcula acá: se resuelve en /pago contra el
-                  pricing final de Previnca. */}
-              <div className="rounded-card bg-ink-50/60 p-4">
-                <div className="mb-3 flex items-center gap-2">
+            {/* Card de familiares: fila horizontal con la pregunta a la
+                izquierda y un contador − N + a la derecha. En mobile el
+                contador baja a su propia línea, alineado a la izquierda.
+                `sesion.familiares` mapea a beneficiaries.length del /sales
+                de SF (sin incluir al titular); el precio por familiar se
+                resuelve en /pago contra el pricing final de Previnca. */}
+            <Card className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between lg:p-6">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
                   <Users size={16} className="text-marca-600" aria-hidden="true" />
                   <p className="text-sm font-medium text-ink-900">¿Agregás familiares al plan?</p>
                 </div>
-                <p className="mb-3 text-xs text-ink-600">
+                <p className="mt-1 text-xs text-ink-600">
                   Cónyuge, hijos u otros convivientes con la misma cobertura.
                 </p>
-                <div
-                  role="radiogroup"
-                  aria-label="Cantidad de familiares adicionales"
-                  className="flex flex-wrap gap-2"
-                >
-                  {[0, 1, 2, 3, 4, 5].map((n) => {
-                    const seleccionado = (sesion.familiares ?? 0) === n;
-                    return (
-                      <button
-                        key={n}
-                        type="button"
-                        role="radio"
-                        aria-checked={seleccionado}
-                        onClick={() => setSession({ familiares: n })}
-                        className={cn(
-                          'h-10 min-w-[48px] rounded-pill px-4 text-sm font-medium transition-colors cursor-pointer',
-                          seleccionado
-                            ? 'bg-marca-600 text-white'
-                            : 'bg-white text-ink-700 ring-1 ring-ink-200 hover:ring-ink-300',
-                        )}
-                      >
-                        {n === 0 ? 'Solo yo' : `+${n}`}
-                      </button>
-                    );
-                  })}
-                </div>
               </div>
-
-              <Link to="/pago" className={clasesBoton({ ancho: 'full' })}>
-                Terminar de pagar
-              </Link>
+              {(() => {
+                const familiares = sesion.familiares ?? 0;
+                const MIN = 0;
+                const MAX = 5;
+                const botonBase =
+                  'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full ring-1 ring-ink-200 text-ink-700 transition-colors cursor-pointer hover:bg-ink-50 hover:ring-ink-300 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:ring-ink-200';
+                return (
+                  <div
+                    className="flex items-center gap-4 self-start sm:self-auto"
+                    role="group"
+                    aria-label="Cantidad de familiares adicionales"
+                  >
+                    <button
+                      type="button"
+                      aria-label="Quitar un familiar"
+                      disabled={familiares <= MIN}
+                      onClick={() => setSession({ familiares: Math.max(MIN, familiares - 1) })}
+                      className={botonBase}
+                    >
+                      −
+                    </button>
+                    <span
+                      aria-live="polite"
+                      className="min-w-[2ch] text-center text-xl font-medium tabular-nums text-ink-950"
+                    >
+                      {familiares}
+                    </span>
+                    <button
+                      type="button"
+                      aria-label="Agregar un familiar"
+                      disabled={familiares >= MAX}
+                      onClick={() => setSession({ familiares: Math.min(MAX, familiares + 1) })}
+                      className={botonBase}
+                    >
+                      +
+                    </button>
+                  </div>
+                );
+              })()}
             </Card>
 
             {/* Tabla de cobertura: tres columnas (prestación / estado /
