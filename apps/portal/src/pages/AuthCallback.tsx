@@ -50,11 +50,16 @@ export function AuthCallback() {
           usuario,
           ...(leadId ? { intent: { tipo: 'plan', id: leadId } } : {}),
         });
+        // Entrada por magic link: va a `/inicio` (home del portal), no a
+        // `/bienvenida`. `/bienvenida` es el paso previo al checkout de MP
+        // y se dispara cuando el usuario arranca el flow de pago desde
+        // adentro del portal — no inmediatamente tras verificar el email.
+        //
         // Hard navigate para que Supabase limpie el hash del URL — el
         // router mantendría el hash en el history. `BASE_URL` incluye el
         // subpath (`/app/`) en el deploy unificado landing+portal, y `/` en
         // dev local → la misma línea sirve para ambos.
-        window.location.replace(`${import.meta.env.BASE_URL}bienvenida`);
+        window.location.replace(`${import.meta.env.BASE_URL}inicio`);
       })();
       return;
     }
