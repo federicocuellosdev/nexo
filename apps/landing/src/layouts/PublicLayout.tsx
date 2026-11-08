@@ -36,6 +36,10 @@ export function PublicLayout() {
   // salud"), se superponen y el genérico tapa al contextual, además de ser
   // redundante. En esas rutas lo ocultamos.
   const enFicha = /^\/(planes|productos)\/[^/]+/.test(pathname) || pathname === '/catalogo';
+  // Pantalla transaccional post-alta: el usuario está esperando un email,
+  // no leyendo el sitio. Sin pie (links a servicios/contacto distraen del
+  // "andá al mail") ni CTA flotante de mobile (ya tiene una acción en curso).
+  const esperandoMail = pathname === '/revisa-tu-mail';
 
   return (
     <div className="flex min-h-dvh flex-col bg-app">
@@ -121,19 +125,20 @@ export function PublicLayout() {
           nowrap o ancho mínimo mayor que el viewport genere scroll horizontal
           en mobile — más seguro que `overflow-hidden` porque no crea un
           stacking context nuevo. */}
-      <main className={cn('flex-1 overflow-x-clip sm:pb-0', !enFicha && 'pb-24')}>
+      <main className={cn('flex-1 overflow-x-clip sm:pb-0', !enFicha && !esperandoMail && 'pb-24')}>
         <Outlet />
       </main>
 
-      <PieDeSitio />
+      {esperandoMail ? null : <PieDeSitio />}
 
       {/* CTA flotante mobile — "Ver planes de salud". Es el acceso principal
           al catálogo desde cualquier pantalla. Se oculta en sm+ porque allá
           el header ya tiene "Crear cuenta" + los CTAs del hero. También se
           oculta en las fichas de plan/producto: ahí la página ya expone su
-          propio CTA contextual ("Contratar Nexo I") que abre el alta directo.
+          propio CTA contextual ("Contratar Nexo I") que abre el alta directo,
+          y en /revisa-tu-mail porque el usuario ya tiene una acción en curso.
           Safe-area para iPhones con home indicator. */}
-      {enFicha ? null : (
+      {enFicha || esperandoMail ? null : (
         <div
           className="fixed inset-x-0 bottom-0 z-20 border-t border-ink-100 bg-white/90 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-md sm:hidden"
           role="region"

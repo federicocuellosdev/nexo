@@ -45,8 +45,8 @@ export function RevisaTuMail() {
 
       <h1 className="mt-8 font-display text-4xl text-ink-950 italic">Revisá tu mail</h1>
       <p className="mt-5 text-lg text-ink-600">
-        Te enviamos un enlace de acceso a <span className="font-medium text-ink-900">{email}</span>. Abrilo desde el
-        celular y entrás sin contraseña.
+        Te enviamos un enlace de acceso a <span className="font-medium text-ink-900">{email}</span>. Si no lo
+        encontrás, revisá la carpeta de spam.
       </p>
 
       <p className="mt-10 text-sm text-ink-600">
