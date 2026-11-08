@@ -325,50 +325,10 @@ function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendien
   return (
     <Card className="flex flex-col p-0 ring-marca-100">
       <div className="grid gap-6 p-5 lg:grid-cols-[1fr_320px] lg:items-stretch lg:gap-8 lg:p-6">
-        {/* Columna izquierda: nombre + bajada + familiares */}
+        {/* Columna izquierda: nombre + bajada */}
         <div className="flex flex-col gap-5">
           <h2 className="font-display text-2xl text-ink-950">{plan.nombre}</h2>
           <p className="text-sm text-ink-600">{plan.bajada}</p>
-
-          {/* Divisor tenue + `mt-auto` para que el bloque familiares quede
-              anclado al fondo y, con padding simétrico arriba+abajo, visualmente
-              centrado frente al contenido de la columna derecha. */}
-          <div className="mt-auto flex flex-col gap-3 border-t border-ink-100 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2">
-              <Users size={16} className="text-marca-600" aria-hidden="true" />
-              <p className="text-sm text-ink-900">¿Agregás familiares al plan?</p>
-            </div>
-            <div
-              className="flex items-center gap-4 self-start sm:self-auto"
-              role="group"
-              aria-label="Cantidad de familiares adicionales"
-            >
-              <button
-                type="button"
-                aria-label="Quitar un familiar"
-                disabled={familiares <= FAMILIARES_MIN}
-                onClick={() => onFamiliaresChange(Math.max(FAMILIARES_MIN, familiares - 1))}
-                className={botonContador}
-              >
-                −
-              </button>
-              <span
-                aria-live="polite"
-                className="min-w-[2ch] text-center text-xl font-medium tabular-nums text-ink-950"
-              >
-                {familiares}
-              </span>
-              <button
-                type="button"
-                aria-label="Agregar un familiar"
-                disabled={familiares >= FAMILIARES_MAX}
-                onClick={() => onFamiliaresChange(Math.min(FAMILIARES_MAX, familiares + 1))}
-                className={botonContador}
-              >
-                +
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* Columna derecha: precio dinámico + copy + CTA */}
@@ -387,6 +347,45 @@ function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendien
           <Link to="/pago" className={clasesBoton({ ancho: 'full', className: 'lg:mt-auto' })}>
             Terminar de pagar
           </Link>
+        </div>
+      </div>
+
+      {/* Fila propia (fuera del grid) para que el padding simétrico py-5
+          quede exactamente igual arriba y abajo entre ambos divisores. */}
+      <div className="flex flex-col gap-3 border-t border-ink-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between lg:px-6">
+        <div className="flex items-center gap-2">
+          <Users size={16} className="text-marca-600" aria-hidden="true" />
+          <p className="text-sm text-ink-900">¿Agregás familiares al plan?</p>
+        </div>
+        <div
+          className="flex items-center gap-4 self-start sm:self-auto"
+          role="group"
+          aria-label="Cantidad de familiares adicionales"
+        >
+          <button
+            type="button"
+            aria-label="Quitar un familiar"
+            disabled={familiares <= FAMILIARES_MIN}
+            onClick={() => onFamiliaresChange(Math.max(FAMILIARES_MIN, familiares - 1))}
+            className={botonContador}
+          >
+            −
+          </button>
+          <span
+            aria-live="polite"
+            className="min-w-[2ch] text-center text-xl font-medium tabular-nums text-ink-950"
+          >
+            {familiares}
+          </span>
+          <button
+            type="button"
+            aria-label="Agregar un familiar"
+            disabled={familiares >= FAMILIARES_MAX}
+            onClick={() => onFamiliaresChange(Math.min(FAMILIARES_MAX, familiares + 1))}
+            className={botonContador}
+          >
+            +
+          </button>
         </div>
       </div>
 
