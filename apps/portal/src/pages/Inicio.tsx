@@ -1,7 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router';
+import type { FormEvent } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { ChevronDown, LayoutGrid, Receipt, ShieldCheck, Sparkles, Users } from 'lucide-react';
 import { getSession, setSession, useSession } from '@/mock/session';
+import { Dialog } from '@/ui/Dialog';
+import { Field } from '@/ui/Field';
+import { Input } from '@/ui/Input';
+import { Button } from '@/ui/Button';
 import { cn } from '@/lib/cn';
 import { saludo } from '@/lib/identidad';
 import { buscarPlan, buscarProducto } from '@/mock/planes';
@@ -341,6 +346,8 @@ interface PlanPendienteCardProps {
  */
 function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendienteCardProps) {
   const [coberturasAbiertas, setCoberturasAbiertas] = useState(false);
+  const [pidiendoEmailMp, setPidiendoEmailMp] = useState(false);
+  const navegar = useNavigate();
   const titulares = 1 + familiares;
   const precioTotal = plan.precio * titulares;
 
@@ -413,12 +420,13 @@ function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendien
           </p>
           {/* CTA invertido: fondo blanco sobre gradient. El text-marca-700
               asegura 7.98:1 de contraste contra el blanco (AAA). */}
-          <Link
-            to="/pago"
+          <button
+            type="button"
+            onClick={() => setPidiendoEmailMp(true)}
             className="inline-flex h-11 cursor-pointer items-center justify-center rounded-pill bg-white px-5 text-base font-medium text-marca-700 shadow-suave transition-colors duration-200 ease-out-expo hover:bg-ink-50 motion-safe:active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white lg:mt-auto"
           >
             Terminar de pagar
-          </Link>
+          </button>
         </div>
       </div>
 
@@ -531,6 +539,116 @@ function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendien
           </div>
         </div>
       </div>
+
+      {pidiendoEmailMp ? (
+        <DialogoEmailMercadoPago
+          valorInicial={getSession().emailPago ?? getSession().usuario?.email ?? ''}
+          onCerrar={() => setPidiendoEmailMp(false)}
+          onConfirmar={(email) => {
+            setSession({ emailPago: email });
+            setPidiendoEmailMp(false);
+            void navegar('/pago');
+          }}
+        />
+      ) : null}
     </Card>
+  );
+}
+
+/** Logo de MercadoPago como SVG inline — evita cargar un asset solo para esto. */
+function LogoMercadoPago() {
+  return (
+    <svg
+      viewBox="0 0 100 100"
+      aria-hidden="true"
+      className="size-12 shrink-0"
+    >
+      <circle cx="50" cy="50" r="48" fill="#009EE3" />
+      <path
+        d="M25 55c0-8 10-14 25-14s25 6 25 14c0 2-1 4-3 4-3 0-5-2-7-3-4-3-10-4-15-4s-11 1-15 4c-2 1-4 3-7 3-2 0-3-2-3-4z"
+        fill="#FFF"
+      />
+      <ellipse cx="50" cy="52" rx="8" ry="4" fill="#FFE600" />
+    </svg>
+  );
+}
+
+interface DialogoEmailMercadoPagoProps {
+  valorInicial: string;
+  onCerrar: () => void;
+  onConfirmar: (email: string) => void;
+}
+
+/**
+ * Popup pre-checkout: pide el email de la cuenta de MercadoPago antes de
+ * redirigir a /pago. Es el único dato del cobro que no deducimos del alta —
+ * mucha gente usa un email para contacto y otro para su billetera MP.
+ */
+function DialogoEmailMercadoPago({ valorInicial, onCerrar, onConfirmar }: DialogoEmailMercadoPagoProps) {
+  const [valor, setValor] = useState(valorInicial);
+  const [error, setError] = useState<string | undefined>();
+
+  function enviar(evento: FormEvent<HTMLFormElement>) {
+    evento.preventDefault();
+    const limpio = valor.trim();
+    if (limpio === '') {
+      setError('Ingresá el email de tu cuenta de MercadoPago');
+      return;
+    }
+    if (!/^\S+@\S+\.\S+$/.test(limpio)) {
+      setError('Revisá el formato del email');
+      return;
+    }
+    onConfirmar(limpio);
+  }
+
+  return (
+    <Dialog
+      abierto
+      onCambio={(abierto) => {
+        if (!abierto) onCerrar();
+      }}
+      titulo="Antes de pagar"
+    >
+      <form onSubmit={enviar} noValidate className="flex flex-col gap-5">
+        <div className="flex items-start gap-3">
+          <LogoMercadoPago />
+          <p className="text-sm text-ink-700">
+            Indicanos el email de tu cuenta de MercadoPago — es a esa cuenta a la que vamos a asociar
+            el cobro de tu plan.
+          </p>
+        </div>
+        <Field label="Email de MercadoPago" htmlFor="mp-email" error={error} requerido>
+          <Input
+            id="mp-email"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            autoFocus
+            value={valor}
+            invalido={error !== undefined}
+            onChange={(evento) => {
+              setValor(evento.target.value);
+              if (error) setError(undefined);
+            }}
+          />
+        </Field>
+        <div className="mt-1 flex flex-col gap-3 sm:flex-row-reverse">
+          <Button type="submit" ancho="full" tamano="lg" className="sm:w-auto">
+            Continuar al pago
+          </Button>
+          <Button
+            type="button"
+            variante="secundario"
+            ancho="full"
+            tamano="lg"
+            className="sm:w-auto"
+            onClick={onCerrar}
+          >
+            Cancelar
+          </Button>
+        </div>
+      </form>
+    </Dialog>
   );
 }
