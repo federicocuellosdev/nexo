@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router';
-import { ChevronDown, CircleAlert, LayoutGrid, Receipt, ShieldCheck, Sparkles, Users } from 'lucide-react';
+import { ChevronDown, LayoutGrid, Receipt, ShieldCheck, Sparkles, Users } from 'lucide-react';
 import { getSession, setSession, useSession } from '@/mock/session';
 import { cn } from '@/lib/cn';
 import { saludo } from '@/lib/identidad';
@@ -325,15 +325,14 @@ function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendien
   return (
     <Card className="flex flex-col p-0 ring-marca-100">
       <div className="grid gap-6 p-5 lg:grid-cols-[1fr_320px] lg:items-stretch lg:gap-8 lg:p-6">
-        {/* Columna izquierda: nombre + chip + bajada + familiares */}
+        {/* Columna izquierda: nombre + bajada + familiares */}
         <div className="flex flex-col gap-5">
-          <div className="flex flex-wrap items-center gap-3">
-            <h2 className="font-display text-2xl text-ink-950">{plan.nombre}</h2>
-            <Chip tono="warn">Pago pendiente</Chip>
-          </div>
+          <h2 className="font-display text-2xl text-ink-950">{plan.nombre}</h2>
           <p className="text-sm text-ink-600">{plan.bajada}</p>
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          {/* Divisor tenue antes del bloque de familiares: separa visualmente
+              "datos del plan" de "configuración del contratante". */}
+          <div className="flex flex-col gap-3 border-t border-ink-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2">
               <Users size={16} className="text-marca-600" aria-hidden="true" />
               <p className="text-sm text-ink-900">¿Agregás familiares al plan?</p>
@@ -447,21 +446,16 @@ function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendien
                     className="align-middle transition-colors hover:bg-ink-50/50"
                   >
                     <td className="px-5 py-4 lg:px-6">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span
-                          className={cn(
-                            'text-sm font-medium',
-                            prestacion.estado === 'no-incluido'
-                              ? 'text-ink-400 line-through'
-                              : 'text-ink-900',
-                          )}
-                        >
-                          {prestacion.label}
-                        </span>
-                        {prestacion.pendiente ? (
-                          <Chip tono="warn" icono={CircleAlert}>a confirmar</Chip>
-                        ) : null}
-                      </div>
+                      <span
+                        className={cn(
+                          'text-sm font-medium',
+                          prestacion.estado === 'no-incluido'
+                            ? 'text-ink-400 line-through'
+                            : 'text-ink-900',
+                        )}
+                      >
+                        {prestacion.label}
+                      </span>
                     </td>
                     <td className="px-5 py-4 lg:px-6">
                       <Chip tono={TONO[prestacion.estado]} icono={GLIFO[prestacion.estado]}>
@@ -494,9 +488,6 @@ function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendien
                       {ETIQUETA[prestacion.estado]}
                     </Chip>
                   </div>
-                  {prestacion.pendiente ? (
-                    <Chip tono="warn" icono={CircleAlert}>a confirmar</Chip>
-                  ) : null}
                   {prestacion.detalle ? (
                     <p className="text-sm text-ink-600">{prestacion.detalle}</p>
                   ) : null}
