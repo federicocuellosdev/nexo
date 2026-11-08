@@ -53,7 +53,22 @@ export function PublicLayout() {
       <TopBar
         sobreContenido={heroASangre}
         marca={({ solida }) => <Marca sobreFoto={!solida} />}
-        acciones={({ solida }) => (
+        acciones={({ solida }) =>
+          esperandoMail ? (
+            // Momento transaccional: el usuario ya está esperando un mail.
+            // Ingresar/Crear cuenta no aplican (acaba de dejar sus datos) —
+            // dejamos solo "Ver catálogo" por si quiere cambiar de plan.
+            <Link
+              to="/catalogo"
+              className={clasesBoton({
+                variante: 'secundario',
+                tamano: 'sm',
+                className: !solida ? 'border-white/40 bg-white/0 text-white hover:bg-white/10' : undefined,
+              })}
+            >
+              Ver catálogo
+            </Link>
+          ) : (
           // Mobile: solo "Ingresar". El CTA "Crear cuenta" vive en la barra
           // flotante inferior, y "Hablar con un vendedor" se oculta para
           // simplificar el header (está igualmente en el pie).
@@ -113,7 +128,8 @@ export function PublicLayout() {
               </Link>
             </span>
           </>
-        )}
+          )
+        }
       />
 
       {/* Padding extra al final del main en mobile para que el contenido
