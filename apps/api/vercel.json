@@ -2,11 +2,6 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "echo 'no build step; serving api/* as Functions'",
   "outputDirectory": "public",
-  "functions": {
-    "api/index.ts": {
-      "includeFiles": "src/emails/assets/**"
-    }
-  },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api" },
     { "source": "/api", "destination": "/api" }

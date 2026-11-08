@@ -125,6 +125,7 @@ leadsRouter.post('/leads', async (req, res) => {
       html: htmlBienvenida({
         nombre: datos.nombre,
         magicLink,
+        logoUrl: config.emailLogoUrl,
         nombrePlan: datos.itemNombre,
       }),
     });

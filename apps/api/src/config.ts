@@ -26,6 +26,10 @@ export const config = {
   resendApiKey: process.env.RESEND_API_KEY ?? '',
   resendFrom: opcional('RESEND_FROM', 'Previnca Nexo <onboarding@resend.dev>'),
   portalUrl: opcional('PORTAL_URL', 'http://localhost:5174'),
+  // URL pública del PNG del logo que aparece en el banner del email. Gmail
+  // bloquea data URIs por privacidad: se hospeda en el front y se linkea
+  // por URL. Cambiar si el dominio del front cambia.
+  emailLogoUrl: opcional('EMAIL_LOGO_URL', 'http://localhost:5173/logo-nexo-email.png'),
   // Salesforce: todo el flujo /leads se arma igual que en prod, pero el POST
   // real está detrás del flag. Mientras esté en `false` devuelve un sfLeadId
   // mock y loguea el payload.
