@@ -329,13 +329,18 @@ export function Cuenta() {
             </dl>
           </Seccion>
 
-          <Seccion titulo="Datos de facturación" onEditar={() => setEditandoEmailPago(true)}>
-            <dl className="grid grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
-              <Dato etiqueta="Email de MercadoPago" valor={emailPago ?? '—'} />
+          <Seccion titulo="Datos de facturación">
+            {/* `border-t` manual: el `first:border-t-0` del componente Dato
+                quita la línea del primer hijo (lo necesitamos en los bloques
+                de varios campos para no pegar el divisor al borde de la Card),
+                pero acá queremos que la única fila también lleve su divisor
+                — así la sección se ve consistente con las demás. */}
+            <dl className="grid grid-cols-1 gap-x-6 text-sm sm:grid-cols-2">
+              <div className="flex justify-between gap-4 border-t border-ink-100 py-3">
+                <dt className="text-ink-500">Email de MercadoPago</dt>
+                <dd className="text-right text-ink-900">{emailPago ?? '—'}</dd>
+              </div>
             </dl>
-            <p className="text-xs text-ink-500">
-              Cuenta sobre la que MercadoPago emite las facturas y envía los avisos de cobro.
-            </p>
           </Seccion>
         </div>
       </div>
@@ -417,7 +422,13 @@ export function Cuenta() {
           titulo="Completá tu perfil"
           descripcion="Documento, domicilio y preferencia de contratación."
         >
+          {/* `key` incluye el dniLead para forzar el remount del wizard si
+              el DNI llega DESPUÉS de abrir el diálogo (el hidratado desde
+              /leads/by-email es async). Sin esto, el PerfilWizard mantiene
+              su `useState(borradorInicial)` original y nunca refleja el DNI
+              recién hidratado. */}
           <PerfilWizard
+            key={dniLead ?? 'sin-dni'}
             borradorInicial={borradorPrecargado}
             pasoInicial={dniLead ? 2 : 1}
             onGuardar={guardar}
