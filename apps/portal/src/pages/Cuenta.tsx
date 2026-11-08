@@ -304,7 +304,7 @@ export function Cuenta() {
                   guardado, mostramos el DNI capturado en el alta (siempre
                   es tipo DNI en el flujo del landing). */}
               <Dato etiqueta="Tipo de documento" valor={perfil?.tipoDocumento ?? (dniLead ? 'DNI' : '—')} />
-              <Dato etiqueta="Número de documento" valor={perfil?.numeroDocumento ?? dniLead ?? '—'} />
+              <Dato etiqueta="N°" valor={perfil?.numeroDocumento ?? dniLead ?? '—'} />
             </dl>
           </Seccion>
 
@@ -330,13 +330,11 @@ export function Cuenta() {
           </Seccion>
 
           <Seccion titulo="Datos de facturación">
-            {/* `border-t` manual: el `first:border-t-0` del componente Dato
-                quita la línea del primer hijo (lo necesitamos en los bloques
-                de varios campos para no pegar el divisor al borde de la Card),
-                pero acá queremos que la única fila también lleve su divisor
-                — así la sección se ve consistente con las demás. */}
+            {/* Un único dato, pero ocupa TODO el ancho del grid (col-span-2)
+                para que la línea separadora se extienda completa y el valor
+                quede alineado a la derecha como en los demás bloques. */}
             <dl className="grid grid-cols-1 gap-x-6 text-sm sm:grid-cols-2">
-              <div className="flex justify-between gap-4 border-t border-ink-100 py-3">
+              <div className="flex justify-between gap-4 border-t border-ink-100 py-3 sm:col-span-2">
                 <dt className="text-ink-500">Email de MercadoPago</dt>
                 <dd className="text-right text-ink-900">{emailPago ?? '—'}</dd>
               </div>
