@@ -36,7 +36,7 @@ authRouter.get('/leads/by-email', async (req, res) => {
   const { data, error } = await supabaseAdmin
     .schema('v3')
     .from('leads')
-    .select('item_tipo, item_id, item_nombre, nombre, apellido')
+    .select('item_tipo, item_id, item_nombre, nombre, apellido, dni')
     .eq('email', email)
     .order('created_at', { ascending: false })
     .limit(1);
@@ -49,16 +49,16 @@ authRouter.get('/leads/by-email', async (req, res) => {
   const lead = data?.[0];
   return res.status(200).json({
     ok: true,
-    // Devolvemos el plan y los datos del titular. `titular` lo usa el portal
-    // para hidratar sesion.usuario (nombre/apellido) cuando se entró por login
-    // y la sesión persistida no los tenía — así la sidebar deja de mostrar
-    // el email crudo y pasa a "Federico Cuellos".
+    // Devolvemos el plan y los datos del titular (nombre + apellido + dni).
+    // `titular` lo usa el portal para hidratar sesion.usuario y precargar el
+    // documento en /cuenta y en el PerfilWizard — así quien entró por login
+    // ve sus datos del alta sin tener que re-ingresarlos.
     lead: lead
       ? {
           tipo: lead.item_tipo as 'plan' | 'producto',
           id: lead.item_id,
           nombre: lead.item_nombre,
-          titular: { nombre: lead.nombre, apellido: lead.apellido },
+          titular: { nombre: lead.nombre, apellido: lead.apellido, dni: lead.dni },
         }
       : null,
   });
