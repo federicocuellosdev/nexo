@@ -344,14 +344,13 @@ function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendien
     'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/15 ring-1 ring-white/30 text-white transition-colors cursor-pointer hover:bg-white/25 hover:ring-white/50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white/15 disabled:hover:ring-white/30';
 
   return (
-    // overflow-hidden para que el gradient y la zona blanca del toggle
-    // respeten el radio exterior sin desbordar.
-    <Card className="flex flex-col overflow-hidden p-0 !bg-white !shadow-elevada !ring-marca-300">
-      {/* Bloque hero con gradient de marca (mismo que el CTA "Empezá ahora"
-          de la landing). Texto blanco en todo: es el momento comercial del
-          portal — la jerarquía gana al contraste perfecto WCAG, igual que en
-          el CTA del landing. */}
-      <div className="grid gap-6 bg-brand p-5 text-white lg:grid-cols-[1fr_320px] lg:items-stretch lg:gap-8 lg:p-6">
+    // bg-brand en la Card entera: todo el bloque toma el gradient. Texto
+    // blanco en todos los elementos — es el momento comercial del portal
+    // (igual que el CTA 'Empezá ahora' de la landing). Al desplegar la
+    // tabla aparece una zona blanca interna para preservar legibilidad del
+    // detalle de prestaciones.
+    <Card className="flex flex-col overflow-hidden p-0 !bg-brand !shadow-elevada !ring-marca-300">
+      <div className="grid gap-6 p-5 text-white lg:grid-cols-[1fr_320px] lg:items-stretch lg:gap-8 lg:p-6">
         <div className="flex flex-col gap-5">
           <h2 className="font-display text-2xl text-white">{plan.nombre}</h2>
           <p className="text-sm text-white/85">{plan.bajada}</p>
@@ -416,22 +415,23 @@ function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendien
         </div>
       </div>
 
-      {/* Zona legible: toggle + tabla sobre bg blanco, para que el detalle
-          de las prestaciones no compita con el gradient de arriba. */}
-      <div className="bg-white">
+      {/* Toggle sobre el gradient (hereda bg-brand de la Card), texto blanco
+          + hover translúcido. La tabla cuando se expande SÍ tiene bg-white
+          interno, para que el detalle de prestaciones se lea bien. */}
+      <div>
         <button
           type="button"
           aria-expanded={coberturasAbiertas}
           aria-controls="tabla-cobertura"
           onClick={() => setCoberturasAbiertas((v) => !v)}
-          className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-ink-50/50 cursor-pointer lg:px-6"
+          className="flex w-full cursor-pointer items-center justify-between gap-3 border-t border-white/20 px-5 py-4 text-left transition-colors hover:bg-white/10 lg:px-6"
         >
-          <p className="text-sm font-medium text-ink-900">Ver coberturas del plan</p>
+          <p className="text-sm font-medium text-white">Ver coberturas del plan</p>
           <ChevronDown
             size={20}
             aria-hidden="true"
             className={cn(
-              'shrink-0 text-ink-500 transition-transform duration-200',
+              'shrink-0 text-white/80 transition-transform duration-200',
               coberturasAbiertas && 'rotate-180',
             )}
           />
@@ -450,7 +450,10 @@ function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendien
           )}
           aria-hidden={!coberturasAbiertas}
         >
-          <div className="min-h-0 border-t border-ink-100">
+          {/* Zona blanca interna SOLO para la tabla expandida: preserva la
+              legibilidad del detalle de prestaciones sin romper la continuidad
+              del gradient en el resto del bloque. */}
+          <div className="min-h-0 border-t border-white/20 bg-white">
             {/* Desktop: tabla real (datos tabulares, mejor semántica para
                 screen readers y copy/paste). Mobile: cards apiladas. */}
             <table className="hidden w-full border-collapse text-left sm:table">
