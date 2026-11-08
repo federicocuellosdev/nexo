@@ -461,7 +461,7 @@ function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendien
               y rounded-card para que flote con esquinas redondeadas en vez
               de pegarse borde a borde. overflow-hidden en el inner para que
               el radio también recorte la tabla/lista de abajo. */}
-          <div className="min-h-0 overflow-hidden rounded-card bg-white m-5 mt-0 lg:m-6 lg:mt-0">
+          <div className="min-h-0 overflow-hidden rounded-card bg-white m-3 mt-0 lg:m-4 lg:mt-0">
             {/* Desktop: tabla real (datos tabulares, mejor semántica para
                 screen readers y copy/paste). Mobile: cards apiladas. */}
             <table className="hidden w-full border-collapse text-left sm:table">
