@@ -52,10 +52,16 @@ function Seccion({
   );
 }
 
-/** Fila etiqueta/valor para los bloques de solo lectura. */
+/**
+ * Fila etiqueta/valor para los bloques de solo lectura.
+ * `border-t` entre filas da jerarquía al bloque sin volverse ruidoso. Se
+ * quita del primer hijo y del segundo (en grid 2-cols, el segundo cae en la
+ * misma fila que el primero — compartirían línea superior, se saca para que
+ * la Card no tenga un divisor pegado a su borde interno).
+ */
 function Dato({ etiqueta, valor }: { etiqueta: string; valor: ReactNode }) {
   return (
-    <div className="flex justify-between gap-3">
+    <div className="flex justify-between gap-4 border-t border-ink-100 py-3 first:border-t-0 sm:[&:nth-child(2)]:border-t-0">
       <dt className="text-ink-500">{etiqueta}</dt>
       <dd className="text-right text-ink-900">{valor}</dd>
     </div>

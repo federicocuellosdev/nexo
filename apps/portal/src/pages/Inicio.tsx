@@ -457,11 +457,12 @@ function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendien
           )}
           aria-hidden={!coberturasAbiertas}
         >
-          {/* Zona blanca interna borde a borde: solo redondeamos las esquinas
-              superiores (`rounded-t-card`); las inferiores las recorta el
-              overflow-hidden + rounded-card del Card padre. Sin margin para no
-              meter espacio extra entre el toggle y la tabla. */}
-          <div className="min-h-0 overflow-hidden rounded-t-card bg-white">
+          {/* Zona blanca interna: rounded-card en las 4 esquinas. El
+              rounded-card del Card padre sólo recorta hijos que se desborden
+              — como esta zona termina DENTRO de la Card (hay un pequeño
+              residuo de gradient al final), las esquinas inferiores necesitan
+              redondearse explícitamente. */}
+          <div className="min-h-0 overflow-hidden rounded-card bg-white">
             {/* Desktop: tabla real (datos tabulares, mejor semántica para
                 screen readers y copy/paste). Mobile: cards apiladas. */}
             <table className="hidden w-full border-collapse text-left sm:table">
