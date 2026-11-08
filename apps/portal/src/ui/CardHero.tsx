@@ -4,6 +4,8 @@ import { cn } from '@/lib/cn';
 export interface CardHeroProps {
   icono: LucideIcon;
   className?: string;
+  /** Variante neutra (gris) para cards de productos deshabilitados. */
+  deshabilitado?: boolean;
 }
 
 /**
@@ -15,13 +17,13 @@ export interface CardHeroProps {
  * en la tipografía/50s para no competir con el precio ni el CTA. El ícono es
  * decorativo: la card ya lo nombra con el `h3`, así que `aria-hidden`.
  */
-export function CardHero({ icono: Glifo, className }: CardHeroProps) {
+export function CardHero({ icono: Glifo, className, deshabilitado = false }: CardHeroProps) {
   return (
     <div
       aria-hidden="true"
       className={cn(
         '-mx-5 -mt-5 flex h-28 items-center justify-center rounded-t-card',
-        'bg-gradient-to-br from-marca-50 to-acento-50 text-marca-700',
+        deshabilitado ? 'bg-ink-50 text-ink-300' : 'bg-gradient-to-br from-marca-50 to-acento-50 text-marca-700',
         className,
       )}
     >

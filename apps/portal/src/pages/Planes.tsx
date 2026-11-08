@@ -74,13 +74,17 @@ export function Planes() {
               <Card
                 key={producto.id}
                 as="article"
-                className="flex flex-col gap-3 opacity-60"
+                // Card deshabilitada: bg gris + ring más marcado (ink-200)
+                // para que el borde se note contra el bg-app, y bajada con
+                // alto reservado para 2 líneas así todos los precios quedan
+                // alineados verticalmente aunque las descripciones varíen.
+                className="flex flex-col gap-3 !bg-ink-50 !ring-ink-200"
               >
-                {icono ? <CardHero icono={icono} /> : null}
-                <h3 className="text-lg font-medium text-ink-950">{producto.nombre}</h3>
-                <p className="text-sm text-ink-600">{producto.detalle}</p>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Money monto={producto.precio} periodo="por mes" />
+                {icono ? <CardHero icono={icono} deshabilitado /> : null}
+                <h3 className="text-lg font-medium text-ink-500">{producto.nombre}</h3>
+                <p className="line-clamp-2 min-h-[2.5rem] text-sm text-ink-500">{producto.detalle}</p>
+                <div className="flex flex-wrap items-center gap-2 text-ink-500">
+                  <Money monto={producto.precio} periodo="por mes" className="!text-ink-500" />
                 </div>
                 <div className="mt-auto pt-1">
                   {yaLoTiene ? (
