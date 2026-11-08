@@ -555,24 +555,6 @@ function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendien
   );
 }
 
-/** Logo de MercadoPago como SVG inline — evita cargar un asset solo para esto. */
-function LogoMercadoPago() {
-  return (
-    <svg
-      viewBox="0 0 100 100"
-      aria-hidden="true"
-      className="size-12 shrink-0"
-    >
-      <circle cx="50" cy="50" r="48" fill="#009EE3" />
-      <path
-        d="M25 55c0-8 10-14 25-14s25 6 25 14c0 2-1 4-3 4-3 0-5-2-7-3-4-3-10-4-15-4s-11 1-15 4c-2 1-4 3-7 3-2 0-3-2-3-4z"
-        fill="#FFF"
-      />
-      <ellipse cx="50" cy="52" rx="8" ry="4" fill="#FFE600" />
-    </svg>
-  );
-}
-
 interface DialogoEmailMercadoPagoProps {
   valorInicial: string;
   onCerrar: () => void;
@@ -592,7 +574,7 @@ function DialogoEmailMercadoPago({ valorInicial, onCerrar, onConfirmar }: Dialog
     evento.preventDefault();
     const limpio = valor.trim();
     if (limpio === '') {
-      setError('Ingresá el email de tu cuenta de MercadoPago');
+      setError('Ingresá tu email de MercadoPago');
       return;
     }
     if (!/^\S+@\S+\.\S+$/.test(limpio)) {
@@ -608,16 +590,18 @@ function DialogoEmailMercadoPago({ valorInicial, onCerrar, onConfirmar }: Dialog
       onCambio={(abierto) => {
         if (!abierto) onCerrar();
       }}
-      titulo="Antes de pagar"
+      titulo="Pagar con MercadoPago"
+      descripcion="Cuenta a la que vamos a asociar el cobro de tu plan."
     >
-      <form onSubmit={enviar} noValidate className="flex flex-col gap-5">
-        <div className="flex items-start gap-3">
-          <LogoMercadoPago />
-          <p className="text-sm text-ink-700">
-            Indicanos el email de tu cuenta de MercadoPago — es a esa cuenta a la que vamos a asociar
-            el cobro de tu plan.
-          </p>
-        </div>
+      <form onSubmit={enviar} noValidate className="flex flex-col gap-4">
+        {/* Logo centrado arriba del input. `BASE_URL` (/ en dev, /app/ en prod)
+            resuelve el subpath del portal sin hardcodear. */}
+        <img
+          src={`${import.meta.env.BASE_URL}mercadopago.png`}
+          alt=""
+          aria-hidden="true"
+          className="mx-auto size-12"
+        />
         <Field label="Email de MercadoPago" htmlFor="mp-email" error={error} requerido>
           <Input
             id="mp-email"
@@ -633,21 +617,9 @@ function DialogoEmailMercadoPago({ valorInicial, onCerrar, onConfirmar }: Dialog
             }}
           />
         </Field>
-        <div className="mt-1 flex flex-col gap-3 sm:flex-row-reverse">
-          <Button type="submit" ancho="full" tamano="lg" className="sm:w-auto">
-            Continuar al pago
-          </Button>
-          <Button
-            type="button"
-            variante="secundario"
-            ancho="full"
-            tamano="lg"
-            className="sm:w-auto"
-            onClick={onCerrar}
-          >
-            Cancelar
-          </Button>
-        </div>
+        <Button type="submit" ancho="full" tamano="lg">
+          Continuar al pago
+        </Button>
       </form>
     </Dialog>
   );
