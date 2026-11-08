@@ -26,6 +26,30 @@ authRouter.post('/auth/magic-link', async (req, res) => {
   }
   const email = parsed.data.email.toLowerCase();
 
+  // Buscamos el último lead del email para arrastrar el plan elegido al
+  // portal. Así el /inicio puede renderizar la tarjeta del plan + CTA
+  // "Terminar de pagar" incluso cuando el usuario entra por login — no solo
+  // cuando entra por el magic link de alta. También traemos el nombre, que
+  // sirve para personalizar el saludo del email ("Hola Federico").
+  const { data: leads, error: errorLeads } = await supabaseAdmin
+    .schema('v3')
+    .from('leads')
+    .select('item_tipo, item_id, nombre')
+    .eq('email', email)
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  if (errorLeads) {
+    // No bloqueante: si falla la query seguimos sin plan en el redirect.
+    console.error('[POST /auth/magic-link] no se pudo leer v3.leads', errorLeads);
+  }
+  const ultimoLead = leads && leads[0] ? leads[0] : undefined;
+
+  const redirectBase = `${config.portalUrl}/auth/callback`;
+  const redirectTo = ultimoLead
+    ? `${redirectBase}?planTipo=${encodeURIComponent(ultimoLead.item_tipo)}&planId=${encodeURIComponent(ultimoLead.item_id)}`
+    : redirectBase;
+
   // Generamos el magic link vía Supabase Auth. `type: 'magiclink'` NO crea el
   // usuario si no existe (es login, no signup). Si Supabase devuelve error de
   // "user not found", respondemos ok igual para no filtrar qué emails están
@@ -33,15 +57,10 @@ authRouter.post('/auth/magic-link', async (req, res) => {
   const { data: linkData, error: errorLink } = await supabaseAdmin.auth.admin.generateLink({
     type: 'magiclink',
     email,
-    options: {
-      // Sin planTipo/planId: el callback del portal no arma intent nuevo.
-      redirectTo: `${config.portalUrl}/auth/callback`,
-    },
+    options: { redirectTo },
   });
 
   if (errorLink || !linkData.properties?.action_link) {
-    // Diferenciamos "email no registrado" del resto para loguearlo, pero
-    // seguimos devolviendo 200 al cliente (no filtrar existencia).
     const esUsuarioNoEncontrado = errorLink?.message?.toLowerCase().includes('user not found');
     if (esUsuarioNoEncontrado) {
       console.log('[POST /auth/magic-link] email sin cuenta:', email);
@@ -58,10 +77,7 @@ authRouter.post('/auth/magic-link', async (req, res) => {
       to: email,
       subject: asuntoBienvenida(),
       html: htmlBienvenida({
-        // Sin nombre: en login no tenemos el perfil cargado. El template saluda
-        // con "Hola {nombre}" vacío queda "Hola" solo, que es aceptable para un
-        // email de verificación sin contexto de alta.
-        nombre: '',
+        nombre: ultimoLead?.nombre ?? '',
         magicLink,
         logoUrl: config.emailLogoUrl,
         nombrePlan: '',
