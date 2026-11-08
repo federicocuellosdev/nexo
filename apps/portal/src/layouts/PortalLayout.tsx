@@ -1,20 +1,29 @@
-import { Bell, LayoutGrid, House, Receipt, ShieldCheck, User } from 'lucide-react';
+import { useEffect, useMemo } from 'react';
+import { Bell, LayoutGrid, House, Receipt, ShieldCheck } from 'lucide-react';
 import { Link, Outlet, useLocation } from 'react-router';
 import { TopBar } from '@/ui/TopBar';
 import { BottomNav } from '@/ui/BottomNav';
 import { Sidebar } from '@/ui/Sidebar';
 import type { NavItem } from '@/ui/tipos';
-import { resetSession, useSession } from '@/mock/session';
+import { getSession, resetSession, setSession, useSession } from '@/mock/session';
 import { landingUrl } from '@/lib/urls';
 import { LogoNexo, ETIQUETA_MARCA } from '@/ui/LogoNexo';
 import { iniciales, nombreVisible } from '@/lib/identidad';
+import { planContratado } from '@/features/cobertura/contrataciones';
+import { obtenerUltimoLead } from '@/lib/api';
 
-export const ITEMS_PORTAL: NavItem[] = [
+/**
+ * Items base del menú principal. `Planes` queda siempre activo (es el
+ * punto de contratación); `Coberturas` y `Movimientos` se grisan cuando el
+ * usuario todavía no contrató nada, para no mandarlo a pantallas vacías.
+ * "Cuenta" NO está en el menú: se accede desde el bloque de identidad
+ * (avatar + nombre) de la sidebar y desde el avatar del header mobile.
+ */
+const ITEMS_PORTAL_BASE: NavItem[] = [
   { to: '/inicio', label: 'Inicio', icono: House },
   { to: '/planes', label: 'Planes', icono: LayoutGrid },
   { to: '/coberturas', label: 'Coberturas', icono: ShieldCheck },
   { to: '/movimientos', label: 'Movimientos', icono: Receipt },
-  { to: '/cuenta', label: 'Cuenta', icono: User },
 ];
 
 /**
@@ -55,6 +64,49 @@ export function PortalLayout() {
   const usuario = sesion.usuario;
   const enfocado = RUTAS_ENFOCADAS.has(useLocation().pathname);
 
+  // Hidratar nombre/apellido desde v3.leads cuando la sesión no los tiene
+  // (caso típico post-login). Vive en el layout y no en /inicio para que la
+  // sidebar muestre "Federico Cuellos" apenas se entra al portal, sin importar
+  // qué ruta se abra primero. El efecto no vuelve a correr si ya hay nombre.
+  const emailUsuario = usuario?.email;
+  const faltaNombre =
+    usuario !== undefined && (usuario.nombre ?? '').trim() === '' && (usuario.apellido ?? '').trim() === '';
+  useEffect(() => {
+    if (!emailUsuario || !faltaNombre) return;
+    let cancelado = false;
+    void (async () => {
+      try {
+        const lead = await obtenerUltimoLead(emailUsuario);
+        if (cancelado || !lead?.titular) return;
+        const actual = getSession().usuario;
+        if (!actual) return;
+        setSession({
+          usuario: { ...actual, nombre: lead.titular.nombre, apellido: lead.titular.apellido },
+          // Si todavía no había intent lo seteamos de paso para que /inicio
+          // tampoco tenga que repetir la consulta.
+          ...(getSession().intent === undefined ? { intent: { tipo: lead.tipo, id: lead.id } } : {}),
+        });
+      } catch (err) {
+        console.warn('[portal] no se pudo hidratar nombre/apellido desde el lead', err);
+      }
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, [emailUsuario, faltaNombre]);
+
+  // Deshabilitamos Coberturas y Movimientos mientras no haya plan contratado
+  // (tampoco hay órdenes que mostrar). Memo para que `items` no cambie por
+  // referencia en cada render y no retrigueree los useEffects del Sidebar.
+  const items = useMemo<NavItem[]>(() => {
+    const sinContratacion = planContratado(sesion) === undefined;
+    return ITEMS_PORTAL_BASE.map((item) =>
+      sinContratacion && (item.to === '/coberturas' || item.to === '/movimientos')
+        ? { ...item, disabled: true }
+        : item,
+    );
+  }, [sesion]);
+
   if (enfocado) {
     return (
       <div className="min-h-dvh bg-app">
@@ -93,7 +145,7 @@ export function PortalLayout() {
     <div className="min-h-dvh bg-app">
       <Sidebar
         marca={<Marca />}
-        items={ITEMS_PORTAL}
+        items={items}
         identidad={
           usuario ? (
             // Deliberadamente NO repite el plan ni su estado: eso ya lo muestra
@@ -157,7 +209,7 @@ export function PortalLayout() {
         </main>
       </div>
 
-      <BottomNav items={ITEMS_PORTAL} />
+      <BottomNav items={items} />
     </div>
   );
 }

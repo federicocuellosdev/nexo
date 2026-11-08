@@ -8,4 +8,11 @@ export type NavItem = {
   to: string;
   label: string;
   icono: LucideIcon;
+  /**
+   * Cuando `true`, el ítem se renderiza grisado y no es clickeable.
+   * Se usa para pantallas que todavía no tienen contenido (ej. Movimientos
+   * cuando el usuario no contrató nada) — así se preserva la jerarquía del
+   * menú sin frustrar con pantallas vacías.
+   */
+  disabled?: boolean;
 };

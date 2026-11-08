@@ -25,27 +25,44 @@ export function Sidebar({ marca, items, identidad, pie }: SidebarProps) {
       <div className="px-2 pb-8">{marca}</div>
       <nav aria-label="Navegación principal" className="flex-1">
         <ul className="flex flex-col gap-1">
-          {items.map((item) => (
-            <li key={item.to}>
-              <NavLink
-                to={item.to}
-                className={({ isActive }) =>
-                  cn(
-                    'flex items-center gap-3 rounded-campo px-3 py-2.5 text-sm font-medium',
-                    'transition-colors duration-200 ease-out-quart',
-                    isActive ? 'bg-marca-50 text-marca-700' : 'text-ink-600 hover:bg-ink-50 hover:text-ink-900',
-                  )
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    <item.icono size={18} strokeWidth={isActive ? 2.25 : 1.75} aria-hidden="true" />
-                    <span>{item.label}</span>
-                  </>
-                )}
-              </NavLink>
-            </li>
-          ))}
+          {items.map((item) =>
+            item.disabled ? (
+              // Grisado, sin interactividad. `aria-disabled` + `role="link"`
+              // lo anuncian como ítem conocido pero no accionable; sin esto
+              // un screen reader lo omitiría por completo y la persona no
+              // sabría que esa sección existe pero todavía no está disponible.
+              <li key={item.to}>
+                <span
+                  role="link"
+                  aria-disabled="true"
+                  className="flex cursor-not-allowed items-center gap-3 rounded-campo px-3 py-2.5 text-sm font-medium text-ink-300"
+                >
+                  <item.icono size={18} strokeWidth={1.75} aria-hidden="true" />
+                  <span>{item.label}</span>
+                </span>
+              </li>
+            ) : (
+              <li key={item.to}>
+                <NavLink
+                  to={item.to}
+                  className={({ isActive }) =>
+                    cn(
+                      'flex items-center gap-3 rounded-campo px-3 py-2.5 text-sm font-medium',
+                      'transition-colors duration-200 ease-out-quart',
+                      isActive ? 'bg-marca-50 text-marca-700' : 'text-ink-600 hover:bg-ink-50 hover:text-ink-900',
+                    )
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <item.icono size={18} strokeWidth={isActive ? 2.25 : 1.75} aria-hidden="true" />
+                      <span>{item.label}</span>
+                    </>
+                  )}
+                </NavLink>
+              </li>
+            ),
+          )}
         </ul>
       </nav>
       {identidad ? <div className="mt-4">{identidad}</div> : null}

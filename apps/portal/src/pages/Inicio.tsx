@@ -330,9 +330,10 @@ function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendien
           <h2 className="font-display text-2xl text-ink-950">{plan.nombre}</h2>
           <p className="text-sm text-ink-600">{plan.bajada}</p>
 
-          {/* Divisor tenue antes del bloque de familiares: separa visualmente
-              "datos del plan" de "configuración del contratante". */}
-          <div className="flex flex-col gap-3 border-t border-ink-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
+          {/* Divisor tenue + `mt-auto` para que el bloque familiares quede
+              anclado al fondo y, con padding simétrico arriba+abajo, visualmente
+              centrado frente al contenido de la columna derecha. */}
+          <div className="mt-auto flex flex-col gap-3 border-t border-ink-100 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2">
               <Users size={16} className="text-marca-600" aria-hidden="true" />
               <p className="text-sm text-ink-900">¿Agregás familiares al plan?</p>
@@ -399,12 +400,7 @@ function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendien
           onClick={() => setCoberturasAbiertas((v) => !v)}
           className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-ink-50/50 cursor-pointer lg:px-6"
         >
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-ink-900">Ver coberturas del plan</p>
-            <p className="mt-0.5 text-xs text-ink-600">
-              Prestaciones incluidas, con coseguro y no cubiertas.
-            </p>
-          </div>
+          <p className="text-sm font-medium text-ink-900">Ver coberturas del plan</p>
           <ChevronDown
             size={20}
             aria-hidden="true"
