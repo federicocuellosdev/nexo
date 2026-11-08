@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router';
-import { ChevronDown, Receipt, ShieldCheck, Sparkles, Users } from 'lucide-react';
+import { ChevronDown, LayoutGrid, Receipt, ShieldCheck, Sparkles, Users } from 'lucide-react';
 import { getSession, setSession, useSession } from '@/mock/session';
 import { cn } from '@/lib/cn';
 import { saludo } from '@/lib/identidad';
@@ -21,6 +21,18 @@ import { Money } from '@/ui/Money';
 import { Chip } from '@/ui/Chip';
 import { EmptyState } from '@/ui/EmptyState';
 import { clasesBoton } from '@/ui/Button';
+
+/**
+ * Accesos rápidos de /inicio: una card por destino. Dos quedan deshabilitadas
+ * (Coberturas, Movimientos) mientras no haya nada que mostrar — coherente con
+ * el estado deshabilitado del menú lateral. El único clickeable es "Contratar
+ * producto" porque es acción, no consulta.
+ */
+const ACCESOS = [
+  { to: '/coberturas', label: 'Ver coberturas', icono: ShieldCheck, disabled: true },
+  { to: '/planes', label: 'Contratar producto', icono: LayoutGrid, disabled: false },
+  { to: '/movimientos', label: 'Mis movimientos', icono: Receipt, disabled: true },
+] as const;
 
 export function Inicio() {
   const sesion = useSession();
@@ -222,6 +234,39 @@ export function Inicio() {
         ) : null}
       </section>
 
+      {/* Accesos rápidos: superficie plana con borde (no sombra) para que no
+          compitan en peso con la tarjeta del plan. Los deshabilitados se
+          renderizan como `span` con aria-disabled — mismo tratamiento que los
+          items grisados del Sidebar. */}
+      <section aria-label="Accesos rápidos">
+        <h2 className="mb-3 text-lg text-ink-950">Accesos rápidos</h2>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {ACCESOS.map((acceso) =>
+            acceso.disabled ? (
+              <span
+                key={acceso.to}
+                role="link"
+                aria-disabled="true"
+                className="flex cursor-not-allowed items-center gap-3 rounded-card bg-white p-4 text-ink-300 ring-1 ring-ink-100"
+              >
+                <Icon icono={acceso.icono} tono="neutro" tamano="sm" />
+                <span className="text-sm font-medium">{acceso.label}</span>
+              </span>
+            ) : (
+              <Link
+                key={acceso.to}
+                to={acceso.to}
+                data-elevar
+                className="flex items-center gap-3 rounded-card bg-white p-4 ring-1 ring-ink-100"
+              >
+                <Icon icono={acceso.icono} tono="marca" tamano="sm" />
+                <span className="text-sm font-medium text-ink-900">{acceso.label}</span>
+              </Link>
+            ),
+          )}
+        </div>
+      </section>
+
       <section aria-label="Últimos movimientos">
         <div className="mb-3 flex items-end justify-between gap-3">
           <h2 className="text-lg text-ink-950">Últimos movimientos</h2>
@@ -297,7 +342,7 @@ function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendien
 
   return (
     <Card className="flex flex-col p-0 ring-marca-100">
-      <div className="grid gap-6 p-5 lg:grid-cols-[1fr_320px] lg:items-stretch lg:gap-8 lg:p-6">
+      <div className="grid gap-6 bg-marca-50/50 p-5 lg:grid-cols-[1fr_320px] lg:items-stretch lg:gap-8 lg:p-6">
         {/* Columna izquierda: nombre + bajada + familiares (debajo de la
             bajada, pegado al fondo de la columna con mt-auto). */}
         <div className="flex flex-col gap-5">
