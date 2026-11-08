@@ -67,9 +67,6 @@ export function Ingresar() {
         </div>
 
         <h1 className="mt-8 font-display text-4xl text-ink-950 italic">Ingresá a tu portal</h1>
-        <p className="mt-5 text-lg text-ink-600">
-          Te mandamos un enlace por mail. No hace falta contraseña.
-        </p>
 
         {/* El formulario mantiene su alineación izquierda y ancho acotado
             para que el email entre en una sola línea cómoda. */}
