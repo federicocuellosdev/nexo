@@ -257,7 +257,7 @@ export function Inicio() {
                 key={acceso.to}
                 to={acceso.to}
                 data-elevar
-                className="flex items-center gap-3 rounded-card bg-marca-50/60 p-4 ring-1 ring-marca-300"
+                className="flex items-center gap-3 rounded-card bg-marca-100 p-4 shadow-elevada ring-1 ring-marca-300"
               >
                 <Icon icono={acceso.icono} tono="marca" tamano="sm" />
                 <span className="text-sm font-medium text-ink-900">{acceso.label}</span>
@@ -341,7 +341,7 @@ function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendien
     'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white ring-1 ring-ink-200 text-ink-700 transition-colors cursor-pointer hover:bg-ink-50 hover:ring-ink-300 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:ring-ink-200';
 
   return (
-    <Card className="flex flex-col p-0 !bg-marca-50/60 !ring-marca-300">
+    <Card className="flex flex-col p-0 !bg-marca-100 !shadow-elevada !ring-marca-300">
       <div className="grid gap-6 p-5 lg:grid-cols-[1fr_320px] lg:items-stretch lg:gap-8 lg:p-6">
         {/* Columna izquierda: nombre + bajada + familiares (debajo de la
             bajada, pegado al fondo de la columna con mt-auto). */}
