@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import { Bell, LayoutGrid, House, Receipt, ShieldCheck } from 'lucide-react';
 import { Link, Outlet, useLocation } from 'react-router';
 import { TopBar } from '@/ui/TopBar';
@@ -9,7 +9,6 @@ import { getSession, resetSession, setSession, useSession } from '@/mock/session
 import { landingUrl } from '@/lib/urls';
 import { LogoNexo, ETIQUETA_MARCA } from '@/ui/LogoNexo';
 import { iniciales, nombreVisible } from '@/lib/identidad';
-import { planContratado } from '@/features/cobertura/contrataciones';
 import { obtenerUltimoLead } from '@/lib/api';
 
 /**
@@ -95,17 +94,12 @@ export function PortalLayout() {
     };
   }, [emailUsuario, faltaNombre]);
 
-  // Deshabilitamos Coberturas y Movimientos mientras no haya plan contratado
-  // (tampoco hay órdenes que mostrar). Memo para que `items` no cambie por
-  // referencia en cada render y no retrigueree los useEffects del Sidebar.
-  const items = useMemo<NavItem[]>(() => {
-    const sinContratacion = planContratado(sesion) === undefined;
-    return ITEMS_PORTAL_BASE.map((item) =>
-      sinContratacion && (item.to === '/coberturas' || item.to === '/movimientos')
-        ? { ...item, disabled: true }
-        : item,
-    );
-  }, [sesion]);
+  // Todos los items del menú quedan siempre activos. En algún momento
+  // probamos deshabilitar Coberturas y Movimientos mientras no hubiera plan
+  // contratado, pero resulta más útil que la persona pueda navegarlos y vea
+  // su propio EmptyState con guía ("todavía no tenés movimientos", etc.) en
+  // vez de un ítem grisado sin explicación.
+  const items: NavItem[] = ITEMS_PORTAL_BASE;
 
   if (enfocado) {
     return (
