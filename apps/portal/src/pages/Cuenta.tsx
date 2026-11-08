@@ -248,31 +248,33 @@ export function Cuenta() {
         <p className="mt-1 text-sm text-ink-600">Tus datos, tu domicilio y tu facturación.</p>
       </div>
 
-      {/* Banner de alta cuando el perfil está vacío. Visible en TODAS las
-          secciones de la pantalla hasta que se complete — el único camino
-          para llenar documento, domicilio y contratación. */}
+      {/* Banner de alta cuando el perfil está vacío. Mismo tratamiento
+          jerárquico que las Cards de /inicio: bg-brand-oscurecido (gradient
+          + overlay) + ring marca + shadow elevada. CTA invertido (fondo
+          blanco, texto marca) para contrastar sobre el gradient. */}
       {!perfil ? (
-        <Card className="flex flex-col gap-3 bg-marca-50/70 ring-marca-200 sm:flex-row sm:items-center sm:justify-between">
+        <Card className="flex flex-col gap-3 !bg-brand-oscurecido !shadow-elevada !ring-marca-300 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
             <span
               aria-hidden="true"
-              className="inline-flex size-10 shrink-0 items-center justify-center rounded-pill bg-marca-100 text-marca-700"
+              className="inline-flex size-10 shrink-0 items-center justify-center rounded-pill bg-white/15 text-white ring-1 ring-white/30"
             >
               <UserPlus size={18} strokeWidth={1.75} />
             </span>
             <div className="min-w-0">
-              <p className="text-sm font-medium text-ink-900">Completá tu perfil</p>
-              <p className="text-sm text-ink-600">
+              <p className="text-sm font-medium text-white">Completá tu perfil</p>
+              <p className="text-sm text-white/85">
                 Cargá documento, domicilio y preferencia de contratación — toma menos de 2 minutos.
               </p>
             </div>
           </div>
-          <Button
+          <button
+            type="button"
             onClick={() => setCompletandoPerfil(true)}
-            className="sm:shrink-0"
+            className="inline-flex h-11 shrink-0 cursor-pointer items-center justify-center rounded-pill bg-white px-5 text-base font-medium text-marca-700 shadow-suave transition-colors duration-200 ease-out-expo hover:bg-ink-50 motion-safe:active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
           >
             Completar perfil
-          </Button>
+          </button>
         </Card>
       ) : null}
 
@@ -397,7 +399,9 @@ export function Cuenta() {
       {/* Wizard completo (4 pasos secuenciales): se abre desde el banner de
           alta. Reusa el mismo PerfilWizard que la edición de secciones; la
           diferencia es que acá NO pasamos `soloEstePaso`, así corre los 4
-          pasos uno tras otro. */}
+          pasos uno tras otro. Si el DNI ya vino precargado del lead,
+          arrancamos en el paso 2 (datos personales) para no pedir dos veces
+          lo que la persona ya dio en el alta. */}
       {completandoPerfil ? (
         <Dialog
           abierto
@@ -407,7 +411,11 @@ export function Cuenta() {
           titulo="Completá tu perfil"
           descripcion="Documento, domicilio y preferencia de contratación."
         >
-          <PerfilWizard borradorInicial={borradorPrecargado} onGuardar={guardar} />
+          <PerfilWizard
+            borradorInicial={borradorPrecargado}
+            pasoInicial={dniLead ? 2 : 1}
+            onGuardar={guardar}
+          />
         </Dialog>
       ) : null}
     </div>
