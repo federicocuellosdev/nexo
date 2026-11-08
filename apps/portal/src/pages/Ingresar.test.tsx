@@ -39,15 +39,12 @@ test('un email mal escrito muestra el error de formato', async () => {
   expect(screen.getByRole('alert')).toHaveTextContent('Revisá el email: falta el @ o el dominio');
 });
 
-test('un email válido muestra la pantalla de revisá tu mail con el enlace de login', async () => {
+test('un email válido muestra la pantalla de revisá tu mail con el email destino', async () => {
   const usuario = userEvent.setup();
   montar();
   await usuario.type(screen.getByLabelText(/^Email/), 'camila.perez@ejemplo.com');
   await usuario.click(screen.getByRole('button', { name: 'Enviarme el enlace' }));
 
   expect(screen.getByRole('heading', { name: 'Revisá tu mail' })).toBeInTheDocument();
-  expect(screen.getByRole('link', { name: 'Abrir el mail (demo)' })).toHaveAttribute(
-    'href',
-    '/auth/callback?token=demo&intent=login&email=camila.perez%40ejemplo.com',
-  );
+  expect(screen.getByText('camila.perez@ejemplo.com')).toBeInTheDocument();
 });

@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
+import { MailCheck } from 'lucide-react';
 import { construirCallbackLogin } from '@/lib/callback';
 import { RevisaTuMail } from '@/features/ingreso/RevisaTuMail';
 import { Field } from '@/ui/Field';
 import { Input } from '@/ui/Input';
 import { Button } from '@/ui/Button';
+import { Icon } from '@/ui/Icon';
 import { landingUrl } from '@/lib/urls';
 import { LogoNexo } from '@/ui/LogoNexo';
 
@@ -35,14 +37,15 @@ export function Ingresar() {
   }
 
   return (
-    <div data-entrada className="mx-auto flex min-h-dvh max-w-[440px] flex-col justify-center px-4 py-12">
+    // Mismo tratamiento editorial que /revisa-tu-mail de la landing: centrado,
+    // ícono grande arriba, título en serif itálica y text-lg en la bajada. Es
+    // una pantalla de entrada desde afuera (mail o click directo) y comparte el
+    // mismo momento que la del post-envío — que se vean hermanas.
+    <div data-entrada className="mx-auto max-w-[600px] px-4 py-20 text-center lg:px-8 lg:py-28">
       {/* El logo va acá y no en un layout porque /ingresar y /auth/callback
-          viven FUERA de PortalLayout, sin sidebar ni topbar (también /demo y
-          /verificar). Y son justo a las que se llega desde afuera —un mail, un
-          QR—, donde lo primero que hay que responder es "¿estoy en el lugar
-          correcto?".
-          Decorativo (`etiqueta={null}`): el <h1> de abajo ya nombra la pantalla. */}
-      <div className="mb-8 flex justify-center">
+          viven FUERA de PortalLayout, sin sidebar ni topbar. Decorativo:
+          el <h1> de abajo ya nombra la pantalla. */}
+      <div className="mb-10 flex justify-center">
         <LogoNexo alto={26} etiqueta={null} />
       </div>
 
@@ -50,16 +53,18 @@ export function Ingresar() {
         <RevisaTuMail email={email.trim()} hrefEnlace={construirCallbackLogin(email)} />
       ) : (
         <>
-          {/* Centrado: el logo y el pie ya lo estaban, y un título alineado a
-              la izquierda entre los dos rompía el eje de la pantalla. Los
-              campos del formulario siguen alineados a la izquierda, que es
-              donde tienen que estar para completarse. */}
-          <h1 className="text-center text-2xl text-ink-950">Ingresá a tu portal</h1>
-          <p className="mt-2 text-center text-sm text-ink-600">
+          <div className="flex justify-center">
+            <Icon icono={MailCheck} tono="marca" tamano="lg" />
+          </div>
+
+          <h1 className="mt-8 font-display text-4xl text-ink-950 italic">Ingresá a tu portal</h1>
+          <p className="mt-5 text-lg text-ink-600">
             Te mandamos un enlace por mail. No hace falta contraseña.
           </p>
 
-          <form onSubmit={enviar} noValidate className="mt-6 flex flex-col gap-4">
+          {/* El formulario mantiene su alineación izquierda y ancho acotado
+              para que el email entre en una sola línea cómoda. */}
+          <form onSubmit={enviar} noValidate className="mx-auto mt-10 flex max-w-[440px] flex-col gap-4 text-left">
             <Field label="Email" htmlFor="ingresar-email" error={error} requerido>
               <Input
                 id="ingresar-email"
@@ -77,7 +82,7 @@ export function Ingresar() {
             </Button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-ink-600">
+          <p className="mt-10 text-sm text-ink-600">
             ¿Todavía no sos socio?{' '}
             <a
               href={landingUrl()}
