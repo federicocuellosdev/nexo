@@ -2,6 +2,7 @@ import express, { type Express } from 'express';
 import cors from 'cors';
 import { config } from './config.js';
 import { leadsRouter } from './routes/leads.js';
+import { authRouter } from './routes/auth.js';
 
 /**
  * Crea la app Express. Se extrajo de `index.ts` para que la misma app sea
@@ -32,6 +33,7 @@ export function crearApp(): Express {
   });
 
   app.use('/api', leadsRouter);
+  app.use('/api', authRouter);
 
   return app;
 }
