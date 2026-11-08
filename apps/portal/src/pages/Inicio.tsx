@@ -270,9 +270,16 @@ export function Inicio() {
       <section aria-label="Últimos movimientos">
         <div className="mb-3 flex items-end justify-between gap-3">
           <h2 className="text-lg text-ink-950">Últimos movimientos</h2>
-          <Link to="/movimientos" className="text-sm font-medium text-marca-600 hover:text-marca-700">
+          {/* 'Ver todos' deshabilitado: va a /movimientos que también está
+              grisado en el menu. Mantener visible pero no clickeable para
+              preservar la jerarquía/layout de la sección. */}
+          <span
+            role="link"
+            aria-disabled="true"
+            className="cursor-not-allowed text-sm font-medium text-ink-300"
+          >
             Ver todos
-          </Link>
+          </span>
         </div>
 
         {ultimos.length === 0 ? (
@@ -450,10 +457,11 @@ function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendien
           )}
           aria-hidden={!coberturasAbiertas}
         >
-          {/* Zona blanca interna SOLO para la tabla expandida: preserva la
-              legibilidad del detalle de prestaciones sin romper la continuidad
-              del gradient en el resto del bloque. */}
-          <div className="min-h-0 border-t border-white/20 bg-white">
+          {/* Zona blanca interna como sub-card dentro del gradient: márgenes
+              y rounded-card para que flote con esquinas redondeadas en vez
+              de pegarse borde a borde. overflow-hidden en el inner para que
+              el radio también recorte la tabla/lista de abajo. */}
+          <div className="min-h-0 overflow-hidden rounded-card bg-white m-5 mt-0 lg:m-6 lg:mt-0">
             {/* Desktop: tabla real (datos tabulares, mejor semántica para
                 screen readers y copy/paste). Mobile: cards apiladas. */}
             <table className="hidden w-full border-collapse text-left sm:table">
