@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router';
-import { ChevronDown, LayoutGrid, Receipt, ShieldCheck, Sparkles, Users } from 'lucide-react';
+import { ChevronDown, Receipt, ShieldCheck, Sparkles, Users } from 'lucide-react';
 import { getSession, setSession, useSession } from '@/mock/session';
 import { cn } from '@/lib/cn';
 import { saludo } from '@/lib/identidad';
@@ -21,12 +21,6 @@ import { Money } from '@/ui/Money';
 import { Chip } from '@/ui/Chip';
 import { EmptyState } from '@/ui/EmptyState';
 import { clasesBoton } from '@/ui/Button';
-
-const ACCESOS = [
-  { to: '/coberturas', label: 'Ver coberturas', icono: ShieldCheck },
-  { to: '/planes', label: 'Contratar producto', icono: LayoutGrid },
-  { to: '/movimientos', label: 'Mis movimientos', icono: Receipt },
-];
 
 export function Inicio() {
   const sesion = useSession();
@@ -226,27 +220,6 @@ export function Inicio() {
         {credencial ? (
           <CredencialConDescarga datos={credencial} estado={estado} origen={portalUrl()} />
         ) : null}
-      </section>
-
-      {/* Accesos rápidos: son NAVEGACIÓN, no contenido. Por eso pierden la
-          sombra y quedan como superficie plana con borde — antes competían en
-          peso con la tarjeta de cobertura, que es el dato importante de la
-          pantalla. Jerarquía por superficie, no sólo por tamaño de letra. */}
-      <section aria-label="Accesos rápidos">
-        <h2 className="mb-3 text-lg text-ink-950">Accesos rápidos</h2>
-        <div className="grid gap-3 sm:grid-cols-3">
-          {ACCESOS.map((acceso) => (
-            <Link
-              key={acceso.to}
-              to={acceso.to}
-              data-elevar
-              className="flex items-center gap-3 rounded-card bg-white p-4 ring-1 ring-ink-100"
-            >
-              <Icon icono={acceso.icono} tono="marca" tamano="sm" />
-              <span className="text-sm font-medium text-ink-900">{acceso.label}</span>
-            </Link>
-          ))}
-        </div>
       </section>
 
       <section aria-label="Últimos movimientos">
