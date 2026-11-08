@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router';
-import { CreditCard, LayoutGrid, Receipt, ShieldCheck, Sparkles } from 'lucide-react';
+import { LayoutGrid, Receipt, ShieldCheck, Sparkles } from 'lucide-react';
 import { useSession } from '@/mock/session';
 import { cn } from '@/lib/cn';
 import { saludo } from '@/lib/identidad';
@@ -9,9 +9,11 @@ import { portalUrl } from '@/lib/urls';
 import { NOVEDADES } from '@/mock/novedades';
 import { NovedadesCarousel } from '@/features/novedades/NovedadesCarousel';
 import { CoberturaCard } from '@/features/cobertura/CoberturaCard';
+import { PlanPrestaciones } from '@/features/planes/PlanPrestaciones';
 import { CredencialConDescarga } from '@/features/credencial/CredencialConDescarga';
 import { credencialDeLaSesion } from '@/features/credencial/datos';
 import { formatearFecha, planContratado, proximoVencimiento } from '@/features/cobertura/contrataciones';
+import { Card } from '@/ui/Card';
 import { Icon } from '@/ui/Icon';
 import { Money } from '@/ui/Money';
 import { Chip } from '@/ui/Chip';
@@ -38,12 +40,8 @@ export function Inicio() {
   // en el EmptyState genérico "Todavía no tenés un plan" → "Ver planes" y
   // nunca ve un recordatorio de terminar la compra que ya empezó.
   const intent = sesion.intent;
-  const elegidoNombre =
-    intent === undefined
-      ? undefined
-      : intent.tipo === 'plan'
-        ? buscarPlan(intent.id)?.nombre
-        : buscarProducto(intent.id)?.nombre;
+  const planElegido = intent?.tipo === 'plan' ? buscarPlan(intent.id) : undefined;
+  const productoElegido = intent?.tipo === 'producto' ? buscarProducto(intent.id) : undefined;
   const faltaTerminarCompra = estado === 'conCuentaSinPago' && intent !== undefined;
 
   // `state` viene de PerfilCompletar tras guardar el perfil, pero por sí solo no
@@ -101,19 +99,54 @@ export function Inicio() {
       >
         {plan && vencimiento ? (
           <CoberturaCard plan={plan} estado={estado} proximoVencimiento={vencimiento} />
-        ) : faltaTerminarCompra ? (
-          <EmptyState
-            icono={CreditCard}
-            // h2: la sección "Tu cobertura" no tiene encabezado visible, así
-            // que esto cuelga directo del h1 del saludo.
-            como="h2"
-            titulo="Terminá tu compra"
-            descripcion={`Elegiste ${elegidoNombre ?? 'una cobertura'} pero todavía no registramos el pago.`}
-          >
-            <Link to="/pago" className={clasesBoton({})}>
+        ) : faltaTerminarCompra && planElegido ? (
+          // El usuario eligió un plan y verificó el email, pero todavía no pagó.
+          // Mostramos el plan completo con sus prestaciones acá: así continúa
+          // la contratación sin tener que ir a /planes a recordar qué eligió.
+          <Card className="flex flex-col gap-5 p-5 ring-marca-100 lg:p-6">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm text-ink-500">Tu plan elegido</p>
+                <h2 className="font-display text-2xl text-ink-950">{planElegido.nombre}</h2>
+                <p className="mt-1 text-sm text-ink-600">{planElegido.bajada}</p>
+              </div>
+              <Chip tono="warn">Pago pendiente</Chip>
+            </div>
+
+            <div className="border-t border-ink-100 pt-4">
+              <Money monto={planElegido.precio} periodo="por mes" tamano="lg" />
+            </div>
+
+            <div>
+              <p className="mb-2 text-sm font-medium text-ink-900">Tu cobertura incluye</p>
+              <PlanPrestaciones prestaciones={planElegido.prestaciones} />
+            </div>
+
+            <Link to="/pago" className={clasesBoton({ ancho: 'full' })}>
               Terminar de pagar
             </Link>
-          </EmptyState>
+          </Card>
+        ) : faltaTerminarCompra && productoElegido ? (
+          // Mismo caso pero para un producto on demand (no un plan mensual).
+          // Sin lista de prestaciones: los productos son una línea sola.
+          <Card className="flex flex-col gap-5 p-5 ring-marca-100 lg:p-6">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm text-ink-500">Tu producto elegido</p>
+                <h2 className="font-display text-2xl text-ink-950">{productoElegido.nombre}</h2>
+                <p className="mt-1 text-sm text-ink-600">{productoElegido.detalle}</p>
+              </div>
+              <Chip tono="warn">Pago pendiente</Chip>
+            </div>
+
+            <div className="border-t border-ink-100 pt-4">
+              <Money monto={productoElegido.precio} />
+            </div>
+
+            <Link to="/pago" className={clasesBoton({ ancho: 'full' })}>
+              Terminar de pagar
+            </Link>
+          </Card>
         ) : (
           <EmptyState
             icono={ShieldCheck}

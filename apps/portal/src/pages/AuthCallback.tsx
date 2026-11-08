@@ -19,9 +19,12 @@ export function AuthCallback() {
     // token cuando se montó el módulo (detectSessionInUrl: true), así que
     // acá solo preguntamos la sesión resultante.
     //
-    // El `leadId` viaja como query param del redirectTo que seteó el server
-    // (ver apps/api/src/routes/leads.ts). Lo usamos para ligar al usuario
-    // recién autenticado con su lead en v3.leads.
+    // Query params del `redirectTo` que armó el server (ver apps/api/src/routes/leads.ts):
+    //  - `leadId`:   UUID del lead en v3.leads. Por ahora no se guarda en la sesión,
+    //                está disponible por si el portal necesita referenciarlo en /enrich.
+    //  - `planTipo`: 'plan' | 'producto'.
+    //  - `planId`:   slug del item (ej. 'nexo-1'). Es lo que buscarPlan/buscarProducto
+    //                necesitan para renderizar coberturas y precio en /inicio.
     if (supabase && (hash.includes('access_token') || hash.includes('error'))) {
       void (async () => {
         const { data, error } = await supabase.auth.getSession();
@@ -32,7 +35,10 @@ export function AuthCallback() {
         }
 
         const parametros = new URLSearchParams(search);
-        const leadId = parametros.get('leadId') ?? undefined;
+        const planId = parametros.get('planId') ?? undefined;
+        const planTipoRaw = parametros.get('planTipo');
+        const planTipo: 'plan' | 'producto' | undefined =
+          planTipoRaw === 'plan' || planTipoRaw === 'producto' ? planTipoRaw : undefined;
         const email = data.session.user.email ?? '';
 
         const previo = getSession().usuario;
@@ -48,7 +54,7 @@ export function AuthCallback() {
 
         setSession({
           usuario,
-          ...(leadId ? { intent: { tipo: 'plan', id: leadId } } : {}),
+          ...(planId && planTipo ? { intent: { tipo: planTipo, id: planId } } : {}),
         });
         // Entrada por magic link: va a `/inicio` (home del portal), no a
         // `/bienvenida`. `/bienvenida` es el paso previo al checkout de MP
