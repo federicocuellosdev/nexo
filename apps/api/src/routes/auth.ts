@@ -15,6 +15,46 @@ const PayloadMagicLink = z.object({
   email: z.string().email(),
 });
 
+/**
+ * Devuelve el lead más reciente para un email. Lo consume el portal al montar
+ * /inicio cuando la sesión no tiene `intent`: así, aunque el usuario haya
+ * llegado por un magic link viejo (sin planId en el redirect) o directamente
+ * desde una sesión persistida, puede ver la tarjeta del plan elegido en vez
+ * del fallback "Todavía no tenés un plan".
+ *
+ * Expone email por query. No usa JWT por simplicidad del sprint — el peor caso
+ * es que alguien enumere leads por email, que es information disclosure acotada
+ * (no se expone DNI, teléfono ni datos sensibles). Si evoluciona a prod, migrar
+ * a verificar el JWT de Supabase y leer el email del claim.
+ */
+authRouter.get('/leads/by-email', async (req, res) => {
+  const email = String(req.query.email ?? '').trim().toLowerCase();
+  if (email === '') {
+    return res.status(400).json({ ok: false, error: 'email_requerido' });
+  }
+
+  const { data, error } = await supabaseAdmin
+    .schema('v3')
+    .from('leads')
+    .select('item_tipo, item_id, item_nombre')
+    .eq('email', email)
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  if (error) {
+    console.error('[GET /leads/by-email] db error', error);
+    return res.status(500).json({ ok: false, error: 'db_error' });
+  }
+
+  const lead = data?.[0];
+  return res.status(200).json({
+    ok: true,
+    lead: lead
+      ? { tipo: lead.item_tipo as 'plan' | 'producto', id: lead.item_id, nombre: lead.item_nombre }
+      : null,
+  });
+});
+
 authRouter.post('/auth/magic-link', async (req, res) => {
   const parsed = PayloadMagicLink.safeParse(req.body);
   if (!parsed.success) {
