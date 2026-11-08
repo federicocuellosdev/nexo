@@ -41,15 +41,18 @@ test('un email mal escrito muestra el error de formato', async () => {
   expect(screen.getByRole('alert')).toHaveTextContent('Revisá el email: falta el @ o el dominio');
 });
 
-test('un email válido redirige a /revisa-tu-mail de la landing con el email por query', async () => {
+test('un email válido guarda handoff de login y redirige a /revisa-tu-mail', async () => {
   const usuario = userEvent.setup();
   const assign = vi.spyOn(window.location, 'assign').mockImplementation(() => undefined);
+  sessionStorage.clear();
   montar();
   await usuario.type(screen.getByLabelText(/^Email/), 'camila.perez@ejemplo.com');
   await usuario.click(screen.getByRole('button', { name: 'Enviarme el enlace' }));
 
-  expect(assign).toHaveBeenCalledWith(
-    'http://localhost:5173/revisa-tu-mail?email=camila.perez%40ejemplo.com',
-  );
+  expect(assign).toHaveBeenCalledWith('http://localhost:5173/revisa-tu-mail');
+  expect(JSON.parse(sessionStorage.getItem('nexo3.alta') ?? '{}')).toEqual({
+    intent: 'login',
+    email: 'camila.perez@ejemplo.com',
+  });
   assign.mockRestore();
 });

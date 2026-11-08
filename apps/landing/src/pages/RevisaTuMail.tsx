@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useSearchParams } from 'react-router';
+import { Link } from 'react-router';
 import { MailCheck, MailQuestion } from 'lucide-react';
 import { leerHandoff } from '@/lib/handoff';
 import { Icon } from '@/ui/Icon';
@@ -11,23 +11,12 @@ import { EmptyState } from '@/ui/EmptyState';
 
 export function RevisaTuMail() {
   // Se lee una sola vez al montar: el handoff no cambia mientras esta pantalla vive.
+  // Lo escriben tanto el alta (desde esta misma landing) como /app/ingresar del
+  // portal (intent='login') via sessionStorage — misma clave, mismo origin.
   const [handoff] = useState(() => leerHandoff());
-  const [searchParams] = useSearchParams();
   const [reenviado, setReenviado] = useState(false);
 
-  // El `?email=...` por query lo usa /app/ingresar del portal: redirige acá
-  // en vez de duplicar la pantalla. Sin query, vale el handoff del alta.
-  const emailDeQuery = searchParams.get('email')?.trim();
-  const emailResuelto =
-    emailDeQuery && emailDeQuery.length > 0
-      ? emailDeQuery
-      : handoff === null
-        ? undefined
-        : handoff.intent === 'alta'
-          ? handoff.usuario.email
-          : handoff.email;
-
-  if (emailResuelto === undefined) {
+  if (handoff === null) {
     return (
       <div className="mx-auto max-w-[560px] px-4 py-16 lg:px-6">
         <EmptyState
@@ -44,7 +33,7 @@ export function RevisaTuMail() {
     );
   }
 
-  const email = emailResuelto;
+  const email = handoff.intent === 'alta' ? handoff.usuario.email : handoff.email;
 
   return (
     // Momento transaccional, no de venta: el tratamiento editorial acá va

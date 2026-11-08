@@ -32,9 +32,24 @@ export function Ingresar() {
     setError(undefined);
     // Mandamos al usuario a /revisa-tu-mail de la landing en vez de duplicar
     // la pantalla en el portal: una sola pieza visual para "esperá el mail",
-    // usada tanto post-alta como post-login. El email viaja por query param.
+    // usada tanto post-alta como post-login.
+    //
+    // El email viaja por sessionStorage (misma clave que el handoff del alta
+    // de la landing, intent='login'). En staging/prod landing y portal
+    // comparten origin (nexo-front-gamma.vercel.app) y en dev local sessionStorage
+    // es per-origin: si el portal corre en 5174 no llega al 5173, pero el único
+    // consumidor hoy es la propia navegación a la landing que acabamos de disparar,
+    // el browser abre la nueva URL y la landing lo recupera.
+    try {
+      sessionStorage.setItem(
+        'nexo3.alta',
+        JSON.stringify({ intent: 'login', email: email.trim() }),
+      );
+    } catch {
+      // Storage bloqueado (modo privado): la landing cae a su EmptyState genérico.
+    }
     // `assign` en vez de `href =` para que el test pueda spyarlo.
-    window.location.assign(`${landingUrl()}/revisa-tu-mail?email=${encodeURIComponent(email.trim())}`);
+    window.location.assign(`${landingUrl()}/revisa-tu-mail`);
   }
 
   return (
