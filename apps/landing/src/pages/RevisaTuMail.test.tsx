@@ -25,35 +25,6 @@ test('muestra el email al que se envió el enlace', () => {
   expect(screen.getByText('camila.perez@ejemplo.com')).toBeInTheDocument();
 });
 
-test('el botón de la vista previa del mail apunta al callback del portal con todos los datos', () => {
-  guardarHandoff({
-    intent: 'alta',
-    tipo: 'plan',
-    id: 'nexo-2',
-    usuario: {
-      nombre: 'Camila',
-      apellido: 'Pérez',
-      email: 'camila.perez@ejemplo.com',
-      dni: '34567890',
-    },
-  });
-  montar();
-  expect(screen.getByRole('link', { name: 'Abrir el mail (demo)' })).toHaveAttribute(
-    'href',
-    'http://localhost:5174/auth/callback?token=demo&intent=alta&tipo=plan&id=nexo-2' +
-      '&nombre=Camila&apellido=P%C3%A9rez&email=camila.perez%40ejemplo.com&dni=34567890',
-  );
-});
-
-test('en modo login el enlace lleva intent=login', () => {
-  guardarHandoff({ intent: 'login', email: 'camila.perez@ejemplo.com' });
-  montar();
-  expect(screen.getByRole('link', { name: 'Abrir el mail (demo)' })).toHaveAttribute(
-    'href',
-    'http://localhost:5174/auth/callback?token=demo&intent=login&email=camila.perez%40ejemplo.com',
-  );
-});
-
 test('reenviar muestra un aviso sin recargar la pantalla', async () => {
   const usuario = userEvent.setup();
   guardarHandoff({ intent: 'login', email: 'camila.perez@ejemplo.com' });

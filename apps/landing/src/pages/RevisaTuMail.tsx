@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { MailCheck, MailQuestion } from 'lucide-react';
-import { construirUrlCallback, leerHandoff } from '@/lib/handoff';
-import { Card } from '@/ui/Card';
+import { leerHandoff } from '@/lib/handoff';
 import { Icon } from '@/ui/Icon';
 import { clasesBoton } from '@/ui/Button';
 import { EmptyState } from '@/ui/EmptyState';
+
+// Nota: en v3 el email real se manda desde el backend (Resend). Ya no hay
+// vista previa del mail en esta pantalla — el flujo real reemplazó la demo.
 
 export function RevisaTuMail() {
   // Se lee una sola vez al montar: el handoff no cambia mientras esta pantalla vive.
@@ -30,7 +32,6 @@ export function RevisaTuMail() {
   }
 
   const email = handoff.intent === 'alta' ? handoff.usuario.email : handoff.email;
-  const urlCallback = construirUrlCallback(handoff);
 
   return (
     // Momento transaccional, no de venta: el tratamiento editorial acá va
@@ -48,29 +49,7 @@ export function RevisaTuMail() {
         celular y entrás sin contraseña.
       </p>
 
-      {/* Vista previa del mail: en la maqueta no hay servidor de correo, así que
-          el "enlace mágico" se muestra acá y navega al portal por URL. */}
-      <Card className="mt-8 text-left">
-        <div className="flex items-center gap-3 border-b border-ink-100 pb-3">
-          <Icon icono={MailCheck} tono="marca" tamano="sm" />
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-ink-900">Nexo · Previnca Salud</p>
-            <p className="truncate text-xs text-ink-500">Tu enlace de acceso</p>
-          </div>
-        </div>
-        <p className="mt-4 text-sm text-ink-600">
-          Hola{handoff.intent === 'alta' ? ` ${handoff.usuario.nombre}` : ''}, entrá con este enlace para
-          continuar con tu contratación.
-        </p>
-        <a href={urlCallback} className={clasesBoton({ ancho: 'full', className: 'mt-4' })}>
-          Abrir el mail (demo)
-        </a>
-        <p className="mt-3 text-xs text-ink-500">
-          Vista previa de demostración. En producción este botón viaja dentro del correo.
-        </p>
-      </Card>
-
-      <p className="mt-6 text-sm text-ink-600">
+      <p className="mt-10 text-sm text-ink-600">
         ¿No te llegó?{' '}
         <button
           type="button"
