@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { MailCheck } from 'lucide-react';
+import { pedirMagicLink } from '@/lib/api';
 import { Field } from '@/ui/Field';
 import { Input } from '@/ui/Input';
 import { Button, clasesBoton } from '@/ui/Button';
@@ -21,8 +22,9 @@ function validarEmail(email: string): string | undefined {
 export function Ingresar() {
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | undefined>(undefined);
+  const [enviando, setEnviando] = useState(false);
 
-  function enviar(evento: FormEvent<HTMLFormElement>) {
+  async function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
     const encontrado = validarEmail(email);
     if (encontrado !== undefined) {
@@ -30,25 +32,33 @@ export function Ingresar() {
       return;
     }
     setError(undefined);
-    // Mandamos al usuario a /revisa-tu-mail de la landing en vez de duplicar
-    // la pantalla en el portal: una sola pieza visual para "esperá el mail",
-    // usada tanto post-alta como post-login.
-    //
-    // El email viaja por sessionStorage (misma clave que el handoff del alta
-    // de la landing, intent='login'). En staging/prod landing y portal
-    // comparten origin (nexo-front-gamma.vercel.app) y en dev local sessionStorage
-    // es per-origin: si el portal corre en 5174 no llega al 5173, pero el único
-    // consumidor hoy es la propia navegación a la landing que acabamos de disparar,
-    // el browser abre la nueva URL y la landing lo recupera.
+    setEnviando(true);
+
+    const emailLimpio = email.trim();
+
+    // 1. Guardamos el handoff ANTES de llamar al backend: así la landing puede
+    //    leerlo apenas carga /revisa-tu-mail (misma clave que usa el alta).
     try {
       sessionStorage.setItem(
         'nexo3.alta',
-        JSON.stringify({ intent: 'login', email: email.trim() }),
+        JSON.stringify({ intent: 'login', email: emailLimpio }),
       );
     } catch {
       // Storage bloqueado (modo privado): la landing cae a su EmptyState genérico.
     }
-    // `assign` en vez de `href =` para que el test pueda spyarlo.
+
+    // 2. Disparamos el magic link. Si el backend falla, avisamos y cortamos:
+    //    sin esto el usuario esperaba un mail que nunca iba a llegar.
+    try {
+      await pedirMagicLink(emailLimpio);
+    } catch (err) {
+      console.error('[ingresar] no se pudo enviar el magic link', err);
+      setError('No pudimos enviar el enlace. Probá de nuevo en un momento.');
+      setEnviando(false);
+      return;
+    }
+
+    // 3. `assign` en vez de `href =` para que el test pueda spyarlo.
     window.location.assign(`${landingUrl()}/revisa-tu-mail`);
   }
 
@@ -98,8 +108,8 @@ export function Ingresar() {
               onChange={(evento) => setEmail(evento.target.value)}
             />
           </Field>
-          <Button type="submit" ancho="full" tamano="lg">
-            Enviarme el enlace
+          <Button type="submit" ancho="full" tamano="lg" disabled={enviando}>
+            {enviando ? 'Enviando…' : 'Enviarme el enlace'}
           </Button>
         </form>
       </main>
