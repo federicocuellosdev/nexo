@@ -44,6 +44,8 @@ export interface LeadResumen {
   tipo: 'plan' | 'producto';
   id: string;
   nombre: string;
+  /** Datos del titular del lead. Opcional por compat con backends viejos. */
+  titular?: { nombre: string; apellido: string };
 }
 
 /**
