@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
-import { Users } from 'lucide-react';
+import { UserPlus, Users } from 'lucide-react';
 import type { PerfilPrevinca } from '@/mock/session';
 import { resetSession, setSession, useSession } from '@/mock/session';
-import { desdePerfil, type PasoPerfil } from '@/features/perfil/validacion';
+import { BORRADOR_INICIAL, desdePerfil, type PasoPerfil } from '@/features/perfil/validacion';
 import { PerfilWizard, type DatosDelWizard } from '@/features/perfil/PerfilWizard';
 import { Card } from '@/ui/Card';
 import { Badge } from '@/ui/Badge';
@@ -217,7 +217,9 @@ export function Cuenta() {
   const usuario = sesion.usuario;
   const emailPago = sesion.emailPago;
   const familiares = sesion.familiares;
+  const dniLead = sesion.dniLead;
   const [pasoEditado, setPasoEditado] = useState<PasoPerfil | null>(null);
+  const [completandoPerfil, setCompletandoPerfil] = useState(false);
   const [editandoEmailPago, setEditandoEmailPago] = useState(false);
 
   function guardar({ perfil: actualizado, identidad }: DatosDelWizard) {
@@ -226,7 +228,18 @@ export function Cuenta() {
     // corrige el nombre, que es justo lo que le falta a quien entró por login.
     setSession({ perfil: actualizado, ...(usuario ? { usuario: { ...usuario, ...identidad } } : {}) });
     setPasoEditado(null);
+    setCompletandoPerfil(false);
   }
+
+  // Borrador precargado con los datos que ya tenemos del alta (nombre,
+  // apellido y DNI). Default de tipoDocumento = DNI porque es lo que viaja
+  // en la captura del landing. Así el wizard arranca a mitad de camino.
+  const borradorPrecargado = {
+    ...BORRADOR_INICIAL,
+    nombre: usuario?.nombre?.trim() ?? '',
+    apellido: usuario?.apellido?.trim() ?? '',
+    ...(dniLead ? { tipoDocumento: 'DNI' as const, numeroDocumento: dniLead } : {}),
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -234,6 +247,34 @@ export function Cuenta() {
         <h1 className="text-2xl text-ink-950">Mi cuenta</h1>
         <p className="mt-1 text-sm text-ink-600">Tus datos, tu domicilio y tu facturación.</p>
       </div>
+
+      {/* Banner de alta cuando el perfil está vacío. Visible en TODAS las
+          secciones de la pantalla hasta que se complete — el único camino
+          para llenar documento, domicilio y contratación. */}
+      {!perfil ? (
+        <Card className="flex flex-col gap-3 bg-marca-50/70 ring-marca-200 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <span
+              aria-hidden="true"
+              className="inline-flex size-10 shrink-0 items-center justify-center rounded-pill bg-marca-100 text-marca-700"
+            >
+              <UserPlus size={18} strokeWidth={1.75} />
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-ink-900">Completá tu perfil</p>
+              <p className="text-sm text-ink-600">
+                Cargá documento, domicilio y preferencia de contratación — toma menos de 2 minutos.
+              </p>
+            </div>
+          </div>
+          <Button
+            onClick={() => setCompletandoPerfil(true)}
+            className="sm:shrink-0"
+          >
+            Completar perfil
+          </Button>
+        </Card>
+      ) : null}
 
       {/* Columna de perfil + columna de datos. En mobile se apilan. */}
       <div className="grid gap-6 lg:grid-cols-[320px_1fr] lg:items-start">
@@ -251,8 +292,11 @@ export function Cuenta() {
 
           <Seccion titulo="Documento" onEditar={perfil ? () => setPasoEditado(1) : undefined}>
             <dl className="grid grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
-              <Dato etiqueta="Tipo de documento" valor={perfil?.tipoDocumento ?? '—'} />
-              <Dato etiqueta="Número de documento" valor={perfil?.numeroDocumento ?? '—'} />
+              {/* Fallback a los datos del lead: si todavía no hay perfil
+                  guardado, mostramos el DNI capturado en el alta (siempre
+                  es tipo DNI en el flujo del landing). */}
+              <Dato etiqueta="Tipo de documento" valor={perfil?.tipoDocumento ?? (dniLead ? 'DNI' : '—')} />
+              <Dato etiqueta="Número de documento" valor={perfil?.numeroDocumento ?? dniLead ?? '—'} />
             </dl>
           </Seccion>
 
@@ -348,6 +392,23 @@ export function Cuenta() {
             setEditandoEmailPago(false);
           }}
         />
+      ) : null}
+
+      {/* Wizard completo (4 pasos secuenciales): se abre desde el banner de
+          alta. Reusa el mismo PerfilWizard que la edición de secciones; la
+          diferencia es que acá NO pasamos `soloEstePaso`, así corre los 4
+          pasos uno tras otro. */}
+      {completandoPerfil ? (
+        <Dialog
+          abierto
+          onCambio={(abierto) => {
+            if (!abierto) setCompletandoPerfil(false);
+          }}
+          titulo="Completá tu perfil"
+          descripcion="Documento, domicilio y preferencia de contratación."
+        >
+          <PerfilWizard borradorInicial={borradorPrecargado} onGuardar={guardar} />
+        </Dialog>
       ) : null}
     </div>
   );

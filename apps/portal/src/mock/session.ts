@@ -85,6 +85,13 @@ export interface Session {
    * mismo contrato que la guarda `affiliate_number is null` del trigger del 2.0.
    */
   numeroAfiliado?: string;
+  /**
+   * DNI capturado en el alta del landing (vive en `v3.leads.dni`). Se precarga
+   * acá al entrar al portal para mostrarlo en /cuenta y en el PerfilWizard sin
+   * pedirlo de nuevo. Una vez que el wizard se guarda, el DNI oficial pasa a
+   * `perfil.numeroDocumento` y este campo queda como "último vista" solamente.
+   */
+  dniLead?: string;
 }
 
 export type PresetDemo = 'nuevo-con-intent' | 'activo';

@@ -84,6 +84,8 @@ export function PortalLayout() {
           // Si todavía no había intent lo seteamos de paso para que /inicio
           // tampoco tenga que repetir la consulta.
           ...(getSession().intent === undefined ? { intent: { tipo: lead.tipo, id: lead.id } } : {}),
+          // DNI precargado del alta para /cuenta + PerfilWizard.
+          ...(lead.titular.dni ? { dniLead: lead.titular.dni } : {}),
         });
       } catch (err) {
         console.warn('[portal] no se pudo hidratar nombre/apellido desde el lead', err);
