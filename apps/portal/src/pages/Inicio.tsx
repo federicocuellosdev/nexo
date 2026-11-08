@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router';
-import { CircleAlert, LayoutGrid, Receipt, ShieldCheck, Sparkles, Users } from 'lucide-react';
+import { ChevronDown, CircleAlert, LayoutGrid, Receipt, ShieldCheck, Sparkles, Users } from 'lucide-react';
 import { getSession, setSession, useSession } from '@/mock/session';
 import { cn } from '@/lib/cn';
 import { saludo } from '@/lib/identidad';
@@ -151,184 +151,11 @@ export function Inicio() {
         {plan && vencimiento ? (
           <CoberturaCard plan={plan} estado={estado} proximoVencimiento={vencimiento} />
         ) : faltaTerminarCompra && planElegido ? (
-          // El usuario eligió un plan y verificó el email, pero todavía no pagó.
-          // Dos bloques apilados: (1) Card resumen con los datos clave y CTA,
-          // (2) Card con la tabla de coberturas. Fragment para que ambas caigan
-          // como hijas directas del section y hereden su flex-col/gap.
-          <>
-            {/* Desktop: dos columnas — izquierda plan + familiares,
-                derecha precio + copy + CTA. Mobile: apilado. */}
-            <Card className="grid gap-6 p-5 ring-marca-100 lg:grid-cols-[1fr_320px] lg:items-stretch lg:gap-8 lg:p-6">
-              {/* Columna izquierda */}
-              <div className="flex flex-col gap-5">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-sm text-ink-500">Tu plan elegido</p>
-                    <h2 className="font-display text-2xl text-ink-950">{planElegido.nombre}</h2>
-                    <p className="mt-1 text-sm text-ink-600">{planElegido.bajada}</p>
-                  </div>
-                  <Chip tono="warn">Pago pendiente</Chip>
-                </div>
-
-                {/* Familiares: fila con la pregunta a la izquierda y un
-                    contador − N + a la derecha. `sesion.familiares` mapea a
-                    beneficiaries.length del /sales de SF (sin incluir al
-                    titular); el precio por familiar se resuelve en /pago
-                    contra el pricing final de Previnca. */}
-                <div className="flex flex-col gap-4 rounded-card bg-ink-50/60 p-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <Users size={16} className="text-marca-600" aria-hidden="true" />
-                      <p className="text-sm font-medium text-ink-900">¿Agregás familiares al plan?</p>
-                    </div>
-                    <p className="mt-1 text-xs text-ink-600">
-                      Cónyuge, hijos u otros convivientes con la misma cobertura.
-                    </p>
-                  </div>
-                  {(() => {
-                    const familiares = sesion.familiares ?? 0;
-                    const MIN = 0;
-                    const MAX = 5;
-                    const botonBase =
-                      'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white ring-1 ring-ink-200 text-ink-700 transition-colors cursor-pointer hover:bg-ink-50 hover:ring-ink-300 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:ring-ink-200';
-                    return (
-                      <div
-                        className="flex items-center gap-4 self-start sm:self-auto"
-                        role="group"
-                        aria-label="Cantidad de familiares adicionales"
-                      >
-                        <button
-                          type="button"
-                          aria-label="Quitar un familiar"
-                          disabled={familiares <= MIN}
-                          onClick={() => setSession({ familiares: Math.max(MIN, familiares - 1) })}
-                          className={botonBase}
-                        >
-                          −
-                        </button>
-                        <span
-                          aria-live="polite"
-                          className="min-w-[2ch] text-center text-xl font-medium tabular-nums text-ink-950"
-                        >
-                          {familiares}
-                        </span>
-                        <button
-                          type="button"
-                          aria-label="Agregar un familiar"
-                          disabled={familiares >= MAX}
-                          onClick={() => setSession({ familiares: Math.min(MAX, familiares + 1) })}
-                          className={botonBase}
-                        >
-                          +
-                        </button>
-                      </div>
-                    );
-                  })()}
-                </div>
-              </div>
-
-              {/* Columna derecha */}
-              <div className="flex flex-col gap-4 lg:border-l lg:border-ink-100 lg:pl-8">
-                <Money monto={planElegido.precio} periodo="por mes" tamano="lg" />
-                <p className="text-sm text-ink-600">
-                  Contratá un plan de salud y obtené cobertura para vos y tu familia.
-                </p>
-                <Link to="/pago" className={clasesBoton({ ancho: 'full', className: 'lg:mt-auto' })}>
-                  Terminar de pagar
-                </Link>
-              </div>
-            </Card>
-
-            {/* Tabla de cobertura: tres columnas (prestación / estado /
-                detalle). Prefiero tabla real y no un grid de divs porque es
-                datos tabulares genuinos — la semántica ayuda a screen readers
-                y al copy/paste. En mobile cae a cards verticales para que no
-                se desborde el ancho. */}
-            <Card className="p-0 overflow-hidden">
-              <div className="border-b border-ink-100 px-5 py-4 lg:px-6">
-                <h3 className="text-base font-medium text-ink-950">Tabla de cobertura</h3>
-                <p className="mt-0.5 text-sm text-ink-600">
-                  Prestaciones incluidas, con coseguro y no cubiertas por este plan.
-                </p>
-              </div>
-
-              {/* Desktop: tabla. Mobile (hasta sm): ver más abajo. */}
-              <table className="hidden w-full border-collapse sm:table">
-                <thead>
-                  <tr className="border-b border-ink-100 bg-ink-50/50 text-left text-xs font-medium uppercase tracking-wide text-ink-500">
-                    <th scope="col" className="px-5 py-3 lg:px-6">Prestación</th>
-                    <th scope="col" className="px-5 py-3 lg:px-6">Estado</th>
-                    <th scope="col" className="px-5 py-3 lg:px-6">Detalle</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-ink-100">
-                  {planElegido.prestaciones.map((prestacion) => (
-                    <tr key={prestacion.label} className="align-top">
-                      <td className="px-5 py-3 lg:px-6">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span
-                            className={cn(
-                              'text-sm',
-                              prestacion.estado === 'no-incluido'
-                                ? 'text-ink-400 line-through'
-                                : 'text-ink-900',
-                            )}
-                          >
-                            {prestacion.label}
-                          </span>
-                          {prestacion.pendiente ? (
-                            <Chip tono="warn" icono={CircleAlert}>
-                              a confirmar
-                            </Chip>
-                          ) : null}
-                        </div>
-                      </td>
-                      <td className="px-5 py-3 lg:px-6">
-                        <Chip tono={TONO[prestacion.estado]} icono={GLIFO[prestacion.estado]}>
-                          {ETIQUETA[prestacion.estado]}
-                        </Chip>
-                      </td>
-                      <td className="px-5 py-3 text-sm text-ink-600 lg:px-6">
-                        {prestacion.detalle ?? '—'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              {/* Mobile: cards apiladas con los mismos datos. Una tabla real en
-                  320-640px rompe por el ancho mínimo del contenido. */}
-              <ul className="divide-y divide-ink-100 sm:hidden">
-                {planElegido.prestaciones.map((prestacion) => (
-                  <li key={prestacion.label} className="flex flex-col gap-2 px-5 py-4">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span
-                        className={cn(
-                          'text-sm font-medium',
-                          prestacion.estado === 'no-incluido'
-                            ? 'text-ink-400 line-through'
-                            : 'text-ink-900',
-                        )}
-                      >
-                        {prestacion.label}
-                      </span>
-                      {prestacion.pendiente ? (
-                        <Chip tono="warn" icono={CircleAlert}>
-                          a confirmar
-                        </Chip>
-                      ) : null}
-                    </div>
-                    <Chip tono={TONO[prestacion.estado]} icono={GLIFO[prestacion.estado]}>
-                      {ETIQUETA[prestacion.estado]}
-                    </Chip>
-                    {prestacion.detalle ? (
-                      <p className="text-sm text-ink-600">{prestacion.detalle}</p>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          </>
+          <PlanPendienteCard
+            plan={planElegido}
+            familiares={sesion.familiares ?? 0}
+            onFamiliaresChange={(n) => setSession({ familiares: n })}
+          />
         ) : faltaTerminarCompra && productoElegido ? (
           // Mismo caso pero para un producto on demand (no un plan mensual).
           // Sin lista de prestaciones: los productos son una línea sola.
@@ -468,5 +295,202 @@ export function Inicio() {
         <NovedadesCarousel novedades={NOVEDADES} />
       </section>
     </div>
+  );
+}
+
+const FAMILIARES_MIN = 0;
+const FAMILIARES_MAX = 5;
+
+interface PlanPendienteCardProps {
+  plan: NonNullable<ReturnType<typeof buscarPlan>>;
+  familiares: number;
+  onFamiliaresChange: (n: number) => void;
+}
+
+/**
+ * Tarjeta única para la situación "elegí un plan y todavía no pagué".
+ * Combina resumen + familiares + tabla de coberturas (desplegable) separados
+ * por una línea tenue. El precio escala con `familiares` — 1 familiar extra
+ * duplica el valor, 2 lo triplica, etc. — porque cada beneficiario paga su
+ * cuota completa del plan en Previnca.
+ */
+function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendienteCardProps) {
+  const [coberturasAbiertas, setCoberturasAbiertas] = useState(false);
+  const titulares = 1 + familiares;
+  const precioTotal = plan.precio * titulares;
+
+  const botonContador =
+    'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white ring-1 ring-ink-200 text-ink-700 transition-colors cursor-pointer hover:bg-ink-50 hover:ring-ink-300 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:ring-ink-200';
+
+  return (
+    <Card className="flex flex-col p-0 ring-marca-100">
+      <div className="grid gap-6 p-5 lg:grid-cols-[1fr_320px] lg:items-stretch lg:gap-8 lg:p-6">
+        {/* Columna izquierda: nombre + chip + bajada + familiares */}
+        <div className="flex flex-col gap-5">
+          <div className="flex flex-wrap items-center gap-3">
+            <h2 className="font-display text-2xl text-ink-950">{plan.nombre}</h2>
+            <Chip tono="warn">Pago pendiente</Chip>
+          </div>
+          <p className="text-sm text-ink-600">{plan.bajada}</p>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2">
+              <Users size={16} className="text-marca-600" aria-hidden="true" />
+              <p className="text-sm text-ink-900">¿Agregás familiares al plan?</p>
+            </div>
+            <div
+              className="flex items-center gap-4 self-start sm:self-auto"
+              role="group"
+              aria-label="Cantidad de familiares adicionales"
+            >
+              <button
+                type="button"
+                aria-label="Quitar un familiar"
+                disabled={familiares <= FAMILIARES_MIN}
+                onClick={() => onFamiliaresChange(Math.max(FAMILIARES_MIN, familiares - 1))}
+                className={botonContador}
+              >
+                −
+              </button>
+              <span
+                aria-live="polite"
+                className="min-w-[2ch] text-center text-xl font-medium tabular-nums text-ink-950"
+              >
+                {familiares}
+              </span>
+              <button
+                type="button"
+                aria-label="Agregar un familiar"
+                disabled={familiares >= FAMILIARES_MAX}
+                onClick={() => onFamiliaresChange(Math.min(FAMILIARES_MAX, familiares + 1))}
+                className={botonContador}
+              >
+                +
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Columna derecha: precio dinámico + copy + CTA */}
+        <div className="flex flex-col gap-4 lg:border-l lg:border-ink-100 lg:pl-8">
+          <div>
+            <Money monto={precioTotal} periodo="por mes" tamano="lg" />
+            {titulares > 1 ? (
+              <p className="mt-1 text-xs text-ink-500">
+                {titulares} personas · {plan.precio.toLocaleString('es-AR')} c/u
+              </p>
+            ) : null}
+          </div>
+          <p className="text-sm text-ink-600">
+            Contratá un plan de salud y obtené cobertura para vos y tu familia.
+          </p>
+          <Link to="/pago" className={clasesBoton({ ancho: 'full', className: 'lg:mt-auto' })}>
+            Terminar de pagar
+          </Link>
+        </div>
+      </div>
+
+      {/* Divisor tenue + toggle de coberturas. Collapsible con aria-expanded
+          + aria-controls para que screen readers anuncien el estado. */}
+      <div className="border-t border-ink-100">
+        <button
+          type="button"
+          aria-expanded={coberturasAbiertas}
+          aria-controls="tabla-cobertura"
+          onClick={() => setCoberturasAbiertas((v) => !v)}
+          className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-ink-50/50 cursor-pointer lg:px-6"
+        >
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-ink-900">Ver coberturas del plan</p>
+            <p className="mt-0.5 text-xs text-ink-600">
+              Prestaciones incluidas, con coseguro y no cubiertas.
+            </p>
+          </div>
+          <ChevronDown
+            size={20}
+            aria-hidden="true"
+            className={cn(
+              'shrink-0 text-ink-500 transition-transform duration-200',
+              coberturasAbiertas && 'rotate-180',
+            )}
+          />
+        </button>
+
+        {coberturasAbiertas ? (
+          <div id="tabla-cobertura" className="border-t border-ink-100">
+            {/* Desktop: tabla real (datos tabulares, mejor semántica para
+                screen readers y copy/paste). Mobile: cards apiladas. */}
+            <table className="hidden w-full border-collapse sm:table">
+              <thead>
+                <tr className="border-b border-ink-100 bg-ink-50/50 text-left text-xs font-medium uppercase tracking-wide text-ink-500">
+                  <th scope="col" className="px-5 py-3 lg:px-6">Prestación</th>
+                  <th scope="col" className="px-5 py-3 lg:px-6">Estado</th>
+                  <th scope="col" className="px-5 py-3 lg:px-6">Detalle</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-ink-100">
+                {plan.prestaciones.map((prestacion) => (
+                  <tr key={prestacion.label} className="align-top">
+                    <td className="px-5 py-3 lg:px-6">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={cn(
+                            'text-sm',
+                            prestacion.estado === 'no-incluido'
+                              ? 'text-ink-400 line-through'
+                              : 'text-ink-900',
+                          )}
+                        >
+                          {prestacion.label}
+                        </span>
+                        {prestacion.pendiente ? (
+                          <Chip tono="warn" icono={CircleAlert}>a confirmar</Chip>
+                        ) : null}
+                      </div>
+                    </td>
+                    <td className="px-5 py-3 lg:px-6">
+                      <Chip tono={TONO[prestacion.estado]} icono={GLIFO[prestacion.estado]}>
+                        {ETIQUETA[prestacion.estado]}
+                      </Chip>
+                    </td>
+                    <td className="px-5 py-3 text-sm text-ink-600 lg:px-6">
+                      {prestacion.detalle ?? '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <ul className="divide-y divide-ink-100 sm:hidden">
+              {plan.prestaciones.map((prestacion) => (
+                <li key={prestacion.label} className="flex flex-col gap-2 px-5 py-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className={cn(
+                        'text-sm font-medium',
+                        prestacion.estado === 'no-incluido'
+                          ? 'text-ink-400 line-through'
+                          : 'text-ink-900',
+                      )}
+                    >
+                      {prestacion.label}
+                    </span>
+                    {prestacion.pendiente ? (
+                      <Chip tono="warn" icono={CircleAlert}>a confirmar</Chip>
+                    ) : null}
+                  </div>
+                  <Chip tono={TONO[prestacion.estado]} icono={GLIFO[prestacion.estado]}>
+                    {ETIQUETA[prestacion.estado]}
+                  </Chip>
+                  {prestacion.detalle ? (
+                    <p className="text-sm text-ink-600">{prestacion.detalle}</p>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+      </div>
+    </Card>
   );
 }
