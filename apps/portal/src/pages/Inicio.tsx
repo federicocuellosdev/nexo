@@ -375,11 +375,11 @@ function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendien
         <div className="flex flex-col gap-4 lg:border-l lg:border-ink-100 lg:pl-8">
           <div>
             <Money monto={precioTotal} periodo="por mes" tamano="lg" />
-            {titulares > 1 ? (
-              <p className="mt-1 text-xs text-ink-500">
-                {titulares} personas · {plan.precio.toLocaleString('es-AR')} c/u
-              </p>
-            ) : null}
+            {/* Siempre se muestra (incluso con 1 titular) para reservar el
+                espacio y evitar el salto visual al sumar un familiar. */}
+            <p className="mt-1 text-xs text-ink-500">
+              {titulares === 1 ? '1 persona' : `${titulares} personas`} · ${plan.precio.toLocaleString('es-AR')} c/u
+            </p>
           </div>
           <p className="text-sm text-ink-600">
             Contratá un plan de salud y obtené cobertura para vos y tu familia.
@@ -416,26 +416,41 @@ function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendien
           />
         </button>
 
-        {coberturasAbiertas ? (
-          <div id="tabla-cobertura" className="border-t border-ink-100">
+        {/* Collapsible animado con el truco de grid-rows 0fr → 1fr: el
+            contenedor exterior anima su altura (sin saber dimensiones del
+            hijo) y el hijo está siempre renderizado dentro de `overflow-hidden`.
+            Cuando colapsa, el hijo queda inaccesible al tab porque forzamos
+            visibility-hidden en el estado cerrado. */}
+        <div
+          id="tabla-cobertura"
+          className={cn(
+            'grid overflow-hidden transition-[grid-template-rows,visibility] duration-300 ease-out',
+            coberturasAbiertas ? 'grid-rows-[1fr] visible' : 'grid-rows-[0fr] invisible',
+          )}
+          aria-hidden={!coberturasAbiertas}
+        >
+          <div className="min-h-0 border-t border-ink-100">
             {/* Desktop: tabla real (datos tabulares, mejor semántica para
                 screen readers y copy/paste). Mobile: cards apiladas. */}
-            <table className="hidden w-full border-collapse sm:table">
+            <table className="hidden w-full border-collapse text-left sm:table">
               <thead>
-                <tr className="border-b border-ink-100 bg-ink-50/50 text-left text-xs font-medium uppercase tracking-wide text-ink-500">
-                  <th scope="col" className="px-5 py-3 lg:px-6">Prestación</th>
-                  <th scope="col" className="px-5 py-3 lg:px-6">Estado</th>
-                  <th scope="col" className="px-5 py-3 lg:px-6">Detalle</th>
+                <tr className="border-b border-ink-100 text-xs font-medium text-ink-500">
+                  <th scope="col" className="px-5 pb-3 pt-4 font-medium lg:px-6">Prestación</th>
+                  <th scope="col" className="px-5 pb-3 pt-4 font-medium lg:px-6">Estado</th>
+                  <th scope="col" className="px-5 pb-3 pt-4 font-medium lg:px-6">Detalle</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-ink-100">
                 {plan.prestaciones.map((prestacion) => (
-                  <tr key={prestacion.label} className="align-top">
-                    <td className="px-5 py-3 lg:px-6">
+                  <tr
+                    key={prestacion.label}
+                    className="align-middle transition-colors hover:bg-ink-50/50"
+                  >
+                    <td className="px-5 py-4 lg:px-6">
                       <div className="flex flex-wrap items-center gap-2">
                         <span
                           className={cn(
-                            'text-sm',
+                            'text-sm font-medium',
                             prestacion.estado === 'no-incluido'
                               ? 'text-ink-400 line-through'
                               : 'text-ink-900',
@@ -448,13 +463,13 @@ function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendien
                         ) : null}
                       </div>
                     </td>
-                    <td className="px-5 py-3 lg:px-6">
+                    <td className="px-5 py-4 lg:px-6">
                       <Chip tono={TONO[prestacion.estado]} icono={GLIFO[prestacion.estado]}>
                         {ETIQUETA[prestacion.estado]}
                       </Chip>
                     </td>
-                    <td className="px-5 py-3 text-sm text-ink-600 lg:px-6">
-                      {prestacion.detalle ?? '—'}
+                    <td className="px-5 py-4 text-sm text-ink-600 lg:px-6">
+                      {prestacion.detalle ?? <span className="text-ink-300">—</span>}
                     </td>
                   </tr>
                 ))}
@@ -464,7 +479,7 @@ function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendien
             <ul className="divide-y divide-ink-100 sm:hidden">
               {plan.prestaciones.map((prestacion) => (
                 <li key={prestacion.label} className="flex flex-col gap-2 px-5 py-4">
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <span
                       className={cn(
                         'text-sm font-medium',
@@ -475,13 +490,13 @@ function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendien
                     >
                       {prestacion.label}
                     </span>
-                    {prestacion.pendiente ? (
-                      <Chip tono="warn" icono={CircleAlert}>a confirmar</Chip>
-                    ) : null}
+                    <Chip tono={TONO[prestacion.estado]} icono={GLIFO[prestacion.estado]}>
+                      {ETIQUETA[prestacion.estado]}
+                    </Chip>
                   </div>
-                  <Chip tono={TONO[prestacion.estado]} icono={GLIFO[prestacion.estado]}>
-                    {ETIQUETA[prestacion.estado]}
-                  </Chip>
+                  {prestacion.pendiente ? (
+                    <Chip tono="warn" icono={CircleAlert}>a confirmar</Chip>
+                  ) : null}
                   {prestacion.detalle ? (
                     <p className="text-sm text-ink-600">{prestacion.detalle}</p>
                   ) : null}
@@ -489,7 +504,7 @@ function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendien
               ))}
             </ul>
           </div>
-        ) : null}
+        </div>
       </div>
     </Card>
   );
