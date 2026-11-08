@@ -257,10 +257,10 @@ export function Inicio() {
                 key={acceso.to}
                 to={acceso.to}
                 data-elevar
-                className="flex items-center gap-3 rounded-card bg-marca-100 p-4 shadow-elevada ring-1 ring-marca-300"
+                className="flex items-center gap-3 rounded-card bg-brand p-4 text-white shadow-elevada"
               >
-                <Icon icono={acceso.icono} tono="marca" tamano="sm" />
-                <span className="text-sm font-medium text-ink-900">{acceso.label}</span>
+                <acceso.icono size={18} strokeWidth={1.75} aria-hidden="true" className="text-white" />
+                <span className="text-sm font-medium">{acceso.label}</span>
               </Link>
             ),
           )}
@@ -337,27 +337,30 @@ function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendien
   const titulares = 1 + familiares;
   const precioTotal = plan.precio * titulares;
 
+  // Contador sobre el gradient: botón translúcido blanco, texto blanco, hover
+  // más opaco. Mantiene el mismo pattern de aro circular que el contador de
+  // la landing pero invertido para pisar el fondo saturado.
   const botonContador =
-    'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white ring-1 ring-ink-200 text-ink-700 transition-colors cursor-pointer hover:bg-ink-50 hover:ring-ink-300 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:ring-ink-200';
+    'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/15 ring-1 ring-white/30 text-white transition-colors cursor-pointer hover:bg-white/25 hover:ring-white/50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white/15 disabled:hover:ring-white/30';
 
   return (
-    <Card className="flex flex-col p-0 !bg-marca-100 !shadow-elevada !ring-marca-300">
-      <div className="grid gap-6 p-5 lg:grid-cols-[1fr_320px] lg:items-stretch lg:gap-8 lg:p-6">
-        {/* Columna izquierda: nombre + bajada + familiares (debajo de la
-            bajada, pegado al fondo de la columna con mt-auto). */}
+    // overflow-hidden para que el gradient y la zona blanca del toggle
+    // respeten el radio exterior sin desbordar.
+    <Card className="flex flex-col overflow-hidden p-0 !bg-white !shadow-elevada !ring-marca-300">
+      {/* Bloque hero con gradient de marca (mismo que el CTA "Empezá ahora"
+          de la landing). Texto blanco en todo: es el momento comercial del
+          portal — la jerarquía gana al contraste perfecto WCAG, igual que en
+          el CTA del landing. */}
+      <div className="grid gap-6 bg-brand p-5 text-white lg:grid-cols-[1fr_320px] lg:items-stretch lg:gap-8 lg:p-6">
         <div className="flex flex-col gap-5">
-          <h2 className="font-display text-2xl text-ink-950">{plan.nombre}</h2>
-          <p className="text-sm text-ink-600">{plan.bajada}</p>
+          <h2 className="font-display text-2xl text-white">{plan.nombre}</h2>
+          <p className="text-sm text-white/85">{plan.bajada}</p>
 
-          {/* `mt-auto` + `border-t pt-5`: el espacio del divisor al contenido
-              (20px) coincide con el padding inferior del container (p-5 lg:p-6
-              ≈ 20-24px), así el bloque se lee centrado entre la línea tenue y
-              el borde inferior de la Card. Sin padding-bottom propio para no
-              duplicar espacio. */}
-          <div className="mt-auto flex flex-col gap-3 border-t border-ink-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
+          {/* Divisor y pt-5 translúcidos para no romper el gradient. */}
+          <div className="mt-auto flex flex-col gap-3 border-t border-white/20 pt-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2">
-              <Users size={16} className="text-marca-600" aria-hidden="true" />
-              <p className="text-sm text-ink-900">¿Agregás familiares al plan?</p>
+              <Users size={16} className="text-white/80" aria-hidden="true" />
+              <p className="text-sm text-white">¿Agregás familiares al plan?</p>
             </div>
             <div
               className="flex items-center gap-4 self-start sm:self-auto"
@@ -375,7 +378,7 @@ function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendien
               </button>
               <span
                 aria-live="polite"
-                className="min-w-[2ch] text-center text-xl font-medium tabular-nums text-ink-950"
+                className="min-w-[2ch] text-center text-xl font-medium tabular-nums text-white"
               >
                 {familiares}
               </span>
@@ -392,28 +395,30 @@ function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendien
           </div>
         </div>
 
-        {/* Columna derecha: precio dinámico + copy + CTA */}
-        <div className="flex flex-col gap-4 lg:border-l lg:border-ink-100 lg:pl-8">
+        <div className="flex flex-col gap-4 lg:border-l lg:border-white/20 lg:pl-8">
           <div>
-            <Money monto={precioTotal} periodo="por mes" tamano="lg" />
-            {/* Siempre se muestra (incluso con 1 titular) para reservar el
-                espacio y evitar el salto visual al sumar un familiar. */}
-            <p className="mt-1 text-xs text-ink-500">
+            <Money monto={precioTotal} periodo="por mes" tamano="lg" tono="claro" />
+            <p className="mt-1 text-xs text-white/75">
               {titulares === 1 ? '1 persona' : `${titulares} personas`} · ${plan.precio.toLocaleString('es-AR')} c/u
             </p>
           </div>
-          <p className="text-sm text-ink-600">
+          <p className="text-sm text-white/85">
             Contratá un plan de salud y obtené cobertura para vos y tu familia.
           </p>
-          <Link to="/pago" className={clasesBoton({ ancho: 'full', className: 'lg:mt-auto' })}>
+          {/* CTA invertido: fondo blanco sobre gradient. El text-marca-700
+              asegura 7.98:1 de contraste contra el blanco (AAA). */}
+          <Link
+            to="/pago"
+            className="inline-flex h-11 cursor-pointer items-center justify-center rounded-pill bg-white px-5 text-base font-medium text-marca-700 shadow-suave transition-colors duration-200 ease-out-expo hover:bg-ink-50 motion-safe:active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white lg:mt-auto"
+          >
             Terminar de pagar
           </Link>
         </div>
       </div>
 
-      {/* Divisor tenue + toggle de coberturas. Collapsible con aria-expanded
-          + aria-controls para que screen readers anuncien el estado. */}
-      <div className="border-t border-ink-100">
+      {/* Zona legible: toggle + tabla sobre bg blanco, para que el detalle
+          de las prestaciones no compita con el gradient de arriba. */}
+      <div className="bg-white">
         <button
           type="button"
           aria-expanded={coberturasAbiertas}
