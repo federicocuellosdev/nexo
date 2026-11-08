@@ -112,6 +112,17 @@
   background-image: linear-gradient(135deg, #8660ef 0%, #ee5cd0 100%);
 }
 
+/* Variante oscurecida del gradient con un overlay negro (~18%) para pisar
+   un poco la saturación del extremo rosa y ganar contraste de texto blanco.
+   Usada en las superficies grandes que llevan contenido encima (Card de
+   plan pendiente, acceso "Otros productos") — el `bg-brand` plano no llega
+   a 4.5:1 WCAG AA, con este overlay la lectura queda cómoda. */
+@utility bg-brand-oscurecido {
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.18)),
+    linear-gradient(135deg, #8660ef 0%, #ee5cd0 100%);
+}
+
 @utility text-brand {
   background-image: linear-gradient(135deg, #8660ef 0%, #ee5cd0 100%);
   background-clip: text;

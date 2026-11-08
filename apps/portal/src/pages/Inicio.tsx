@@ -257,7 +257,7 @@ export function Inicio() {
                 key={acceso.to}
                 to={acceso.to}
                 data-elevar
-                className="flex items-center gap-3 rounded-card bg-brand p-4 text-white shadow-elevada"
+                className="flex items-center gap-3 rounded-card bg-brand-oscurecido p-4 text-white shadow-elevada"
               >
                 <acceso.icono size={18} strokeWidth={1.75} aria-hidden="true" className="text-white" />
                 <span className="text-sm font-medium">{acceso.label}</span>
@@ -356,7 +356,7 @@ function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendien
     // (igual que el CTA 'Empezá ahora' de la landing). Al desplegar la
     // tabla aparece una zona blanca interna para preservar legibilidad del
     // detalle de prestaciones.
-    <Card className="flex flex-col overflow-hidden p-0 !bg-brand !shadow-elevada !ring-marca-300">
+    <Card className="flex flex-col overflow-hidden p-0 !bg-brand-oscurecido !shadow-elevada !ring-marca-300">
       <div className="grid gap-6 p-5 text-white lg:grid-cols-[1fr_320px] lg:items-stretch lg:gap-8 lg:p-6">
         <div className="flex flex-col gap-5">
           <h2 className="font-display text-2xl text-white">{plan.nombre}</h2>
