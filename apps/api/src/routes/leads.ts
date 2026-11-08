@@ -99,7 +99,16 @@ leadsRouter.post('/leads', async (req, res) => {
       // nexo-front (landing + portal sirviéndose juntos). En dev local, el
       // portal corre en su propio Vite en 5174: PORTAL_URL puede incluir
       // `/app` o no según el entorno, por eso no lo hardcodeamos acá.
-      redirectTo: `${config.portalUrl}/auth/callback?leadId=${leadInsertado.id}`,
+      //
+      // `planTipo` + `planId` viajan para que el portal arme el `intent` con
+      // el slug real del plan (ej. "nexo-1") y no con el leadId: así
+      // `/inicio` puede renderizar el plan elegido con sus coberturas y el
+      // CTA "Terminar de pagar" sin tener que consultar al backend.
+      redirectTo:
+        `${config.portalUrl}/auth/callback` +
+        `?leadId=${leadInsertado.id}` +
+        `&planTipo=${encodeURIComponent(datos.tipo)}` +
+        `&planId=${encodeURIComponent(datos.itemId)}`,
     },
   });
 
