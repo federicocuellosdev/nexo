@@ -60,7 +60,7 @@ export function Planes() {
             no un producto independiente. La oferta se muestra igual (precio,
             nombre, bajada) para que la persona la conozca; solo el CTA queda
             no accionable. */}
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-3">
+        <div className="flex flex-col gap-1 border-b border-ink-100 pb-4">
           <h2 className="font-display text-xl text-ink-950">Productos</h2>
           <p className="text-sm text-ink-500">
             Es necesario tener un plan contratado para acceder a estos servicios.
