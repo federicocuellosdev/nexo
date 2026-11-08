@@ -25,10 +25,12 @@ test('el email es requerido y se anuncia como tal', () => {
 
 test('un email vacío muestra el error y no avanza', async () => {
   const usuario = userEvent.setup();
+  const assign = vi.spyOn(window.location, 'assign').mockImplementation(() => undefined);
   montar();
   await usuario.click(screen.getByRole('button', { name: 'Enviarme el enlace' }));
   expect(screen.getByRole('alert')).toHaveTextContent('Ingresá tu email');
-  expect(screen.queryByRole('heading', { name: 'Revisá tu mail' })).not.toBeInTheDocument();
+  expect(assign).not.toHaveBeenCalled();
+  assign.mockRestore();
 });
 
 test('un email mal escrito muestra el error de formato', async () => {
@@ -39,12 +41,15 @@ test('un email mal escrito muestra el error de formato', async () => {
   expect(screen.getByRole('alert')).toHaveTextContent('Revisá el email: falta el @ o el dominio');
 });
 
-test('un email válido muestra la pantalla de revisá tu mail con el email destino', async () => {
+test('un email válido redirige a /revisa-tu-mail de la landing con el email por query', async () => {
   const usuario = userEvent.setup();
+  const assign = vi.spyOn(window.location, 'assign').mockImplementation(() => undefined);
   montar();
   await usuario.type(screen.getByLabelText(/^Email/), 'camila.perez@ejemplo.com');
   await usuario.click(screen.getByRole('button', { name: 'Enviarme el enlace' }));
 
-  expect(screen.getByRole('heading', { name: 'Revisá tu mail' })).toBeInTheDocument();
-  expect(screen.getByText('camila.perez@ejemplo.com')).toBeInTheDocument();
+  expect(assign).toHaveBeenCalledWith(
+    'http://localhost:5173/revisa-tu-mail?email=camila.perez%40ejemplo.com',
+  );
+  assign.mockRestore();
 });

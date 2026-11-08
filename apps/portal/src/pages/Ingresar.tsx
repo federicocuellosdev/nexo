@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { MailCheck } from 'lucide-react';
-import { construirCallbackLogin } from '@/lib/callback';
-import { RevisaTuMail } from '@/features/ingreso/RevisaTuMail';
 import { Field } from '@/ui/Field';
 import { Input } from '@/ui/Input';
 import { Button, clasesBoton } from '@/ui/Button';
@@ -23,7 +21,6 @@ function validarEmail(email: string): string | undefined {
 export function Ingresar() {
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | undefined>(undefined);
-  const [enviado, setEnviado] = useState(false);
 
   function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
@@ -33,7 +30,11 @@ export function Ingresar() {
       return;
     }
     setError(undefined);
-    setEnviado(true);
+    // Mandamos al usuario a /revisa-tu-mail de la landing en vez de duplicar
+    // la pantalla en el portal: una sola pieza visual para "esperá el mail",
+    // usada tanto post-alta como post-login. El email viaja por query param.
+    // `assign` en vez de `href =` para que el test pueda spyarlo.
+    window.location.assign(`${landingUrl()}/revisa-tu-mail?email=${encodeURIComponent(email.trim())}`);
   }
 
   return (
@@ -61,40 +62,34 @@ export function Ingresar() {
           la bajada. Es una pantalla de entrada desde afuera y comparte el
           mismo momento que la del post-envío — que se vean hermanas. */}
       <main className="mx-auto w-full max-w-[600px] px-4 py-20 text-center lg:px-8 lg:py-28">
-        {enviado ? (
-          <RevisaTuMail email={email.trim()} hrefEnlace={construirCallbackLogin(email)} />
-        ) : (
-          <>
-            <div className="flex justify-center">
-              <Icon icono={MailCheck} tono="marca" tamano="lg" />
-            </div>
+        <div className="flex justify-center">
+          <Icon icono={MailCheck} tono="marca" tamano="lg" />
+        </div>
 
-            <h1 className="mt-8 font-display text-4xl text-ink-950 italic">Ingresá a tu portal</h1>
-            <p className="mt-5 text-lg text-ink-600">
-              Te mandamos un enlace por mail. No hace falta contraseña.
-            </p>
+        <h1 className="mt-8 font-display text-4xl text-ink-950 italic">Ingresá a tu portal</h1>
+        <p className="mt-5 text-lg text-ink-600">
+          Te mandamos un enlace por mail. No hace falta contraseña.
+        </p>
 
-            {/* El formulario mantiene su alineación izquierda y ancho acotado
-                para que el email entre en una sola línea cómoda. */}
-            <form onSubmit={enviar} noValidate className="mx-auto mt-10 flex max-w-[440px] flex-col gap-4 text-left">
-              <Field label="Email" htmlFor="ingresar-email" error={error} requerido>
-                <Input
-                  id="ingresar-email"
-                  name="email"
-                  type="email"
-                  inputMode="email"
-                  autoComplete="email"
-                  value={email}
-                  invalido={error !== undefined}
-                  onChange={(evento) => setEmail(evento.target.value)}
-                />
-              </Field>
-              <Button type="submit" ancho="full" tamano="lg">
-                Enviarme el enlace
-              </Button>
-            </form>
-          </>
-        )}
+        {/* El formulario mantiene su alineación izquierda y ancho acotado
+            para que el email entre en una sola línea cómoda. */}
+        <form onSubmit={enviar} noValidate className="mx-auto mt-10 flex max-w-[440px] flex-col gap-4 text-left">
+          <Field label="Email" htmlFor="ingresar-email" error={error} requerido>
+            <Input
+              id="ingresar-email"
+              name="email"
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              value={email}
+              invalido={error !== undefined}
+              onChange={(evento) => setEmail(evento.target.value)}
+            />
+          </Field>
+          <Button type="submit" ancho="full" tamano="lg">
+            Enviarme el enlace
+          </Button>
+        </form>
       </main>
     </div>
   );
