@@ -39,3 +39,26 @@ export async function pedirMagicLink(email: string): Promise<void> {
     throw new ApiError(cuerpo, respuesta.status);
   }
 }
+
+export interface LeadResumen {
+  tipo: 'plan' | 'producto';
+  id: string;
+  nombre: string;
+}
+
+/**
+ * Lee el último lead del email desde v3.leads. Lo usa /inicio como fallback
+ * cuando la sesión persistida no tiene `intent` (ej. magic link viejo sin
+ * planId en el redirect). Devuelve `null` si no hay leads.
+ */
+export async function obtenerUltimoLead(email: string): Promise<LeadResumen | null> {
+  const url = new URL(`${API_URL}/api/leads/by-email`);
+  url.searchParams.set('email', email);
+  const respuesta = await fetch(url.toString());
+  if (!respuesta.ok) {
+    const cuerpo = (await respuesta.json().catch(() => ({ ok: false, error: 'network' }))) as ErrorApi;
+    throw new ApiError(cuerpo, respuesta.status);
+  }
+  const data = (await respuesta.json()) as { ok: true; lead: LeadResumen | null };
+  return data.lead;
+}

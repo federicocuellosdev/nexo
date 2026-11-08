@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Link, useLocation } from 'react-router';
 import { LayoutGrid, Receipt, ShieldCheck, Sparkles, Users } from 'lucide-react';
 import { setSession, useSession } from '@/mock/session';
@@ -6,6 +7,7 @@ import { saludo } from '@/lib/identidad';
 import { buscarPlan, buscarProducto } from '@/mock/planes';
 import { derivarEstado } from '@/lib/estado';
 import { portalUrl } from '@/lib/urls';
+import { obtenerUltimoLead } from '@/lib/api';
 import { NOVEDADES } from '@/mock/novedades';
 import { NovedadesCarousel } from '@/features/novedades/NovedadesCarousel';
 import { CoberturaCard } from '@/features/cobertura/CoberturaCard';
@@ -43,6 +45,30 @@ export function Inicio() {
   const planElegido = intent?.tipo === 'plan' ? buscarPlan(intent.id) : undefined;
   const productoElegido = intent?.tipo === 'producto' ? buscarProducto(intent.id) : undefined;
   const faltaTerminarCompra = estado === 'conCuentaSinPago' && intent !== undefined;
+
+  // Fallback cuando la sesión no tiene `intent`: consultamos el backend por
+  // el último lead del email. Pasa con usuarios que entraron por login antes
+  // del fix de planId en el magic link, o cuya sesión persistida no quedó
+  // ligada a un plan. Sin esto, la pantalla se queda en el EmptyState
+  // genérico incluso cuando en v3.leads hay un plan esperando pago.
+  const emailSesion = sesion.usuario?.email;
+  useEffect(() => {
+    if (intent !== undefined) return;
+    if (!emailSesion) return;
+    let cancelado = false;
+    void (async () => {
+      try {
+        const lead = await obtenerUltimoLead(emailSesion);
+        if (cancelado || lead === null) return;
+        setSession({ intent: { tipo: lead.tipo, id: lead.id } });
+      } catch (err) {
+        console.warn('[inicio] no se pudo recuperar el lead del email', err);
+      }
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, [intent, emailSesion]);
 
   // `state` viene de PerfilCompletar tras guardar el perfil, pero por sí solo no
   // alcanza: dice lo que creyó la pantalla anterior, no lo que pasó. Sin cruzarlo
