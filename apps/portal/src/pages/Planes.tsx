@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router';
-import { Check, CircleAlert } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { ON_DEMAND, PLANES, type Plan, type Producto } from '@/mock/planes';
 import { PlanCard } from '@/features/planes/PlanCard';
 import { iconoDeProducto } from '@/features/planes/iconoProducto';
@@ -55,40 +55,40 @@ export function Planes() {
       </section>
 
       <section className="flex flex-col gap-4">
-        <h2 className="font-display text-xl text-ink-950">Productos</h2>
+        {/* Hoy los productos on demand están deshabilitados mientras el
+            usuario no tenga un plan contratado: son complementos del plan,
+            no un producto independiente. La oferta se muestra igual (precio,
+            nombre, bajada) para que la persona la conozca; solo el CTA queda
+            no accionable. */}
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-3">
+          <h2 className="font-display text-xl text-ink-950">Productos</h2>
+          <p className="text-sm text-ink-500">
+            Es necesario tener un plan contratado para acceder a estos servicios.
+          </p>
+        </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {ON_DEMAND.map((producto: Producto) => {
             const yaLoTiene = contratados.some((p) => p.id === producto.id);
             const icono = iconoDeProducto(producto.id);
             return (
-              <Card key={producto.id} as="article" className="flex flex-col gap-3">
+              <Card
+                key={producto.id}
+                as="article"
+                className="flex flex-col gap-3 opacity-60"
+              >
                 {icono ? <CardHero icono={icono} /> : null}
                 <h3 className="text-lg font-medium text-ink-950">{producto.nombre}</h3>
                 <p className="text-sm text-ink-600">{producto.detalle}</p>
                 <div className="flex flex-wrap items-center gap-2">
                   <Money monto={producto.precio} periodo="por mes" />
-                  {producto.pendiente ? (
-                    <Chip tono="warn" icono={CircleAlert}>
-                      a confirmar
-                    </Chip>
-                  ) : null}
                 </div>
                 <div className="mt-auto pt-1">
-                  {/*
-                    Sin este corte la tarjeta ofrece "Contratar" sobre algo ya
-                    contratado y genera una segunda orden pagada, invisible en
-                    /coberturas porque productosContratados dedupea por itemId.
-                  */}
                   {yaLoTiene ? (
                     <Chip tono="ok" icono={Check}>
                       Ya contratado
                     </Chip>
                   ) : (
-                    <Button
-                      variante="secundario"
-                      ancho="full"
-                      onClick={() => elegir('producto', producto.id)}
-                    >
+                    <Button variante="secundario" ancho="full" disabled>
                       Contratar
                     </Button>
                   )}
