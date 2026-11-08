@@ -341,7 +341,7 @@ function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendien
     'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white ring-1 ring-ink-200 text-ink-700 transition-colors cursor-pointer hover:bg-ink-50 hover:ring-ink-300 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:ring-ink-200';
 
   return (
-    <Card className="flex flex-col p-0 ring-marca-100">
+    <Card className="flex flex-col p-0 ring-marca-200">
       <div className="grid gap-6 bg-marca-50/50 p-5 lg:grid-cols-[1fr_320px] lg:items-stretch lg:gap-8 lg:p-6">
         {/* Columna izquierda: nombre + bajada + familiares (debajo de la
             bajada, pegado al fondo de la columna con mt-auto). */}
