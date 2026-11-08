@@ -23,7 +23,9 @@ export function CardHero({ icono: Glifo, className, deshabilitado = false }: Car
       aria-hidden="true"
       className={cn(
         '-mx-5 -mt-5 flex h-28 items-center justify-center rounded-t-card',
-        deshabilitado ? 'bg-ink-50 text-ink-300' : 'bg-gradient-to-br from-marca-50 to-acento-50 text-marca-700',
+        // Deshabilitado: bg-ink-100 (más oscuro que el ink-50 del Card padre)
+        // para que la banda se diferencie del cuerpo y no queden fundidas.
+        deshabilitado ? 'bg-ink-100 text-ink-400' : 'bg-gradient-to-br from-marca-50 to-acento-50 text-marca-700',
         className,
       )}
     >
