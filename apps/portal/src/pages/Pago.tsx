@@ -10,7 +10,7 @@ import {
   Users,
 } from 'lucide-react';
 import { buscarPlan, buscarProducto } from '@/mock/planes';
-import { setSession, useSession, type TipoItem } from '@/mock/session';
+import { agregarOrden, setSession, useSession, type TipoItem } from '@/mock/session';
 import { consultarEstadoSuscripcion, crearSuscripcion } from '@/lib/api';
 import { formatearPrecio } from '@/lib/formato';
 import { DialogoEmailMercadoPago } from '@/features/pago/DialogoEmailMercadoPago';
@@ -74,15 +74,30 @@ export function Pago() {
 
   // Polling mientras esperamos la confirmación. El backend consulta directo a
   // MP (no depende del webhook), así que esta función es la fuente de verdad
-  // para saber cuándo transicionar a `confirmado`.
+  // para saber cuándo transicionar a `confirmado`. Al detectar `authorized`
+  // persistimos la orden en la sesión — eso dispara el cambio de estado a
+  // `pagadoSinPerfil` y /inicio pasa a mostrar la tarjeta de cobertura con el
+  // aviso de completar perfil.
   useEffect(() => {
     if (estado.kind !== 'esperando') return;
+    if (item === undefined) return;
     let cancelado = false;
     const intervalo = setInterval(async () => {
       try {
         const status = await consultarEstadoSuscripcion(estado.preapprovalId);
         if (cancelado) return;
         if (status === 'authorized') {
+          agregarOrden({
+            // preapprovalId como id: idempotente ante cualquier re-entrada del
+            // polling, aunque el cleanup del effect ya debería prevenirlo.
+            id: `ord-${estado.preapprovalId}`,
+            fecha: new Date().toISOString().slice(0, 10),
+            tipo: item.tipo,
+            itemId: item.id,
+            concepto: `${item.nombre} · cuota mensual`,
+            monto: item.monto,
+            estado: 'pagada',
+          });
           setEstado({ kind: 'confirmado', emailMp: estado.emailMp });
         }
       } catch (err) {
@@ -93,7 +108,7 @@ export function Pago() {
       cancelado = true;
       clearInterval(intervalo);
     };
-  }, [estado]);
+  }, [estado, item]);
 
   if (item === undefined) {
     return (

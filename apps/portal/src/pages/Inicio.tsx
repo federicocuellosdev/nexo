@@ -209,9 +209,9 @@ export function Inicio() {
           // ya marca el bloque; si en el futuro hace falta borde, se agrega
           // `ring-warn-500/15` que se mezcla naturalmente con el fondo.
           <div className="flex flex-col gap-3 rounded-card bg-warn-50 p-5 ring-1 ring-warn-500/40 lg:h-full lg:self-stretch">
-            <p className="text-sm font-medium text-warn-700">Falta un paso para activar tu cobertura</p>
+            <p className="text-sm font-medium text-warn-700">Completá tu perfil para obtener la cobertura</p>
             <p className="text-sm text-warn-700">
-              Completá tu perfil: cuatro pasos cortos y la cobertura queda operativa.
+              Son cuatro pasos cortos y tu cobertura queda operativa.
             </p>
             <Link
               to="/perfil/completar"
