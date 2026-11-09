@@ -78,18 +78,24 @@ export function PortalLayout() {
   //      anterior porque la sesion vive en sessionStorage, no en la DB. Sin
   //      este reset, el portal muestra estado fantasma indefinidamente.
   //
-  // Guard de invalidacion: solo si la sesion tiene `leadId` seteado. Asi la
-  // demo con USUARIO_DEMO (que no tiene leadId) no se rompe queriendo validar
-  // un lead que nunca existio.
+  // Guard de invalidacion: si la sesion tiene CUALQUIER evidencia de
+  // contratacion local (leadId, perfil, orden pagada o pagoPendiente) la
+  // validamos contra el backend. Sin esto, un usuario que tenia una sesion
+  // persistida en el browser (sessionStorage) seguia viendo cobertura/pago/
+  // perfil aunque la fila de v3.leads hubiera sido borrada: el portal lee
+  // de session local, no de la DB.
   const emailUsuario = usuario?.email;
-  const leadIdSesion = sesion.leadId;
+  const tieneEstadoContratacion =
+    sesion.leadId !== undefined ||
+    sesion.perfil !== undefined ||
+    sesion.pagoPendiente !== undefined ||
+    sesion.ordenes.some((o) => o.tipo === 'plan' && o.estado === 'pagada');
   const faltaNombre =
     usuario !== undefined && (usuario.nombre ?? '').trim() === '' && (usuario.apellido ?? '').trim() === '';
   const faltaDni = sesion.dniLead === undefined;
   const faltaIntent = sesion.intent === undefined;
   const necesitaHidratar = faltaNombre || faltaDni || faltaIntent;
-  const necesitaValidar = leadIdSesion !== undefined;
-  const debeConsultar = emailUsuario !== undefined && (necesitaHidratar || necesitaValidar);
+  const debeConsultar = emailUsuario !== undefined && (necesitaHidratar || tieneEstadoContratacion);
   useEffect(() => {
     if (!debeConsultar) return;
     let cancelado = false;
@@ -98,10 +104,11 @@ export function PortalLayout() {
         const lead = await obtenerUltimoLead(emailUsuario!);
         if (cancelado) return;
         if (lead === null) {
-          if (necesitaValidar) {
-            // Backend no reconoce al titular → sesion fantasma, hay que
-            // tirarla. Despues de resetear mandamos al landing para que el
-            // usuario arranque un alta limpia si quiere.
+          if (tieneEstadoContratacion) {
+            // Backend no reconoce al titular pero la sesion local todavia
+            // tiene contratacion cacheada → es estado fantasma de un test
+            // anterior / cleanup de staging. Reset completo y bounce al
+            // landing para que el usuario arranque un alta limpia.
             console.warn('[portal] lead no existe en backend, reset de sesion');
             resetSession();
             window.location.href = landingUrl();
@@ -138,7 +145,7 @@ export function PortalLayout() {
     return () => {
       cancelado = true;
     };
-  }, [emailUsuario, debeConsultar, necesitaValidar]);
+  }, [emailUsuario, debeConsultar, tieneEstadoContratacion]);
 
   // Todos los items del menú quedan siempre activos. En algún momento
   // probamos deshabilitar Coberturas y Movimientos mientras no hubiera plan
@@ -246,8 +253,11 @@ export function PortalLayout() {
         {/* px-3 en xs (360 px de ref) para dar +8 px de ancho util al contenido,
             px-4 desde sm. pb-28 en mobile deja aire grande entre el contenido
             y la BottomNav (h-14 + safe-area) — sin esto las cards de la ultima
-            seccion quedaban casi tocando el nav y se sentia agobiante. */}
-        <main className="mx-auto max-w-[1100px] px-3 pb-28 pt-6 sm:px-4 lg:px-6 lg:pb-14 lg:pt-10">
+            seccion quedaban casi tocando el nav y se sentia agobiante.
+            overflow-x-hidden evita que un carrusel interno (o cualquier
+            elemento ancho) propague scroll horizontal a la pagina y
+            desplace toda la UI a la izquierda. */}
+        <main className="mx-auto max-w-[1100px] overflow-x-hidden px-3 pb-28 pt-6 sm:px-4 lg:px-6 lg:pb-14 lg:pt-10">
           <Outlet />
         </main>
       </div>
