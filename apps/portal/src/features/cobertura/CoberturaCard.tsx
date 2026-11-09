@@ -5,7 +5,6 @@ import type { Plan } from '@/mock/planes';
 import type { EstadoCuenta } from '@/lib/estado';
 import { CoberturaEstado } from '@/features/cobertura/CoberturaEstado';
 import { Card } from '@/ui/Card';
-import { Icon } from '@/ui/Icon';
 import { clasesBoton } from '@/ui/Button';
 
 export interface CoberturaCardProps {
@@ -35,10 +34,24 @@ export interface CoberturaCardProps {
  */
 export function CoberturaCard({ plan, estado, proximoVencimiento, accionExtra }: CoberturaCardProps) {
   return (
+    // Card `gap-5` para header/precio/CTA principal; los CTAs secundarios
+    // van agrupados en un wrapper con gap-2 (ver `accionExtra`) para que
+    // la "pila de botones" se lea compacta sin inflar la altura total de
+    // la tarjeta.
     <Card className="flex flex-col gap-5 p-5 ring-marca-100 lg:p-6">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Icon icono={ShieldCheck} tono="marca" />
+          {/* Icono más grande que el default `Icon tono='marca'` (size-10 →
+              size-14, glifo 20px → 24px) para darle más peso visual al bloque
+              principal de la pantalla, sin saltar al `tamano='lg'` que
+              inflaba la altura total de la card. Mantenemos los tonos
+              del design system (bg-marca-50 / text-marca-700). */}
+          <span
+            aria-hidden="true"
+            className="inline-flex size-14 shrink-0 items-center justify-center rounded-pill bg-marca-50 text-marca-700"
+          >
+            <ShieldCheck size={24} strokeWidth={1.75} />
+          </span>
           <div className="min-w-0">
             <p className="text-sm text-ink-500">Tu cobertura</p>
             {/* h2 y no h3: su único consumidor (Inicio.tsx) la monta dentro de
@@ -89,20 +102,21 @@ export function CoberturaCard({ plan, estado, proximoVencimiento, accionExtra }:
           </Link>
         </div>
       ) : (
-        // 'Ver mi cobertura' es el CTA protagonico de la tarjeta: brand
-        // gradient + sombra elevada, mismo tratamiento que los Accesos
-        // rapidos. Las acciones secundarias (Subir de plan / Descargar
-        // credencial) van en outline negro en `accionExtra`.
-        <Link
-          to="/coberturas"
-          data-elevar
-          className="inline-flex h-11 w-full cursor-pointer items-center justify-center rounded-pill bg-brand-oscurecido px-5 text-base font-medium text-white shadow-elevada transition-colors"
-        >
-          Ver mi cobertura
-        </Link>
+        // Pila de botones agrupada con gap-2 (compacto): 'Ver mi cobertura'
+        // protagonico con brand gradient y debajo las acciones secundarias
+        // que vienen por `accionExtra`. El gap chico compensa el alto que
+        // gana el icono más grande, para que la card total no crezca.
+        <div className="flex flex-col gap-2">
+          <Link
+            to="/coberturas"
+            data-elevar
+            className="inline-flex h-11 w-full cursor-pointer items-center justify-center rounded-pill bg-brand-oscurecido px-5 text-base font-medium text-white shadow-elevada transition-colors"
+          >
+            Ver mi cobertura
+          </Link>
+          {accionExtra}
+        </div>
       )}
-
-      {accionExtra}
     </Card>
   );
 }
