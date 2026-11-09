@@ -31,9 +31,11 @@ export function Planes() {
 
   /**
    * Con el perfil ya completo no hace falta volver a pasar por la bienvenida:
-   * el usuario sabe qué contrata y solo le falta pagar (spec §6). Si MP está
-   * configurado, crea el preapproval y redirige al checkout de MP. Si falla
-   * (503 o network), cae al mock de `/pago` para no bloquear el flujo.
+   * el usuario sabe qué contrata y solo le falta pagar (spec §6). Crea el
+   * preapproval, abre el checkout de MP en una pestaña nueva y navega a /pago
+   * — que, al ver `pagoPendiente` en sesión, se hidrata directo en el estado
+   * "Esperando tu pago" con el spinner y el polling. Si MP está caído o no
+   * configurado, cae a /pago (mock) para no bloquear el flujo.
    */
   async function elegir(tipo: TipoItem, id: string, emailPago: string) {
     setSession({ intent: { tipo, id }, emailPago });
@@ -48,15 +50,27 @@ export function Planes() {
     }
 
     try {
-      const { initPoint } = await crearSuscripcion({
+      const { preapprovalId, initPoint } = await crearSuscripcion({
         planId: id,
         planNombre: item.nombre,
         monto: item.precio,
         emailMp: emailPago,
       });
-      // Nueva pestaña: el checkout de MP vive en su dominio y /planes se
+      // Nueva pestaña: el checkout de MP vive en su dominio y el portal se
       // queda abierto para que el usuario vuelva sin perder su estado.
       window.open(initPoint, '_blank', 'noopener,noreferrer');
+      setSession({
+        pagoPendiente: {
+          preapprovalId,
+          tipo,
+          itemId: id,
+          nombre: item.nombre,
+          monto: item.precio,
+          emailMp: emailPago,
+          checkoutUrl: initPoint,
+        },
+      });
+      void navegar('/pago');
     } catch (err) {
       console.warn('[planes] no se pudo crear la suscripcion, cayendo al mock', err);
       void navegar(sesion.perfil !== undefined ? '/pago' : '/bienvenida');

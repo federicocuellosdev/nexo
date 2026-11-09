@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 import { ChevronDown, LayoutGrid, Receipt, ShieldCheck, Sparkles, Users } from 'lucide-react';
-import { getSession, setSession, useSession } from '@/mock/session';
+import { agregarOrden, getSession, setSession, useSession } from '@/mock/session';
 import { DialogoEmailMercadoPago } from '@/features/pago/DialogoEmailMercadoPago';
 import { cn } from '@/lib/cn';
 import { saludo } from '@/lib/identidad';
 import { buscarPlan, buscarProducto } from '@/mock/planes';
 import { derivarEstado } from '@/lib/estado';
 import { portalUrl } from '@/lib/urls';
-import { crearSuscripcion, obtenerUltimoLead } from '@/lib/api';
+import { consultarEstadoSuscripcion, crearSuscripcion, obtenerUltimoLead } from '@/lib/api';
 import { ETIQUETA, GLIFO, TONO } from '@/features/planes/estadoPrestacion';
 import { NOVEDADES } from '@/mock/novedades';
 import { NovedadesCarousel } from '@/features/novedades/NovedadesCarousel';
@@ -95,6 +95,40 @@ export function Inicio() {
       cancelado = true;
     };
   }, [intent, emailSesion]);
+
+  // Polling de respaldo: si el usuario inició un pago pero cerró /pago antes
+  // de que el polling de esa pantalla confirmara, acá seguimos chequeando
+  // cada 6s. Apenas MP devuelve `authorized` persistimos la orden (que es lo
+  // que mueve a /inicio a mostrar la cobertura) y limpiamos `pagoPendiente`.
+  const pagoPendiente = sesion.pagoPendiente;
+  useEffect(() => {
+    if (!pagoPendiente) return;
+    let cancelado = false;
+    const intervalo = setInterval(async () => {
+      try {
+        const status = await consultarEstadoSuscripcion(pagoPendiente.preapprovalId);
+        if (cancelado) return;
+        if (status === 'authorized') {
+          agregarOrden({
+            id: `ord-${pagoPendiente.preapprovalId}`,
+            fecha: new Date().toISOString().slice(0, 10),
+            tipo: pagoPendiente.tipo,
+            itemId: pagoPendiente.itemId,
+            concepto: `${pagoPendiente.nombre} · cuota mensual`,
+            monto: pagoPendiente.monto,
+            estado: 'pagada',
+          });
+          setSession({ pagoPendiente: undefined });
+        }
+      } catch (err) {
+        console.warn('[inicio] polling del pago pendiente falló', err);
+      }
+    }, 6000);
+    return () => {
+      cancelado = true;
+      clearInterval(intervalo);
+    };
+  }, [pagoPendiente]);
 
   // `state` viene de PerfilCompletar tras guardar el perfil, pero por sí solo no
   // alcanza: dice lo que creyó la pantalla anterior, no lo que pasó. Sin cruzarlo
@@ -348,13 +382,14 @@ function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendien
   const precioTotal = plan.precio * titulares;
 
   /**
-   * Crea la suscripción en MP y redirige al checkout. Si MP está caído o
-   * devuelve 503 (no configurado), cae al mock `/pago` para que el flujo
-   * no quede bloqueado.
+   * Crea la suscripción en MP, abre el checkout en una pestaña nueva y navega
+   * a /pago — que, al ver `pagoPendiente` en sesión, se hidrata directo en el
+   * estado "Esperando tu pago". Si MP está caído o devuelve 503 (no
+   * configurado), cae al mock `/pago` para que el flujo no quede bloqueado.
    */
   async function irAlCheckout(emailMp: string) {
     try {
-      const { initPoint } = await crearSuscripcion({
+      const { preapprovalId, initPoint } = await crearSuscripcion({
         planId: plan.slug,
         planNombre: plan.nombre,
         monto: precioTotal,
@@ -366,6 +401,18 @@ function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendien
       // `noopener,noreferrer` por seguridad: la pestaña hija no debe tener
       // acceso al `window.opener` del portal.
       window.open(initPoint, '_blank', 'noopener,noreferrer');
+      setSession({
+        pagoPendiente: {
+          preapprovalId,
+          tipo: 'plan',
+          itemId: plan.slug,
+          nombre: plan.nombre,
+          monto: precioTotal,
+          emailMp,
+          checkoutUrl: initPoint,
+        },
+      });
+      void navegar('/pago');
     } catch (err) {
       console.warn('[inicio] no se pudo crear la suscripcion, cayendo al mock', err);
       void navegar('/pago');

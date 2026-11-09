@@ -92,6 +92,26 @@ export interface Session {
    * `perfil.numeroDocumento` y este campo queda como "último vista" solamente.
    */
   dniLead?: string;
+  /**
+   * Suscripción MP recién creada, pendiente de confirmación. Se guarda apenas
+   * se abre el checkout de MP así cualquier pantalla puede recuperar el estado
+   * de espera y hacer polling del status: /pago lo usa para hidratar su estado
+   * `esperando` cuando se llega desde otra pantalla o tras un refresh, y
+   * /inicio lo usa para detectar el pago aunque la pestaña de /pago se haya
+   * cerrado. Se borra en cuanto el polling detecta `authorized` y se registra
+   * la orden correspondiente.
+   */
+  pagoPendiente?: PagoPendiente;
+}
+
+export interface PagoPendiente {
+  preapprovalId: string;
+  tipo: TipoItem;
+  itemId: string;
+  nombre: string;
+  monto: number;
+  emailMp: string;
+  checkoutUrl: string;
 }
 
 export type PresetDemo = 'nuevo-con-intent' | 'activo';

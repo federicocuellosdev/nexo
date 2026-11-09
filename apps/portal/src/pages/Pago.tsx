@@ -67,7 +67,21 @@ export function Pago() {
         }
       : undefined;
 
-  const [estado, setEstado] = useState<Estado>({ kind: 'resumen' });
+  // Hidratación desde sesión: si venimos de /planes o /inicio tras disparar
+  // la suscripción, `pagoPendiente` ya tiene todo lo que hace falta para
+  // montar la pantalla de espera directamente — sin pedirle al usuario que
+  // vuelva a confirmar un pago que ya está en marcha.
+  const pendienteSesion = sesion.pagoPendiente;
+  const [estado, setEstado] = useState<Estado>(() =>
+    pendienteSesion
+      ? {
+          kind: 'esperando',
+          preapprovalId: pendienteSesion.preapprovalId,
+          emailMp: pendienteSesion.emailMp,
+          checkoutUrl: pendienteSesion.checkoutUrl,
+        }
+      : { kind: 'resumen' },
+  );
   const [generandoSub, setGenerandoSub] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [pidiendoEmail, setPidiendoEmail] = useState(false);
@@ -98,6 +112,9 @@ export function Pago() {
             monto: item.monto,
             estado: 'pagada',
           });
+          // Limpiar pagoPendiente: ya no hay nada que seguir polleando desde
+          // /inicio tampoco.
+          setSession({ pagoPendiente: undefined });
           setEstado({ kind: 'confirmado', emailMp: estado.emailMp });
         }
       } catch (err) {
@@ -142,6 +159,19 @@ export function Pago() {
         emailMp,
       });
       window.open(initPoint, '_blank', 'noopener,noreferrer');
+      // Persistir el pago pendiente en sesión: así cualquier pantalla puede
+      // seguir el estado (polling en /inicio) si el usuario cierra /pago.
+      setSession({
+        pagoPendiente: {
+          preapprovalId,
+          tipo: item.tipo,
+          itemId: item.id,
+          nombre: item.nombre,
+          monto: item.monto,
+          emailMp,
+          checkoutUrl: initPoint,
+        },
+      });
       setEstado({ kind: 'esperando', preapprovalId, emailMp, checkoutUrl: initPoint });
     } catch (err) {
       console.error('[pago] no se pudo crear la suscripcion', err);
