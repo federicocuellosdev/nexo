@@ -57,10 +57,20 @@ export function Planes() {
                 destacado={plan.recomendado === true}
                 etiquetaCta={activo !== undefined ? 'Cambiar a este plan' : 'Contratar'}
                 // Sin CTA en el plan propio: la badge "Tu plan" ya lo comunica y
-                // ofrecer un botón sería invitar a recomprar lo mismo. Al elegir
-                // se abre el popup de Mercado Pago (toda primera suscripción
-                // arranca capturando la cuenta MP que recibirá el cobro).
-                onCta={esElTuyo ? undefined : (elegido) => setPendiente({ tipo: 'plan', id: elegido.slug })}
+                // ofrecer un botón sería invitar a recomprar lo mismo. Al elegir,
+                // si ya tenemos emailPago (segunda+ suscripción) saltamos al
+                // checkout; si no, abrimos el popup para capturarlo.
+                onCta={
+                  esElTuyo
+                    ? undefined
+                    : (elegido) => {
+                        if (sesion.emailPago) {
+                          elegir('plan', elegido.slug, sesion.emailPago);
+                        } else {
+                          setPendiente({ tipo: 'plan', id: elegido.slug });
+                        }
+                      }
+                }
               />
             );
           })}

@@ -418,7 +418,16 @@ function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendien
               asegura 7.98:1 de contraste contra el blanco (AAA). */}
           <button
             type="button"
-            onClick={() => setPidiendoEmailMp(true)}
+            onClick={() => {
+              // Si ya hay emailPago (segunda+ suscripción) saltamos el popup
+              // de Mercado Pago y vamos directo al checkout. Si no, lo
+              // pedimos primero.
+              if (getSession().emailPago) {
+                void navegar('/pago');
+              } else {
+                setPidiendoEmailMp(true);
+              }
+            }}
             className="inline-flex h-11 cursor-pointer items-center justify-center rounded-pill bg-white px-5 text-base font-medium text-marca-700 shadow-suave transition-colors duration-200 ease-out-expo hover:bg-ink-50 motion-safe:active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white lg:mt-auto"
           >
             Terminar de pagar
