@@ -249,66 +249,11 @@ export function Coberturas() {
         </section>
       ) : null}
 
-      {productos.length > 0 ? (
-        <section aria-label="Productos contratados">
-          <h2 className="mb-3 text-xl text-ink-950">Productos contratados</h2>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {productos.map((producto) => (
-              <Card key={producto.id} className="flex flex-col gap-2">
-                <h3 className="text-base font-medium text-ink-950">{producto.nombre}</h3>
-                <p className="text-sm text-ink-600">{producto.detalle}</p>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Money monto={producto.precio} periodo="por mes" />
-                  {producto.pendiente ? (
-                    <Chip tono="warn" icono={CircleAlert}>
-                      a confirmar
-                    </Chip>
-                  ) : null}
-                </div>
-              </Card>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {plan ? (
-        // Banner promocional: sumar un familiar al plan. Brand gradient +
-        // sombra elevada + texto blanco. El CTA abre DialogoAgregarPersona
-        // con los campos que /additional-sales de SF requiere para un
-        // adherente. La descripción usa line-clamp-2 para asegurar 2
-        // renglones máximo (evita que crezca a 3-4 en mobile).
-        <section aria-label="Agregar persona">
-          <Card className="flex flex-col gap-4 overflow-hidden p-6 !bg-brand-oscurecido !shadow-elevada !ring-marca-300 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-start gap-4">
-              <span
-                aria-hidden="true"
-                className="inline-flex size-12 shrink-0 items-center justify-center rounded-pill bg-white/15 text-white ring-1 ring-white/30"
-              >
-                <UserPlus size={22} strokeWidth={1.75} />
-              </span>
-              <div className="min-w-0">
-                <h2 className="font-display text-lg text-white">Sumá a tu familia al plan</h2>
-                <p className="line-clamp-2 text-sm text-white/85">
-                  Agregá un adherente al plan. Cargás sus datos una vez y queda vinculado.
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setAgregandoPersona(true)}
-              className="inline-flex h-11 shrink-0 cursor-pointer items-center justify-center rounded-pill bg-white px-5 text-base font-medium text-marca-700 shadow-suave transition-colors hover:bg-ink-50"
-            >
-              Agregar persona
-            </button>
-          </Card>
-        </section>
-      ) : null}
-
-      {/* Sección Familiares: grid con una card por beneficiario + una card
-          de 'Agregar persona' siempre al final. Si NO hay plan contratado,
-          la sección aparece grisada con una card placeholder — queda visible
-          para que el usuario entienda que el plan la habilita, pero sin
-          acciones. Al contratar, se pone operativa. */}
+      {/* Sección Familiares: va directo debajo del plan contratado. Grid con
+          una card por beneficiario del perfil + una card 'Agregar persona'
+          siempre al final. Sin plan: la sección queda grisada (opacity-60)
+          con una card placeholder deshabilitada — visible para que el
+          usuario entienda que el plan la habilita, pero sin acciones. */}
       <section aria-label="Familiares" className={cn('flex flex-col gap-4', !plan && 'opacity-60')}>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="text-xl text-ink-950">Familiares</h2>
@@ -372,6 +317,28 @@ export function Coberturas() {
           )}
         </div>
       </section>
+
+      {productos.length > 0 ? (
+        <section aria-label="Productos contratados">
+          <h2 className="mb-3 text-xl text-ink-950">Productos contratados</h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {productos.map((producto) => (
+              <Card key={producto.id} className="flex flex-col gap-2">
+                <h3 className="text-base font-medium text-ink-950">{producto.nombre}</h3>
+                <p className="text-sm text-ink-600">{producto.detalle}</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Money monto={producto.precio} periodo="por mes" />
+                  {producto.pendiente ? (
+                    <Chip tono="warn" icono={CircleAlert}>
+                      a confirmar
+                    </Chip>
+                  ) : null}
+                </div>
+              </Card>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section aria-label="Cómo usar tu cobertura">
         <h2 className="mb-3 text-xl text-ink-950">Cómo usar tu cobertura</h2>
