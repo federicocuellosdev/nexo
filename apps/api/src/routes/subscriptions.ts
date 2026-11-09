@@ -137,3 +137,59 @@ subscriptionsRouter.get('/subscriptions/:id/status', async (req, res) => {
     return res.status(502).json({ ok: false, error: 'mp_network_error' });
   }
 });
+
+/**
+ * Busca preapprovals en MercadoPago filtradas por el email del pagador. Lo usa
+ * /inicio del portal para detectar pagos ya autorizados que no quedaron
+ * registrados en la sesión local (ej. porque el usuario cerró /pago antes del
+ * polling o porque el pago vino de un flujo anterior sin `pagoPendiente`).
+ * Devuelve las últimas N preapprovals con `{id, status, amount, reason}`.
+ */
+subscriptionsRouter.get('/subscriptions/by-email', async (req, res) => {
+  const email = typeof req.query.email === 'string' ? req.query.email.trim() : '';
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+    return res.status(400).json({ ok: false, error: 'email_invalido' });
+  }
+
+  if (!config.mp.accessToken) {
+    return res.status(503).json({ ok: false, error: 'mp_no_configurado' });
+  }
+
+  try {
+    const url = new URL('https://api.mercadopago.com/preapproval/search');
+    url.searchParams.set('payer_email', email);
+    url.searchParams.set('limit', '10');
+    url.searchParams.set('sort', 'date_created:desc');
+
+    const respuestaMp = await fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${config.mp.accessToken}` },
+    });
+    if (!respuestaMp.ok) {
+      console.error('[GET /subscriptions/by-email] MP devolvió error', respuestaMp.status);
+      return res.status(502).json({ ok: false, error: 'mp_error', status: respuestaMp.status });
+    }
+
+    interface MpResultado {
+      id: string;
+      status: string;
+      reason?: string;
+      auto_recurring?: { transaction_amount?: number };
+      external_reference?: string;
+      date_created?: string;
+    }
+    const data = (await respuestaMp.json()) as { results?: MpResultado[] };
+    const suscripciones = (data.results ?? []).map((r) => ({
+      preapprovalId: r.id,
+      status: r.status,
+      reason: r.reason,
+      monto: r.auto_recurring?.transaction_amount ?? null,
+      externalReference: r.external_reference,
+      fechaCreacion: r.date_created,
+    }));
+
+    return res.status(200).json({ ok: true, suscripciones });
+  } catch (err) {
+    console.error('[GET /subscriptions/by-email] network error', err);
+    return res.status(502).json({ ok: false, error: 'mp_network_error' });
+  }
+});
