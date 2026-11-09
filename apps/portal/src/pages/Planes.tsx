@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Check } from 'lucide-react';
-import { ON_DEMAND, PLANES, type Plan, type Producto } from '@/mock/planes';
+import { buscarPlan, buscarProducto, ON_DEMAND, PLANES, type Plan, type Producto } from '@/mock/planes';
 import { PlanCard } from '@/features/planes/PlanCard';
 import { iconoDeProducto } from '@/features/planes/iconoProducto';
 import { planContratado, productosContratados } from '@/features/cobertura/contrataciones';
 import { setSession, useSession, type TipoItem } from '@/mock/session';
+import { crearSuscripcion } from '@/lib/api';
 import { DialogoEmailMercadoPago } from '@/features/pago/DialogoEmailMercadoPago';
 import { Card } from '@/ui/Card';
 import { CardHero } from '@/ui/CardHero';
@@ -30,11 +31,34 @@ export function Planes() {
 
   /**
    * Con el perfil ya completo no hace falta volver a pasar por la bienvenida:
-   * el usuario sabe qué contrata y solo le falta pagar (spec §6).
+   * el usuario sabe qué contrata y solo le falta pagar (spec §6). Si MP está
+   * configurado, crea el preapproval y redirige al checkout de MP. Si falla
+   * (503 o network), cae al mock de `/pago` para no bloquear el flujo.
    */
-  function elegir(tipo: TipoItem, id: string, emailPago: string) {
+  async function elegir(tipo: TipoItem, id: string, emailPago: string) {
     setSession({ intent: { tipo, id }, emailPago });
-    void navegar(sesion.perfil !== undefined ? '/pago' : '/bienvenida');
+
+    const item =
+      tipo === 'plan'
+        ? buscarPlan(id)
+        : buscarProducto(id);
+    if (!item) {
+      void navegar(sesion.perfil !== undefined ? '/pago' : '/bienvenida');
+      return;
+    }
+
+    try {
+      const { initPoint } = await crearSuscripcion({
+        planId: id,
+        planNombre: item.nombre,
+        monto: item.precio,
+        emailMp: emailPago,
+      });
+      window.location.href = initPoint;
+    } catch (err) {
+      console.warn('[planes] no se pudo crear la suscripcion, cayendo al mock', err);
+      void navegar(sesion.perfil !== undefined ? '/pago' : '/bienvenida');
+    }
   }
 
   return (
@@ -65,7 +89,7 @@ export function Planes() {
                     ? undefined
                     : (elegido) => {
                         if (sesion.emailPago) {
-                          elegir('plan', elegido.slug, sesion.emailPago);
+                          void elegir('plan', elegido.slug, sesion.emailPago);
                         } else {
                           setPendiente({ tipo: 'plan', id: elegido.slug });
                         }
@@ -130,7 +154,7 @@ export function Planes() {
         <DialogoEmailMercadoPago
           onCerrar={() => setPendiente(null)}
           onConfirmar={(email) => {
-            elegir(pendiente.tipo, pendiente.id, email);
+            void elegir(pendiente.tipo, pendiente.id, email);
             setPendiente(null);
           }}
         />

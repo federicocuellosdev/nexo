@@ -8,7 +8,7 @@ import { saludo } from '@/lib/identidad';
 import { buscarPlan, buscarProducto } from '@/mock/planes';
 import { derivarEstado } from '@/lib/estado';
 import { portalUrl } from '@/lib/urls';
-import { obtenerUltimoLead } from '@/lib/api';
+import { crearSuscripcion, obtenerUltimoLead } from '@/lib/api';
 import { ETIQUETA, GLIFO, TONO } from '@/features/planes/estadoPrestacion';
 import { NOVEDADES } from '@/mock/novedades';
 import { NovedadesCarousel } from '@/features/novedades/NovedadesCarousel';
@@ -347,6 +347,26 @@ function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendien
   const titulares = 1 + familiares;
   const precioTotal = plan.precio * titulares;
 
+  /**
+   * Crea la suscripción en MP y redirige al checkout. Si MP está caído o
+   * devuelve 503 (no configurado), cae al mock `/pago` para que el flujo
+   * no quede bloqueado.
+   */
+  async function irAlCheckout(emailMp: string) {
+    try {
+      const { initPoint } = await crearSuscripcion({
+        planId: plan.slug,
+        planNombre: plan.nombre,
+        monto: precioTotal,
+        emailMp,
+      });
+      window.location.href = initPoint;
+    } catch (err) {
+      console.warn('[inicio] no se pudo crear la suscripcion, cayendo al mock', err);
+      void navegar('/pago');
+    }
+  }
+
   // Contador sobre el gradient: botón translúcido blanco, texto blanco, hover
   // más opaco. Mantiene el mismo pattern de aro circular que el contador de
   // la landing pero invertido para pisar el fondo saturado.
@@ -419,11 +439,11 @@ function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendien
           <button
             type="button"
             onClick={() => {
-              // Si ya hay emailPago (segunda+ suscripción) saltamos el popup
-              // de Mercado Pago y vamos directo al checkout. Si no, lo
-              // pedimos primero.
-              if (getSession().emailPago) {
-                void navegar('/pago');
+              // Si ya hay emailPago en sesión, saltamos el popup y creamos la
+              // suscripción directo. Si no, lo pedimos primero.
+              const emailMp = getSession().emailPago;
+              if (emailMp) {
+                void irAlCheckout(emailMp);
               } else {
                 setPidiendoEmailMp(true);
               }
@@ -554,7 +574,7 @@ function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendien
           onConfirmar={(email) => {
             setSession({ emailPago: email });
             setPidiendoEmailMp(false);
-            void navegar('/pago');
+            void irAlCheckout(email);
           }}
         />
       ) : null}

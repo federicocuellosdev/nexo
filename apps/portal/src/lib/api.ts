@@ -64,3 +64,35 @@ export async function obtenerUltimoLead(email: string): Promise<LeadResumen | nu
   const data = (await respuesta.json()) as { ok: true; lead: LeadResumen | null };
   return data.lead;
 }
+
+export interface PayloadSuscripcion {
+  planId: string;
+  planNombre: string;
+  monto: number;
+  emailMp: string;
+}
+
+export interface RespuestaSuscripcion {
+  preapprovalId: string;
+  /** URL del checkout hosteado por MP. Redirigir con window.location.href. */
+  initPoint: string;
+}
+
+/**
+ * Crea una suscripción (preapproval) en MercadoPago. Devuelve la URL del
+ * checkout. El caller debe hacer `window.location.href = initPoint` para que
+ * el usuario pague en el dominio de MP.
+ */
+export async function crearSuscripcion(payload: PayloadSuscripcion): Promise<RespuestaSuscripcion> {
+  const respuesta = await fetch(`${API_URL}/api/subscriptions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!respuesta.ok) {
+    const cuerpo = (await respuesta.json().catch(() => ({ ok: false, error: 'network' }))) as ErrorApi;
+    throw new ApiError(cuerpo, respuesta.status);
+  }
+  const data = (await respuesta.json()) as { ok: true } & RespuestaSuscripcion;
+  return { preapprovalId: data.preapprovalId, initPoint: data.initPoint };
+}
