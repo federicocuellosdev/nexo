@@ -29,7 +29,7 @@ const TAMANO_TITULO: Record<NonNullable<EmptyStateProps['como']>, string> = {
 export function EmptyState({ icono, titulo, descripcion, como: Titulo = 'h3', children }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center gap-3 rounded-card bg-white px-6 py-10 text-center shadow-suave ring-1 ring-ink-100">
-      <Icon icono={icono} tono="neutro" />
+      <Icon icono={icono} tono="neutro" tamano="lg" />
       <Titulo className={`${TAMANO_TITULO[Titulo]} text-ink-900`}>{titulo}</Titulo>
       {descripcion ? <p className="max-w-sm text-sm text-ink-600">{descripcion}</p> : null}
       {children ? <div className="mt-2">{children}</div> : null}

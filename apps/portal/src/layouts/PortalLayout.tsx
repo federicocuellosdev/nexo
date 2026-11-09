@@ -22,7 +22,7 @@ const ITEMS_PORTAL_BASE: NavItem[] = [
   { to: '/inicio', label: 'Inicio', icono: House },
   { to: '/planes', label: 'Planes', icono: LayoutGrid },
   { to: '/coberturas', label: 'Coberturas', icono: ShieldCheck, disabled: true },
-  { to: '/movimientos', label: 'Movimientos', icono: Receipt, disabled: true },
+  { to: '/movimientos', label: 'Movimientos', icono: Receipt },
 ];
 
 /**

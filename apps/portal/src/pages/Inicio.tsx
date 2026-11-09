@@ -37,7 +37,7 @@ import { clasesBoton } from '@/ui/Button';
 const ACCESOS = [
   { to: '/coberturas', label: 'Ver coberturas', icono: ShieldCheck, disabled: true },
   { to: '/planes', label: 'Otros productos', icono: LayoutGrid, disabled: false },
-  { to: '/movimientos', label: 'Mis movimientos', icono: Receipt, disabled: true },
+  { to: '/movimientos', label: 'Mis movimientos', icono: Receipt, disabled: false },
 ] as const;
 
 export function Inicio() {
@@ -360,16 +360,12 @@ export function Inicio() {
       <section aria-label="Últimos movimientos">
         <div className="mb-3 flex items-end justify-between gap-3">
           <h2 className="text-lg text-ink-950">Últimos movimientos</h2>
-          {/* 'Ver todos' deshabilitado: va a /movimientos que también está
-              grisado en el menu. Mantener visible pero no clickeable para
-              preservar la jerarquía/layout de la sección. */}
-          <span
-            role="link"
-            aria-disabled="true"
-            className="cursor-not-allowed text-sm font-medium text-ink-300"
+          <Link
+            to="/movimientos"
+            className="text-sm font-medium text-marca-600 hover:text-marca-700"
           >
             Ver todos
-          </span>
+          </Link>
         </div>
 
         {ultimos.length === 0 ? (
