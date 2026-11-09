@@ -1,12 +1,10 @@
 import { useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { UserPlus, Users } from 'lucide-react';
-import type { PerfilPrevinca } from '@/mock/session';
 import { resetSession, setSession, useSession } from '@/mock/session';
 import { BORRADOR_INICIAL, desdePerfil, type PasoPerfil } from '@/features/perfil/validacion';
 import { PerfilWizard, type DatosDelWizard } from '@/features/perfil/PerfilWizard';
 import { Card } from '@/ui/Card';
-import { Badge } from '@/ui/Badge';
 import { Button, clasesBoton } from '@/ui/Button';
 import { Dialog } from '@/ui/Dialog';
 import { Field } from '@/ui/Field';
@@ -14,16 +12,21 @@ import { Input } from '@/ui/Input';
 import { iniciales, nombreVisible } from '@/lib/identidad';
 import { landingUrl } from '@/lib/urls';
 
+/**
+ * Doble confirmación para acciones destructivas (cerrar sesión, cancelar
+ * cobertura). Primer confirm advierte; segundo pide confirmación explícita
+ * del "estás seguro". Devuelve true solo si ambas pasaron.
+ */
+function confirmarDoble(primerTitulo: string, segundoTitulo: string): boolean {
+  if (!window.confirm(primerTitulo)) return false;
+  if (!window.confirm(`¿Estás seguro? ${segundoTitulo}`)) return false;
+  return true;
+}
+
 const ETIQUETA_SEXO: Record<'F' | 'M' | 'X', string> = {
   F: 'Femenino',
   M: 'Masculino',
   X: 'X',
-};
-
-const ETIQUETA_CONTRATACION: Record<PerfilPrevinca['tipoContratacion'], string> = {
-  beneficiario: 'Beneficiario',
-  tomador: 'Tomador',
-  'tomador-beneficiario': 'Tomador y beneficiario',
 };
 
 function Seccion({
@@ -342,24 +345,18 @@ export function Cuenta() {
               </div>
             </dl>
           </Seccion>
-        </div>
-      </div>
 
-      {perfil ? (
-        <Seccion titulo="Cobertura y contratación" onEditar={() => setPasoEditado(4)}>
-          <div className="flex flex-col gap-2 text-sm text-ink-900">
-            <div className="flex flex-wrap items-center gap-2">
-              <span>
+          {perfil ? (
+            <Seccion titulo="Otros datos" onEditar={() => setPasoEditado(4)}>
+              <div className="text-sm text-ink-900">
                 {perfil.tieneObraSocial
                   ? `Obra social: ${perfil.obraSocial ?? 'sin especificar'}`
                   : 'Sin obra social'}
-              </span>
-              <Badge tono="warn">opcional · a definir</Badge>
-            </div>
-            <span>{ETIQUETA_CONTRATACION[perfil.tipoContratacion]}</span>
-          </div>
-        </Seccion>
-      ) : null}
+              </div>
+            </Seccion>
+          ) : null}
+        </div>
+      </div>
 
       <Seccion titulo="Notificaciones">
         {/* Mismo patrón que los bloques de datos: border-t + py-3 entre
@@ -372,18 +369,44 @@ export function Cuenta() {
           <div className="border-t border-ink-100 py-3 first:border-t-0">
             <Interruptor id="notif-push" label="Recordatorio de vencimiento" />
           </div>
-          <p className="pt-3 text-xs text-ink-500">sin efecto · demo</p>
         </div>
       </Seccion>
 
       <Seccion titulo="Sesión">
-        <a
-          href={landingUrl()}
-          onClick={() => resetSession()}
-          className={clasesBoton({ variante: 'peligro', tamano: 'sm', className: 'self-start' })}
-        >
-          Cerrar sesión
-        </a>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <a
+            href={landingUrl()}
+            onClick={(evento) => {
+              if (!confirmarDoble('¿Cerrar sesión?', 'Vas a volver a la página principal. ¿Confirmás?')) {
+                evento.preventDefault();
+                return;
+              }
+              resetSession();
+            }}
+            className={clasesBoton({ variante: 'peligro', tamano: 'sm' })}
+          >
+            Cerrar sesión
+          </a>
+          <button
+            type="button"
+            onClick={() => {
+              if (
+                !confirmarDoble(
+                  '¿Cancelar cobertura?',
+                  'Perdés acceso a todas las prestaciones. Esta acción no se puede deshacer. ¿Confirmás?',
+                )
+              ) {
+                return;
+              }
+              // Mock: borramos todas las órdenes pagadas y limpiamos el perfil
+              // asi `derivarEstado` vuelve a `conCuentaSinPago`.
+              setSession({ ordenes: [], perfil: undefined });
+            }}
+            className={clasesBoton({ variante: 'peligro', tamano: 'sm' })}
+          >
+            Cancelar cobertura
+          </button>
+        </div>
       </Seccion>
 
       {pasoEditado !== null && perfil ? (

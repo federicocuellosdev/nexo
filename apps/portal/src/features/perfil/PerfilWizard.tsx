@@ -9,7 +9,6 @@ import {
   identidadDelBorrador,
   LOCALIDADES,
   pasosDelWizard,
-  PROVINCIA_POR_DEFECTO,
   TOTAL_PASOS_TITULAR,
   validarPaso,
   type BorradorPerfil,
@@ -185,13 +184,10 @@ export function PerfilWizard({
       <form
         onSubmit={enviar}
         noValidate
-        // `border-t pt-4` en el form: línea tenue entre el header (Paso X de N
-        // + puntitos) y el primer input, para cerrar visualmente esa fila.
-        // `[&>*+*]:border-t`: cada bloque hijo (menos el primero) agrega otra
-        // línea arriba — reemplaza al `gap-4` entre bloques para que la
-        // separación visual sea una regla, no solo espacio. Los botones al
-        // final mantienen su propio `mt-2` para quedar por fuera de la grilla.
-        className="flex flex-col border-t border-ink-100 pt-4 [&>*+*]:border-t [&>*+*]:border-ink-100 [&>*+*]:pt-4"
+        // Sólo gap entre grupos de inputs, sin reglas horizontales: el aire
+        // alcanza para separar visualmente y las líneas internas tapaban más
+        // de lo que ayudaban.
+        className="flex flex-col gap-5"
       >
         {paso === 1 ? (
           <>
@@ -304,6 +300,9 @@ export function PerfilWizard({
               </Field>
             </div>
 
+            {/* Provincia y país no se piden: el canal Nexo factura solo en
+                Santa Fe / Argentina y vienen preseteados en BORRADOR_INICIAL.
+                La localidad se restringe a las 3 cubiertas hoy. */}
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Localidad" htmlFor="perfil-localidad" error={errores.localidad} requerido>
                 <Select
@@ -312,32 +311,9 @@ export function PerfilWizard({
                   placeholder="Elegí tu localidad"
                   value={borrador.localidad}
                   invalido={errores.localidad !== undefined}
-                  // Al elegir una localidad, auto-rellena la provincia: hoy
-                  // las tres cubiertas (Rosario / Granadero / Villa Gálvez)
-                  // son de Santa Fe. Si la provincia no estaba ya cargada se
-                  // sugiere el default; si venía otra (p.ej. editada a mano
-                  // en una sesión previa) se la respeta.
-                  onChange={(valor) => {
-                    setBorrador((previo) => ({
-                      ...previo,
-                      localidad: valor,
-                      provincia: previo.provincia.trim() === '' ? PROVINCIA_POR_DEFECTO : previo.provincia,
-                    }));
-                  }}
+                  onChange={(valor) => actualizar('localidad', valor)}
                 />
               </Field>
-              <Field label="Provincia" htmlFor="perfil-provincia" error={errores.provincia} requerido>
-                <Input
-                  id="perfil-provincia"
-                  autoComplete="address-level1"
-                  value={borrador.provincia}
-                  invalido={errores.provincia !== undefined}
-                  onChange={(evento) => actualizar('provincia', evento.target.value)}
-                />
-              </Field>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Código postal" htmlFor="perfil-cp" error={errores.cp} requerido>
                 <Input
                   id="perfil-cp"
@@ -346,15 +322,6 @@ export function PerfilWizard({
                   value={borrador.cp}
                   invalido={errores.cp !== undefined}
                   onChange={(evento) => actualizar('cp', evento.target.value)}
-                />
-              </Field>
-              <Field label="País" htmlFor="perfil-pais" error={errores.pais} requerido>
-                <Input
-                  id="perfil-pais"
-                  autoComplete="country-name"
-                  value={borrador.pais}
-                  invalido={errores.pais !== undefined}
-                  onChange={(evento) => actualizar('pais', evento.target.value)}
                 />
               </Field>
             </div>

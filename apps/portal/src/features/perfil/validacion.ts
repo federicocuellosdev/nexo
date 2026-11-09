@@ -107,7 +107,10 @@ export const BORRADOR_INICIAL: BorradorPerfil = {
   departamento: '',
   torre: '',
   localidad: '',
-  provincia: '',
+  // Provincia y país fijos para el canal Nexo (Santa Fe / Argentina). El
+  // wizard no los pregunta; viajan preseteados en el borrador para que
+  // `aPerfil()` + los contratos de /sales sigan recibiéndolos.
+  provincia: PROVINCIA_POR_DEFECTO,
   cp: '',
   pais: 'Argentina',
   tieneObraSocial: '',
