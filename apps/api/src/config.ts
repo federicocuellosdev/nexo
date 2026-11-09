@@ -40,4 +40,11 @@ export const config = {
     clientId: process.env.SF_CLIENT_ID ?? '',
     clientSecret: process.env.SF_CLIENT_SECRET ?? '',
   },
+  // MercadoPago: el access token del vendedor (test o prod) para llamar al
+  // endpoint /preapproval. Sin esto, /api/subscriptions responde 503 y el
+  // portal cae al flujo mock de /pago.
+  mp: {
+    accessToken: process.env.MP_ACCESS_TOKEN ?? '',
+    webhookSecret: process.env.MP_WEBHOOK_SECRET ?? '',
+  },
 } as const;
