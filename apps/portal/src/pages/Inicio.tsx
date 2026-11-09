@@ -360,7 +360,12 @@ function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendien
         monto: precioTotal,
         emailMp,
       });
-      window.location.href = initPoint;
+      // Nueva pestaña: el checkout de MP vive en su dominio y el portal se
+      // queda abierto para que la persona vuelva acá al terminar/cancelar
+      // sin perder su estado (familiares seleccionados, sesión, etc.).
+      // `noopener,noreferrer` por seguridad: la pestaña hija no debe tener
+      // acceso al `window.opener` del portal.
+      window.open(initPoint, '_blank', 'noopener,noreferrer');
     } catch (err) {
       console.warn('[inicio] no se pudo crear la suscripcion, cayendo al mock', err);
       void navegar('/pago');

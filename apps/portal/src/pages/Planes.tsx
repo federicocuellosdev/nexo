@@ -54,7 +54,9 @@ export function Planes() {
         monto: item.precio,
         emailMp: emailPago,
       });
-      window.location.href = initPoint;
+      // Nueva pestaña: el checkout de MP vive en su dominio y /planes se
+      // queda abierto para que el usuario vuelva sin perder su estado.
+      window.open(initPoint, '_blank', 'noopener,noreferrer');
     } catch (err) {
       console.warn('[planes] no se pudo crear la suscripcion, cayendo al mock', err);
       void navegar(sesion.perfil !== undefined ? '/pago' : '/bienvenida');
