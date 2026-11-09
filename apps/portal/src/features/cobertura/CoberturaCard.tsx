@@ -89,9 +89,14 @@ export function CoberturaCard({ plan, estado, proximoVencimiento, accionExtra }:
           </Link>
         </div>
       ) : (
+        // 'Ver mi cobertura' es el CTA protagonico de la tarjeta: brand
+        // gradient + sombra elevada, mismo tratamiento que los Accesos
+        // rapidos. Las acciones secundarias (Subir de plan / Descargar
+        // credencial) van en outline negro en `accionExtra`.
         <Link
           to="/coberturas"
-          className={clasesBoton({ variante: 'secundario', ancho: 'full' })}
+          data-elevar
+          className="inline-flex h-11 w-full cursor-pointer items-center justify-center rounded-pill bg-brand-oscurecido px-5 text-base font-medium text-white shadow-elevada transition-colors"
         >
           Ver mi cobertura
         </Link>
