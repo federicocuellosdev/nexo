@@ -18,7 +18,7 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement>, Op
 const BASE = [
   'inline-flex items-center justify-center gap-2 rounded-pill font-medium whitespace-nowrap',
   'transition-[background-color,box-shadow,color,transform] duration-200 ease-out-expo',
-  'motion-safe:active:scale-[0.98]',
+  'motion-safe:active:scale-[0.98] cursor-pointer',
   'disabled:pointer-events-none disabled:opacity-50',
   'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca-500',
 ].join(' ');

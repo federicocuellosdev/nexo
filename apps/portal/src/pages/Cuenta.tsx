@@ -360,10 +360,17 @@ export function Cuenta() {
       ) : null}
 
       <Seccion titulo="Notificaciones">
-        <div className="flex flex-col gap-3">
-          <Interruptor id="notif-email" label="Avisos por email" />
-          <Interruptor id="notif-push" label="Recordatorio de vencimiento" />
-          <p className="text-xs text-ink-500">sin efecto · demo</p>
+        {/* Mismo patrón que los bloques de datos: border-t + py-3 entre
+            interruptores. El primer hijo se queda sin línea para no pegar el
+            divisor al título de la Seccion. */}
+        <div className="flex flex-col">
+          <div className="border-t border-ink-100 py-3 first:border-t-0">
+            <Interruptor id="notif-email" label="Avisos por email" />
+          </div>
+          <div className="border-t border-ink-100 py-3 first:border-t-0">
+            <Interruptor id="notif-push" label="Recordatorio de vencimiento" />
+          </div>
+          <p className="pt-3 text-xs text-ink-500">sin efecto · demo</p>
         </div>
       </Seccion>
 
