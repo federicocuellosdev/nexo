@@ -486,6 +486,7 @@ function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendien
         planNombre: plan.nombre,
         monto: precioTotal,
         emailMp,
+        leadId: getSession().leadId,
       });
       // Nueva pestaña: el checkout de MP vive en su dominio y el portal se
       // queda abierto para que la persona vuelva acá al terminar/cancelar

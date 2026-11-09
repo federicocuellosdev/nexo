@@ -157,6 +157,7 @@ export function Pago() {
         planNombre: item.nombre,
         monto: item.monto,
         emailMp,
+        leadId: sesion.leadId,
       });
       window.open(initPoint, '_blank', 'noopener,noreferrer');
       // Persistir el pago pendiente en sesión: así cualquier pantalla puede

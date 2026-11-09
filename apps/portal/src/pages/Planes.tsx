@@ -75,6 +75,7 @@ export function Planes() {
         planNombre: item.nombre,
         monto: item.precio,
         emailMp: emailPago,
+        leadId: sesion.leadId,
       });
       // Nueva pestaña: el checkout de MP vive en su dominio y el portal se
       // queda abierto para que el usuario vuelva sin perder su estado.

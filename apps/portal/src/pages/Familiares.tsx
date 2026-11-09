@@ -38,6 +38,7 @@ export function Familiares() {
         planNombre: `${plan.nombre} · ${nuevos.length} adherente(s)`,
         monto,
         emailMp,
+        leadId: sesion.leadId,
       });
       window.open(initPoint, '_blank', 'noopener,noreferrer');
 

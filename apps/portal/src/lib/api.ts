@@ -70,6 +70,13 @@ export interface PayloadSuscripcion {
   planNombre: string;
   monto: number;
   emailMp: string;
+  /**
+   * UUID del titular en `v3.leads`. Viaja como `external_reference` en MP para
+   * que el webhook pueda correlacionar el pago con la fila y actualizar
+   * `mp_status` → disparar sale_intake cuando el pago quede autorizado.
+   * Sin esto SF nunca recibe `/sales`.
+   */
+  leadId?: string;
 }
 
 export interface RespuestaSuscripcion {
