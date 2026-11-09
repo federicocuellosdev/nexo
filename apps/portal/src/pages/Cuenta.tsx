@@ -55,17 +55,15 @@ function Seccion({
 /**
  * Fila etiqueta/valor para los bloques de solo lectura.
  *
- * El `border-t` de cada Dato se dibuja hasta el borde del dl porque la grilla
- * usa `gap-x-0`: las dos celdas de una fila quedan adyacentes y sus bordes
- * horizontales forman una línea continua. El "aire" entre las dos columnas
- * se simula con `pr-6` en el impar y `pl-6` en el par (visualmente igual al
- * `gap-x-6` previo, pero sin cortar la línea).
- *
- * En grid 2-col, los pares no llevan border-t propio para no duplicar.
+ * Cada Dato lleva su propio `border-t`, y los que caen en la última fila
+ * (identificados por `nth-last-child(-n+2)` en grid 2-col) suman `border-b`.
+ * Como el grid tiene `gap-x-6` entre columnas, cada borde se dibuja SOLO
+ * dentro de su celda — resultado: cada columna lleva sus líneas hasta su
+ * propio ancho (la mitad del contenedor), no de borde a borde.
  */
 function Dato({ etiqueta, valor }: { etiqueta: string; valor: ReactNode }) {
   return (
-    <div className="flex justify-between gap-4 border-t border-ink-100 py-3 sm:[&:nth-child(odd)]:pr-6 sm:[&:nth-child(even)]:border-t-0 sm:[&:nth-child(even)]:pl-6">
+    <div className="flex justify-between gap-4 border-t border-ink-100 py-3 [&:nth-last-child(-n+2)]:border-b">
       <dt className="text-ink-500">{etiqueta}</dt>
       <dd className="text-right text-ink-900">{valor}</dd>
     </div>
@@ -294,7 +292,7 @@ export function Cuenta() {
 
         <div className="flex flex-col gap-6">
           <Seccion titulo="Datos personales" onEditar={perfil ? () => setPasoEditado(2) : undefined}>
-            <dl className="grid grid-cols-1 border-b border-ink-100 text-sm sm:grid-cols-2">
+            <dl className="grid grid-cols-1 gap-x-6 text-sm sm:grid-cols-2">
               <Dato etiqueta="Nombre" valor={usuario?.nombre ?? '—'} />
               <Dato etiqueta="Apellido" valor={usuario?.apellido ?? '—'} />
               <Dato etiqueta="Sexo" valor={perfil ? ETIQUETA_SEXO[perfil.sexo] : '—'} />
@@ -303,7 +301,7 @@ export function Cuenta() {
           </Seccion>
 
           <Seccion titulo="Documento" onEditar={perfil ? () => setPasoEditado(1) : undefined}>
-            <dl className="grid grid-cols-1 border-b border-ink-100 text-sm sm:grid-cols-2">
+            <dl className="grid grid-cols-1 gap-x-6 text-sm sm:grid-cols-2">
               {/* Fallback a los datos del lead: si todavía no hay perfil
                   guardado, mostramos el DNI capturado en el alta (siempre
                   es tipo DNI en el flujo del landing). */}
@@ -313,14 +311,14 @@ export function Cuenta() {
           </Seccion>
 
           <Seccion titulo="Contacto">
-            <dl className="grid grid-cols-1 border-b border-ink-100 text-sm sm:grid-cols-2">
+            <dl className="grid grid-cols-1 gap-x-6 text-sm sm:grid-cols-2">
               <Dato etiqueta="Email" valor={usuario?.email ?? '—'} />
               <Dato etiqueta="Teléfono" valor={usuario?.telefono ?? '—'} />
             </dl>
           </Seccion>
 
           <Seccion titulo="Datos de domicilio" onEditar={perfil ? () => setPasoEditado(3) : undefined}>
-            <dl className="grid grid-cols-1 border-b border-ink-100 text-sm sm:grid-cols-2">
+            <dl className="grid grid-cols-1 gap-x-6 text-sm sm:grid-cols-2">
               <Dato etiqueta="Calle" valor={perfil?.domicilio.calle ?? '—'} />
               <Dato etiqueta="Número" valor={perfil?.domicilio.numero ?? '—'} />
               <Dato etiqueta="Piso" valor={perfil?.domicilio.piso ?? '—'} />
