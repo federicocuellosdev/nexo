@@ -13,6 +13,17 @@
     scrollbar-gutter: stable;
   }
 
+  /* Radix Dialog usa `react-remove-scroll` que agrega padding-right al body
+     al abrir, para compensar la desaparición del scrollbar. Como ya tenemos
+     `scrollbar-gutter: stable` en html, el espacio del scrollbar YA está
+     reservado y el padding extra provoca un salto hacia la izquierda.
+     Forzamos la variable a 0 para neutralizar el padding. */
+  body[data-scroll-locked] {
+    padding-right: 0 !important;
+    margin-right: 0 !important;
+    --removed-body-scroll-bar-size: 0px !important;
+  }
+
   body {
     margin: 0;
     min-height: 100dvh;

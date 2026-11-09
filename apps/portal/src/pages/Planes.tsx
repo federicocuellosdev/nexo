@@ -195,11 +195,16 @@ export function Planes() {
                 <h3 className={habilitado ? 'text-lg font-medium text-ink-950' : 'text-lg font-medium text-ink-500'}>
                   {producto.nombre}
                 </h3>
+                {/* Descripción con alto reservado para exactamente 2 líneas
+                    (`text-sm` leading-5 × 2 = 2.5rem) + línea tenue abajo
+                    que separa el bloque de precio. Así todas las cards
+                    quedan con el mismo alto independiente del largo del
+                    `detalle`. */}
                 <p
                   className={
                     habilitado
-                      ? 'line-clamp-2 min-h-[2.5rem] text-sm text-ink-600'
-                      : 'line-clamp-2 min-h-[2.5rem] text-sm text-ink-500'
+                      ? 'line-clamp-2 min-h-[2.5rem] border-b border-ink-100 pb-3 text-sm text-ink-600'
+                      : 'line-clamp-2 min-h-[2.5rem] border-b border-ink-100 pb-3 text-sm text-ink-500'
                   }
                 >
                   {producto.detalle}

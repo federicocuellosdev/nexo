@@ -45,12 +45,15 @@ export function NovedadesCarousel({ novedades, onInvitar }: NovedadesCarouselPro
               className={novedad.tono === 'warn' ? '!bg-warn-500/20' : undefined}
             />
             {novedad.cta ? (
+              // CTA jerarquizado a tono con la card warn: bg warn-700 + texto
+              // blanco + sombra suave. Es el único clickeable del bloque y
+              // tiene que dominar visualmente sobre el icono y el texto.
               <button
                 type="button"
                 onClick={() => {
                   if (novedad.cta?.action === 'invitar') onInvitar?.();
                 }}
-                className="inline-flex h-9 cursor-pointer items-center justify-center rounded-pill bg-white px-4 text-sm font-medium text-ink-900 ring-1 ring-ink-200 transition-colors hover:bg-ink-50"
+                className="inline-flex h-9 cursor-pointer items-center justify-center rounded-pill bg-warn-700 px-4 text-sm font-medium text-white shadow-suave transition-colors hover:bg-warn-500"
               >
                 {novedad.cta.label}
               </button>
