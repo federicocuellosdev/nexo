@@ -121,11 +121,22 @@ export function Coberturas() {
                   </Link>
                 ) : (
                   <>
-                    <Link to="/planes" className={clasesBoton({ variante: 'secundario', ancho: 'full' })}>
+                    {/* Subir de plan: fondo violeta tenue + borde + texto
+                        violeta. Jerarquía visual intermedia entre los
+                        accesos de marca (brand gradient) y el 'Otros
+                        servicios' outline en negro. */}
+                    <Link
+                      to="/planes"
+                      className="inline-flex h-11 w-full cursor-pointer items-center justify-center rounded-pill bg-marca-50 px-5 text-base font-medium text-marca-700 ring-1 ring-marca-500 transition-colors hover:bg-marca-100"
+                    >
                       Subir de plan
                     </Link>
-                    <Link to="/planes" className={clasesBoton({ variante: 'fantasma', ancho: 'full' })}>
-                      Contratar servicios
+                    {/* Otros servicios: outline negro, el CTA de menor peso. */}
+                    <Link
+                      to="/planes"
+                      className="inline-flex h-11 w-full cursor-pointer items-center justify-center rounded-pill bg-transparent px-5 text-base font-medium text-ink-900 ring-1 ring-ink-900 transition-colors hover:bg-ink-50"
+                    >
+                      Otros servicios
                     </Link>
                   </>
                 )}
