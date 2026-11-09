@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { config } from '../config.js';
 import { supabaseAdmin } from '../lib/supabase.js';
+import { maybeDispararSaleIntake } from '../sf/saleIntakeTrigger.js';
 
 export const webhooksRouter = Router();
 
@@ -238,6 +239,13 @@ webhooksRouter.post('/webhooks/mercadopago', async (req, res) => {
         })
         .eq('id', leadRef);
       if (error) console.warn('[mp-webhook] no se pudo actualizar v3.leads', error);
+
+      // Pago autorizado + perfil completo → disparar sale_intake.
+      // La guarda `sale_sent_at is null` previene re-disparar en cada
+      // webhook subsiguiente (MP reenvía "updated" para la misma preapproval).
+      if (pa.status === 'authorized') {
+        await maybeDispararSaleIntake(leadRef);
+      }
     }
   }
 

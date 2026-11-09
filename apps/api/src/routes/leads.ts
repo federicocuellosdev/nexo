@@ -5,6 +5,7 @@ import { emailClient } from '../lib/resend.js';
 import { config } from '../config.js';
 import { asuntoBienvenida, htmlBienvenida } from '../emails/bienvenida.js';
 import { sendLeadIntake } from '../sf/leads.js';
+import { maybeDispararSaleIntake } from '../sf/saleIntakeTrigger.js';
 
 export const leadsRouter = Router();
 
@@ -159,4 +160,92 @@ leadsRouter.post('/leads', async (req, res) => {
     sfLeadId: sfResult.sfLeadId,
     sfMock: sfResult.mock,
   });
+});
+
+/**
+ * Perfil + beneficiarios del lead. Lo postea el portal desde el wizard de
+ * `/perfil/completar` para que el backend pueda (a) mostrar datos consolidados
+ * y (b) chequear `esPerfilCompleto` al recibir el webhook de MP y así disparar
+ * automáticamente `sale_intake` cuando el pago se autorice.
+ *
+ * Valida con schemas laxos a propósito: el contrato final con SF se valida más
+ * tarde; acá solo garantizamos tipos y campos mínimos para no quemar la fila.
+ */
+const PerfilDomicilio = z.object({
+  calle: z.string().min(1),
+  numero: z.string().min(1),
+  piso: z.string().optional(),
+  departamento: z.string().optional(),
+  torre: z.string().optional(),
+  localidad: z.string().min(1),
+  provincia: z.string().min(1),
+  cp: z.string().min(1),
+  pais: z.string().min(1),
+});
+
+const PerfilPayload = z.object({
+  tipoDocumento: z.enum(['DNI', 'Pasaporte']),
+  numeroDocumento: z.string().min(5),
+  sexo: z.enum(['F', 'M', 'X']),
+  fechaNacimiento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  domicilio: PerfilDomicilio,
+  tieneObraSocial: z.boolean(),
+  obraSocial: z.string().optional(),
+  tipoContratacion: z.enum(['beneficiario', 'tomador', 'tomador-beneficiario']),
+});
+
+const BeneficiarioPayload = z.object({
+  nombre: z.string().min(1),
+  apellido: z.string().min(1),
+  tipoDocumento: z.enum(['DNI', 'Pasaporte']),
+  numeroDocumento: z.string().min(5),
+  sexo: z.enum(['F', 'M', 'X']),
+  fechaNacimiento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  relacion: z.enum(['conyuge', 'hijo', 'padre', 'madre', 'otro']),
+});
+
+const PayloadPerfilCompleto = z.object({
+  perfil: PerfilPayload,
+  beneficiarios: z.array(BeneficiarioPayload).default([]),
+  familiaresCount: z.number().int().min(0).max(10),
+});
+
+leadsRouter.post('/leads/:id/perfil', async (req, res) => {
+  const id = req.params.id;
+  if (!/^[0-9a-f-]{36}$/i.test(id)) {
+    return res.status(400).json({ ok: false, error: 'id_invalido' });
+  }
+
+  const parsed = PayloadPerfilCompleto.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      ok: false,
+      error: 'payload_invalido',
+      detalles: parsed.error.flatten().fieldErrors,
+    });
+  }
+  const datos = parsed.data;
+
+  const { error } = await supabaseAdmin
+    .schema('v3')
+    .from('leads')
+    .update({
+      perfil: datos.perfil,
+      beneficiarios: datos.beneficiarios,
+      familiares_count: datos.familiaresCount,
+      perfil_updated_at: new Date().toISOString(),
+    })
+    .eq('id', id);
+
+  if (error) {
+    console.error('[POST /leads/:id/perfil] db update error', error);
+    return res.status(500).json({ ok: false, error: 'db_update_error' });
+  }
+
+  // Si el pago ya estaba autorizado (el usuario pagó primero y después
+  // completó el perfil), este es el momento de disparar sale_intake.
+  // La función revisa mp_status + sale_sent_at para no re-disparar.
+  await maybeDispararSaleIntake(id);
+
+  return res.status(200).json({ ok: true });
 });
