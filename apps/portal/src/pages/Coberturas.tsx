@@ -202,7 +202,13 @@ export function Coberturas() {
                 aria-expanded={prestacionesAbiertas}
                 aria-controls="tabla-prestaciones"
                 onClick={() => setPrestacionesAbiertas((v) => !v)}
-                className="flex w-full cursor-pointer items-center justify-between gap-3 text-left"
+                className={cn(
+                  'flex w-full cursor-pointer items-center justify-between gap-3 text-left',
+                  // Línea tenue sólo cuando está expandido: separa el toggle
+                  // del contenido que aparece abajo. Cuando está cerrado el
+                  // border queda transparente para no ensuciar el estado.
+                  prestacionesAbiertas ? 'border-b border-ink-100 pb-3' : 'border-b border-transparent pb-0',
+                )}
               >
                 <span className="text-base font-medium text-ink-900">
                   {`Coberturas del plan ${plan.nombre}`}
