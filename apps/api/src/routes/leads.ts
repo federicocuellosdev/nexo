@@ -249,3 +249,99 @@ leadsRouter.post('/leads/:id/perfil', async (req, res) => {
 
   return res.status(200).json({ ok: true });
 });
+
+/**
+ * Alta de beneficiarios (adherentes) asociados a un titular. Cada uno queda
+ * como su propia fila en `v3.leads` con `es_beneficiario=true` y
+ * `titular_lead_id` apuntando al titular. Si la tanda vino con un
+ * `mp_preapproval_id` (la sub nueva que paga ese grupo), lo persistimos en
+ * cada fila así después podemos correlacionar beneficiarios ↔ pago desde la
+ * tabla `v3.pagos` por `mp_preapproval_id`.
+ */
+const BeneficiarioPayloadDb = z.object({
+  nombre: z.string().min(1),
+  apellido: z.string().min(1),
+  tipoDocumento: z.enum(['DNI', 'Pasaporte']),
+  numeroDocumento: z.string().min(5),
+  sexo: z.enum(['F', 'M', 'X']),
+  fechaNacimiento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  relacion: z.enum(['conyuge', 'hijo', 'padre', 'madre', 'otro']),
+});
+
+const PayloadBeneficiarios = z.object({
+  beneficiarios: z.array(BeneficiarioPayloadDb).min(1).max(10),
+  /** Opcional: id de la preapproval MP que paga esta tanda. Si llega, se
+   *  guarda en `mp_preapproval_id` de cada fila para correlación futura. */
+  mpPreapprovalId: z.string().optional(),
+});
+
+leadsRouter.post('/leads/:id/beneficiarios', async (req, res) => {
+  const titularId = req.params.id;
+  if (!/^[0-9a-f-]{36}$/i.test(titularId)) {
+    return res.status(400).json({ ok: false, error: 'id_invalido' });
+  }
+
+  const parsed = PayloadBeneficiarios.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      ok: false,
+      error: 'payload_invalido',
+      detalles: parsed.error.flatten().fieldErrors,
+    });
+  }
+  const { beneficiarios, mpPreapprovalId } = parsed.data;
+
+  // Hidratamos del titular los campos que un beneficiario "hereda": plan,
+  // email (los adherentes no loguean con su propio email, así que el único
+  // sensato es el del titular para no romper constraints no-null).
+  const { data: titular, error: errorTitular } = await supabaseAdmin
+    .schema('v3')
+    .from('leads')
+    .select('item_tipo, item_id, item_nombre, email')
+    .eq('id', titularId)
+    .maybeSingle();
+
+  if (errorTitular || !titular) {
+    console.error('[POST /leads/:id/beneficiarios] titular no encontrado', titularId, errorTitular);
+    return res.status(404).json({ ok: false, error: 'titular_no_encontrado' });
+  }
+
+  const filas = beneficiarios.map((b) => ({
+    item_tipo: titular.item_tipo,
+    item_id: titular.item_id,
+    item_nombre: titular.item_nombre,
+    nombre: b.nombre.trim(),
+    apellido: b.apellido.trim(),
+    email: titular.email,
+    dni: b.numeroDocumento.trim(),
+    es_beneficiario: true,
+    titular_lead_id: titularId,
+    // Datos específicos del adherente que no tienen columna propia viajan
+    // dentro del `perfil` jsonb — mismo patrón que los titulares.
+    perfil: {
+      tipoDocumento: b.tipoDocumento,
+      numeroDocumento: b.numeroDocumento.trim(),
+      sexo: b.sexo,
+      fechaNacimiento: b.fechaNacimiento,
+      relacion: b.relacion,
+    },
+    ...(mpPreapprovalId ? { mp_preapproval_id: mpPreapprovalId } : {}),
+  }));
+
+  const { data: insertados, error: errorInsert } = await supabaseAdmin
+    .schema('v3')
+    .from('leads')
+    .insert(filas)
+    .select('id');
+
+  if (errorInsert || !insertados) {
+    console.error('[POST /leads/:id/beneficiarios] db insert error', errorInsert);
+    return res.status(500).json({ ok: false, error: 'db_insert_error' });
+  }
+
+  return res.status(201).json({
+    ok: true,
+    titularLeadId: titularId,
+    beneficiarios: insertados.map((r) => r.id),
+  });
+});
