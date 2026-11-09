@@ -126,14 +126,23 @@ export function Planes() {
           </div>
         </section>
       ) : (
-        <section className="flex flex-col gap-3">
-          <button
-            type="button"
-            onClick={() => setMostrarPlanes(true)}
-            className="inline-flex h-11 w-full cursor-pointer items-center justify-center rounded-pill bg-brand-oscurecido px-5 text-base font-medium text-white shadow-elevada transition-colors sm:w-auto sm:self-start"
-          >
-            Subir de plan
-          </button>
+        <section>
+          {/* Card compacta que resume el plan activo + CTA para cambiar.
+              Mantengo altura baja (sin iconos XL ni paddings grandes): es
+              info de contexto, no la carta de presentación del plan. */}
+          <Card className="flex flex-col items-start gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <p className="text-xs uppercase tracking-wide text-ink-500">Tu plan actual</p>
+              <p className="font-display text-lg text-ink-950">{activo.nombre}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setMostrarPlanes(true)}
+              className="inline-flex h-11 cursor-pointer items-center justify-center rounded-pill bg-brand-oscurecido px-5 text-base font-medium text-white shadow-elevada transition-colors"
+            >
+              Subir de plan
+            </button>
+          </Card>
         </section>
       )}
 
