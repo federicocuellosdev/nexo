@@ -8,7 +8,12 @@ import { saludo } from '@/lib/identidad';
 import { buscarPlan, buscarProducto } from '@/mock/planes';
 import { derivarEstado } from '@/lib/estado';
 import { portalUrl } from '@/lib/urls';
-import { consultarEstadoSuscripcion, crearSuscripcion, obtenerUltimoLead } from '@/lib/api';
+import {
+  buscarSuscripcionesPorEmail,
+  consultarEstadoSuscripcion,
+  crearSuscripcion,
+  obtenerUltimoLead,
+} from '@/lib/api';
 import { ETIQUETA, GLIFO, TONO } from '@/features/planes/estadoPrestacion';
 import { NOVEDADES } from '@/mock/novedades';
 import { NovedadesCarousel } from '@/features/novedades/NovedadesCarousel';
@@ -129,6 +134,56 @@ export function Inicio() {
       clearInterval(intervalo);
     };
   }, [pagoPendiente]);
+
+  // Reconciliación al montar: si el usuario ya tiene un intent y un emailPago
+  // pero ninguna orden pagada local, preguntamos a MP si hay alguna preapproval
+  // `authorized` para ese email. Cubre el caso "pagué antes de que la UI supiera
+  // trackearlo" y "el polling se perdió por cerrar la pestaña/limpiar storage".
+  // Solo corre una vez por montaje.
+  const emailPagoSesion = sesion.emailPago;
+  const tienePagada = sesion.ordenes.some((o) => o.estado === 'pagada');
+  useEffect(() => {
+    if (tienePagada) return;
+    if (!emailPagoSesion) return;
+    if (!intent) return;
+    let cancelado = false;
+    void (async () => {
+      try {
+        const suscripciones = await buscarSuscripcionesPorEmail(emailPagoSesion);
+        if (cancelado) return;
+        const autorizada = suscripciones.find((s) => s.status === 'authorized');
+        if (!autorizada) return;
+        // Usamos la info del intent actual para armar la orden: el `monto` de
+        // MP no siempre coincide con el que corresponde a la cantidad de
+        // familiares actual, y el itemId no se puede recuperar del external
+        // reference en el flujo legacy (sin leadId UUID).
+        const item =
+          intent.tipo === 'plan'
+            ? buscarPlan(intent.id)
+            : buscarProducto(intent.id);
+        if (!item) return;
+        const familiaresActual = getSession().familiares ?? 0;
+        const titularesActual = intent.tipo === 'plan' ? 1 + familiaresActual : 1;
+        const montoLocal = item.precio * titularesActual;
+        agregarOrden({
+          id: `ord-${autorizada.preapprovalId}`,
+          fecha: new Date().toISOString().slice(0, 10),
+          tipo: intent.tipo,
+          itemId: intent.id,
+          concepto: `${item.nombre} · cuota mensual`,
+          // Preferimos el monto que MP tiene registrado si está presente;
+          // es la fuente de verdad del cobro real.
+          monto: autorizada.monto ?? montoLocal,
+          estado: 'pagada',
+        });
+      } catch (err) {
+        console.warn('[inicio] no se pudo reconciliar con MP', err);
+      }
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, [emailPagoSesion, intent, tienePagada]);
 
   // `state` viene de PerfilCompletar tras guardar el perfil, pero por sí solo no
   // alcanza: dice lo que creyó la pantalla anterior, no lo que pasó. Sin cruzarlo

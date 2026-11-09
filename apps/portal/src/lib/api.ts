@@ -114,3 +114,29 @@ export async function consultarEstadoSuscripcion(preapprovalId: string): Promise
   const data = (await respuesta.json()) as { ok: true; status: EstadoSuscripcion };
   return data.status;
 }
+
+export interface SuscripcionResumen {
+  preapprovalId: string;
+  status: EstadoSuscripcion;
+  reason?: string;
+  monto: number | null;
+  externalReference?: string;
+  fechaCreacion?: string;
+}
+
+/**
+ * Busca las suscripciones (preapprovals) creadas en MP para un email. Lo usa
+ * /inicio para detectar pagos ya autorizados que no quedaron registrados en la
+ * sesión local — p.ej. si el usuario cerró /pago antes del polling.
+ */
+export async function buscarSuscripcionesPorEmail(email: string): Promise<SuscripcionResumen[]> {
+  const url = new URL(`${API_URL}/api/subscriptions/by-email`);
+  url.searchParams.set('email', email);
+  const respuesta = await fetch(url.toString());
+  if (!respuesta.ok) {
+    const cuerpo = (await respuesta.json().catch(() => ({ ok: false, error: 'network' }))) as ErrorApi;
+    throw new ApiError(cuerpo, respuesta.status);
+  }
+  const data = (await respuesta.json()) as { ok: true; suscripciones: SuscripcionResumen[] };
+  return data.suscripciones;
+}
