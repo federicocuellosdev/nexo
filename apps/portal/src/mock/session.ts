@@ -119,6 +119,13 @@ export interface Session {
    * la orden correspondiente.
    */
   pagoPendiente?: PagoPendiente;
+  /**
+   * UUID del lead en `v3.leads`. Lo set-ea `AuthCallback` al validar el magic
+   * link (viene en el query param `leadId` del redirect). Habilita al portal
+   * a POST-ear el perfil completo al backend en `POST /api/leads/:id/perfil`
+   * y así disparar `sale_intake` automáticamente cuando corresponda.
+   */
+  leadId?: string;
 }
 
 export interface PagoPendiente {

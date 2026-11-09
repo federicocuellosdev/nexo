@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router';
 import { setSession, useSession } from '@/mock/session';
 import { PerfilWizard, type DatosDelWizard } from '@/features/perfil/PerfilWizard';
 import { BORRADOR_BENEFICIARIO, BORRADOR_DEMO } from '@/features/perfil/validacion';
+import { guardarPerfilBackend } from '@/lib/api';
 
 export function PerfilCompletar() {
   const navegar = useNavigate();
@@ -9,11 +10,37 @@ export function PerfilCompletar() {
   const usuario = sesion.usuario;
   const dniLead = sesion.dniLead;
   const familiares = sesion.familiares ?? 0;
+  const leadId = sesion.leadId;
 
-  function guardar({ perfil, identidad }: DatosDelWizard) {
+  async function guardar({ perfil, identidad }: DatosDelWizard) {
     // El nombre va sobre `usuario`, NO dentro de `perfil`: es de donde lo leen
     // el saludo de /inicio, las iniciales del avatar y /cuenta.
     setSession({ perfil, ...(usuario ? { usuario: { ...usuario, ...identidad } } : {}) });
+
+    // Persistir al backend si tenemos leadId. Si falla, seguimos igual — la
+    // sesion local tiene el perfil y el usuario puede retomar; un job podrá
+    // reintentar después. NO bloqueamos al usuario con un error.
+    if (leadId) {
+      try {
+        await guardarPerfilBackend(leadId, {
+          perfil: {
+            tipoDocumento: perfil.tipoDocumento,
+            numeroDocumento: perfil.numeroDocumento,
+            sexo: perfil.sexo,
+            fechaNacimiento: perfil.fechaNacimiento,
+            domicilio: perfil.domicilio,
+            tieneObraSocial: perfil.tieneObraSocial,
+            ...(perfil.obraSocial ? { obraSocial: perfil.obraSocial } : {}),
+            tipoContratacion: perfil.tipoContratacion,
+          },
+          beneficiarios: perfil.beneficiarios ?? [],
+          familiaresCount: familiares,
+        });
+      } catch (err) {
+        console.warn('[perfil] no se pudo persistir al backend', err);
+      }
+    }
+
     // El aviso "Cobertura activa" lo muestra /inicio al recibir este state.
     void navegar('/inicio', { replace: true, state: { coberturaActivada: true } });
   }
@@ -51,7 +78,9 @@ export function PerfilCompletar() {
             beneficiarios: Array.from({ length: familiares }, () => ({ ...BORRADOR_BENEFICIARIO })),
           }}
           pasoInicial={dniLead ? 2 : 1}
-          onGuardar={guardar}
+          onGuardar={(d) => {
+            void guardar(d);
+          }}
         />
       </div>
     </div>

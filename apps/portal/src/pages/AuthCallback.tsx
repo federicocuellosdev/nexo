@@ -39,6 +39,7 @@ export function AuthCallback() {
         const planTipoRaw = parametros.get('planTipo');
         const planTipo: 'plan' | 'producto' | undefined =
           planTipoRaw === 'plan' || planTipoRaw === 'producto' ? planTipoRaw : undefined;
+        const leadId = parametros.get('leadId') ?? undefined;
         const email = data.session.user.email ?? '';
 
         const previo = getSession().usuario;
@@ -55,6 +56,7 @@ export function AuthCallback() {
         setSession({
           usuario,
           ...(planId && planTipo ? { intent: { tipo: planTipo, id: planId } } : {}),
+          ...(leadId ? { leadId } : {}),
         });
         // Entrada por magic link: va a `/inicio` (home del portal), no a
         // `/bienvenida`. `/bienvenida` es el paso previo al checkout de MP

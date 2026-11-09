@@ -140,3 +140,53 @@ export async function buscarSuscripcionesPorEmail(email: string): Promise<Suscri
   const data = (await respuesta.json()) as { ok: true; suscripciones: SuscripcionResumen[] };
   return data.suscripciones;
 }
+
+export interface PayloadPerfilBackend {
+  perfil: {
+    tipoDocumento: 'DNI' | 'Pasaporte';
+    numeroDocumento: string;
+    sexo: 'F' | 'M' | 'X';
+    fechaNacimiento: string;
+    domicilio: {
+      calle: string;
+      numero: string;
+      piso?: string;
+      departamento?: string;
+      torre?: string;
+      localidad: string;
+      provincia: string;
+      cp: string;
+      pais: string;
+    };
+    tieneObraSocial: boolean;
+    obraSocial?: string;
+    tipoContratacion: 'beneficiario' | 'tomador' | 'tomador-beneficiario';
+  };
+  beneficiarios: Array<{
+    nombre: string;
+    apellido: string;
+    tipoDocumento: 'DNI' | 'Pasaporte';
+    numeroDocumento: string;
+    sexo: 'F' | 'M' | 'X';
+    fechaNacimiento: string;
+    relacion: 'conyuge' | 'hijo' | 'padre' | 'madre' | 'otro';
+  }>;
+  familiaresCount: number;
+}
+
+/**
+ * Persiste perfil + beneficiarios en `v3.leads` y dispara `sale_intake` si ya
+ * hay pago autorizado. El caller sigue guardando en sesion para no depender
+ * del network; esto es append-only al backend.
+ */
+export async function guardarPerfilBackend(leadId: string, datos: PayloadPerfilBackend): Promise<void> {
+  const respuesta = await fetch(`${API_URL}/api/leads/${leadId}/perfil`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(datos),
+  });
+  if (!respuesta.ok) {
+    const cuerpo = (await respuesta.json().catch(() => ({ ok: false, error: 'network' }))) as ErrorApi;
+    throw new ApiError(cuerpo, respuesta.status);
+  }
+}
