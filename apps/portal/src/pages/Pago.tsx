@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { CreditCard, ExternalLink } from 'lucide-react';
 import { buscarPlan, buscarProducto } from '@/mock/planes';
@@ -49,6 +49,9 @@ export function Pago() {
   const [generandoSub, setGenerandoSub] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [pidiendoEmail, setPidiendoEmail] = useState(false);
+  // Evita disparar la sub dos veces en el mismo mount (StrictMode monta/desmonta
+  // en dev, y queremos un solo POST a MP por visita a /pago).
+  const yaIntentadoRef = useRef(false);
 
   if (item === undefined) {
     return (
@@ -104,6 +107,27 @@ export function Pago() {
       setPidiendoEmail(true);
     }
   }
+
+  // Auto-dispara al montar: si ya tenemos emailPago en sesión, creamos la
+  // sub y abrimos MP sin requerir otro click. Si falta el email abrimos el
+  // popup para capturarlo. Si el browser bloquea el popup de MP (porque
+  // window.open después de un await ya no es "user gesture"), el fallback
+  // es el botón "Pagar con Mercado Pago" de esta misma pantalla.
+  useEffect(() => {
+    if (yaIntentadoRef.current) return;
+    if (item === undefined) return;
+    yaIntentadoRef.current = true;
+    const emailMp = sesion.emailPago;
+    if (emailMp) {
+      void irAlCheckout(emailMp);
+    } else {
+      setPidiendoEmail(true);
+    }
+    // item.id + sesion.emailPago alcanza para discriminar "mismo pago" vs
+    // "pago distinto". Si cambia alguno, reseteamos el ref para volver a
+    // disparar (ej. usuario cambia de plan sin desmontar la ruta).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [item?.id, sesion.emailPago]);
 
   return (
     <div className="mx-auto max-w-[560px]">
