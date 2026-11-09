@@ -264,7 +264,7 @@ export function Inicio() {
                       onClick={() => void credDownload.descargar()}
                       disabled={credDownload.generando}
                       aria-busy={credDownload.generando}
-                      className="inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-pill bg-transparent px-5 text-base font-medium text-ink-900 ring-1 ring-ink-900 transition-colors hover:bg-ink-50 disabled:cursor-not-allowed disabled:opacity-60"
+                      className={clasesBoton({ variante: 'secundario', ancho: 'full' })}
                     >
                       <Download size={16} aria-hidden="true" />
                       {credDownload.generando ? 'Generando…' : 'Descargar credencial'}
@@ -281,10 +281,7 @@ export function Inicio() {
                     (mismo tratamiento que los Accesos rápidos activos), para
                     que se lea como la acción que se quiere traccionar por
                     sobre "Ver mi cobertura" y "Descargar credencial". */}
-                <Link
-                  to="/planes"
-                  className="inline-flex h-11 w-full cursor-pointer items-center justify-center rounded-pill bg-transparent px-5 text-base font-medium text-ink-900 ring-1 ring-ink-900 transition-colors hover:bg-ink-50"
-                >
+                <Link to="/planes" className={clasesBoton({ variante: 'secundario', ancho: 'full' })}>
                   Subir de plan
                 </Link>
               </>

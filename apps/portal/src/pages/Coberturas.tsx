@@ -110,9 +110,6 @@ export function Coberturas() {
                   {vencimiento ? (
                     <p className="text-sm text-ink-500">{`Próxima cuota: ${vencimiento}`}</p>
                   ) : null}
-                  <div className="mt-1">
-                    <Money monto={plan.precio} periodo="por mes" />
-                  </div>
                 </div>
               </div>
 
@@ -138,11 +135,11 @@ export function Coberturas() {
                     >
                       Subir de plan
                     </Link>
-                    {/* Otros servicios: outline negro, el CTA de menor peso. */}
-                    <Link
-                      to="/planes"
-                      className="inline-flex h-11 w-full cursor-pointer items-center justify-center rounded-pill bg-transparent px-5 text-base font-medium text-ink-900 ring-1 ring-ink-900 transition-colors hover:bg-ink-50"
-                    >
+                    {/* Otros servicios: secundario (ring-ink-200) — mismo
+                        tratamiento que 'Subir de plan' y 'Descargar
+                        credencial' del CoberturaCard de /inicio, para que
+                        los CTAs de segunda jerarquía sean consistentes. */}
+                    <Link to="/planes" className={clasesBoton({ variante: 'secundario', ancho: 'full' })}>
                       Otros servicios
                     </Link>
                   </>
