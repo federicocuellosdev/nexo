@@ -337,9 +337,9 @@ export function Inicio() {
                 key={acceso.to}
                 role="link"
                 aria-disabled="true"
-                className="flex cursor-not-allowed items-center gap-3 rounded-card bg-white p-4 text-ink-300 ring-1 ring-ink-100"
+                className="flex cursor-not-allowed items-center gap-3 rounded-card bg-white px-5 py-5 text-ink-300 ring-1 ring-ink-100"
               >
-                <Icon icono={acceso.icono} tono="neutro" tamano="sm" />
+                <Icon icono={acceso.icono} tono="neutro" />
                 <span className="text-sm font-medium">{acceso.label}</span>
               </span>
             ) : (
@@ -347,9 +347,9 @@ export function Inicio() {
                 key={acceso.to}
                 to={acceso.to}
                 data-elevar
-                className="flex items-center gap-3 rounded-card bg-brand-oscurecido p-4 text-white shadow-elevada"
+                className="flex items-center gap-3 rounded-card bg-brand-oscurecido px-5 py-5 text-white shadow-elevada"
               >
-                <acceso.icono size={18} strokeWidth={1.75} aria-hidden="true" className="text-white" />
+                <acceso.icono size={22} strokeWidth={1.75} aria-hidden="true" className="text-white" />
                 <span className="text-sm font-medium">{acceso.label}</span>
               </Link>
             ),
