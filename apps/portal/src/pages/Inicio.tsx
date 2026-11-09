@@ -402,7 +402,7 @@ export function Inicio() {
           empieza "lo que te ofrecemos". El encabezado baja a text-base porque
           compite con secciones que sí traen datos del socio. */}
       <section aria-label="Novedades" className="border-t border-ink-100 pt-8">
-        <h2 className="mb-3 text-base text-ink-950">Novedades</h2>
+        <h2 className="mb-3 text-lg text-ink-950">Novedades</h2>
         <NovedadesCarousel novedades={NOVEDADES} />
       </section>
     </div>
