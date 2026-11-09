@@ -63,38 +63,60 @@ export function PortalLayout() {
   const usuario = sesion.usuario;
   const enfocado = RUTAS_ENFOCADAS.has(useLocation().pathname);
 
-  // Hidratar nombre/apellido desde v3.leads cuando la sesión no los tiene
+  // Hidratar datos del alta desde v3.leads cuando la sesión no los tiene
   // (caso típico post-login). Vive en el layout y no en /inicio para que la
   // sidebar muestre "Federico Cuellos" apenas se entra al portal, sin importar
-  // qué ruta se abra primero. El efecto no vuelve a correr si ya hay nombre.
+  // qué ruta se abra primero.
+  //
+  // Se fetchea si falta CUALQUIERA de los tres: nombre, DNI o intent. Antes
+  // solo se gateaba por `faltaNombre`, lo que dejaba sin sincronizar el DNI
+  // (y por lo tanto el `dniLead` nunca se seteaba) en sesiones que ya tenían
+  // el nombre pero no el documento. Resultado: `/perfil/completar` arrancaba
+  // en paso 1 y `/cuenta` mostraba el documento vacío.
   const emailUsuario = usuario?.email;
   const faltaNombre =
     usuario !== undefined && (usuario.nombre ?? '').trim() === '' && (usuario.apellido ?? '').trim() === '';
+  const faltaDni = sesion.dniLead === undefined;
+  const faltaIntent = sesion.intent === undefined;
+  const necesitaHidratar = emailUsuario !== undefined && (faltaNombre || faltaDni || faltaIntent);
   useEffect(() => {
-    if (!emailUsuario || !faltaNombre) return;
+    if (!necesitaHidratar) return;
     let cancelado = false;
     void (async () => {
       try {
-        const lead = await obtenerUltimoLead(emailUsuario);
-        if (cancelado || !lead?.titular) return;
-        const actual = getSession().usuario;
-        if (!actual) return;
-        setSession({
-          usuario: { ...actual, nombre: lead.titular.nombre, apellido: lead.titular.apellido },
-          // Si todavía no había intent lo seteamos de paso para que /inicio
-          // tampoco tenga que repetir la consulta.
-          ...(getSession().intent === undefined ? { intent: { tipo: lead.tipo, id: lead.id } } : {}),
-          // DNI precargado del alta para /cuenta + PerfilWizard.
-          ...(lead.titular.dni ? { dniLead: lead.titular.dni } : {}),
-        });
+        const lead = await obtenerUltimoLead(emailUsuario!);
+        if (cancelado || lead === null) return;
+        const sesionActual = getSession();
+        const patch: Parameters<typeof setSession>[0] = {};
+        // Patcheamos SOLO lo que falta: no pisamos nombre/apellido/intent ya
+        // existentes, y agregamos dniLead si vino en el lead y todavía no
+        // estaba en sesión.
+        if (lead.titular && sesionActual.usuario) {
+          const nombreVacio = (sesionActual.usuario.nombre ?? '').trim() === '';
+          const apellidoVacio = (sesionActual.usuario.apellido ?? '').trim() === '';
+          if (nombreVacio || apellidoVacio) {
+            patch.usuario = {
+              ...sesionActual.usuario,
+              ...(nombreVacio ? { nombre: lead.titular.nombre } : {}),
+              ...(apellidoVacio ? { apellido: lead.titular.apellido } : {}),
+            };
+          }
+        }
+        if (sesionActual.intent === undefined) {
+          patch.intent = { tipo: lead.tipo, id: lead.id };
+        }
+        if (sesionActual.dniLead === undefined && lead.titular?.dni) {
+          patch.dniLead = lead.titular.dni;
+        }
+        if (Object.keys(patch).length > 0) setSession(patch);
       } catch (err) {
-        console.warn('[portal] no se pudo hidratar nombre/apellido desde el lead', err);
+        console.warn('[portal] no se pudo hidratar desde el lead', err);
       }
     })();
     return () => {
       cancelado = true;
     };
-  }, [emailUsuario, faltaNombre]);
+  }, [emailUsuario, necesitaHidratar]);
 
   // Todos los items del menú quedan siempre activos. En algún momento
   // probamos deshabilitar Coberturas y Movimientos mientras no hubiera plan

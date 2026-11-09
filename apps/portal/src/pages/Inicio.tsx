@@ -328,7 +328,7 @@ export function Inicio() {
           compitan en peso con la tarjeta del plan. Los deshabilitados se
           renderizan como `span` con aria-disabled — mismo tratamiento que los
           items grisados del Sidebar. */}
-      <section aria-label="Accesos rápidos" className="border-t border-ink-100 pt-8">
+      <section aria-label="Accesos rápidos" className="border-t border-ink-200 pt-8">
         <h2 className="mb-3 text-lg text-ink-950">Accesos rápidos</h2>
         <div className="grid gap-3 sm:grid-cols-3">
           {ACCESOS.map((acceso) =>
@@ -357,7 +357,7 @@ export function Inicio() {
         </div>
       </section>
 
-      <section aria-label="Últimos movimientos" className="border-t border-ink-100 pt-8">
+      <section aria-label="Últimos movimientos" className="border-t border-ink-200 pt-8">
         <div className="mb-3 flex items-end justify-between gap-3">
           <h2 className="text-lg text-ink-950">Últimos movimientos</h2>
           <Link
@@ -401,7 +401,7 @@ export function Inicio() {
           separado del resto por una regla: marca dónde termina "lo tuyo" y
           empieza "lo que te ofrecemos". El encabezado baja a text-base porque
           compite con secciones que sí traen datos del socio. */}
-      <section aria-label="Novedades" className="border-t border-ink-100 pt-8">
+      <section aria-label="Novedades" className="border-t border-ink-200 pt-8">
         <h2 className="mb-3 text-lg text-ink-950">Novedades</h2>
         <NovedadesCarousel novedades={NOVEDADES} />
       </section>
