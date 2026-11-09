@@ -378,8 +378,8 @@ export function Inicio() {
           <div className="overflow-hidden rounded-card bg-white shadow-card ring-1 ring-ink-100">
             <ul className="divide-y divide-ink-100">
               {ultimos.map((orden) => (
-                <li key={orden.id} className="flex items-center gap-3 px-4 py-3">
-                  <Icon icono={Receipt} tono="neutro" tamano="sm" />
+                <li key={orden.id} className="flex items-center gap-3 px-4 py-4">
+                  <Icon icono={Receipt} tono="neutro" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-ink-900">{orden.concepto}</p>
                     <p className="text-xs text-ink-500">{formatearFecha(orden.fecha)}</p>
