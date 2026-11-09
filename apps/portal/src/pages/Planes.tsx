@@ -1,8 +1,19 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Check, ShieldCheck } from 'lucide-react';
-import { buscarPlan, buscarProducto, ON_DEMAND, PLANES, type Plan, type Producto } from '@/mock/planes';
+import {
+  buscarPlan,
+  buscarProducto,
+  ON_DEMAND,
+  PLANES,
+  type Plan,
+  type PlanSlug,
+  type Prestacion,
+  type Producto,
+} from '@/mock/planes';
 import { PlanCard } from '@/features/planes/PlanCard';
+import { ETIQUETA, GLIFO, TONO } from '@/features/planes/estadoPrestacion';
+import { cn } from '@/lib/cn';
 import { iconoDeProducto } from '@/features/planes/iconoProducto';
 import { planContratado, productosContratados, proximoVencimiento } from '@/features/cobertura/contrataciones';
 import { CoberturaEstado } from '@/features/cobertura/CoberturaEstado';
@@ -93,43 +104,40 @@ export function Planes() {
         <p className="mt-1 text-sm text-ink-600">Cambiá de plan o sumá una cobertura adicional.</p>
       </div>
 
-      {/* Grilla de planes solo visible cuando el usuario toca 'Subir de plan'.
-          Con cobertura activa la pantalla queda centrada en los productos; el
-          upgrade pasa a ser una acción opcional, no el contenido principal. */}
-      {activo === undefined || mostrarPlanes ? (
+      {/* Sin cobertura: grilla clásica de PlanCard (elegir plan es la tarea).
+          Con cobertura + 'Subir de plan' tocado: tabla comparativa. */}
+      {activo === undefined ? (
         <section className="flex flex-col gap-4">
           <h2 className="font-display text-xl text-ink-950">Planes</h2>
           <div className="grid gap-4 md:grid-cols-3">
-            {PLANES.map((plan: Plan) => {
-              const esElTuyo = activo?.slug === plan.slug;
-              return (
-                <PlanCard
-                  key={plan.slug}
-                  plan={plan}
-                  activo={esElTuyo}
-                  destacado={plan.recomendado === true}
-                  etiquetaCta={activo !== undefined ? 'Cambiar a este plan' : 'Contratar'}
-                  // Sin CTA en el plan propio: la badge "Tu plan" ya lo
-                  // comunica y ofrecer un botón sería invitar a recomprar lo
-                  // mismo. Al elegir, si ya tenemos emailPago (segunda+
-                  // suscripción) saltamos al checkout; si no, abrimos el
-                  // popup para capturarlo.
-                  onCta={
-                    esElTuyo
-                      ? undefined
-                      : (elegido) => {
-                          if (sesion.emailPago) {
-                            void elegir('plan', elegido.slug, sesion.emailPago);
-                          } else {
-                            setPendiente({ tipo: 'plan', id: elegido.slug });
-                          }
-                        }
+            {PLANES.map((plan: Plan) => (
+              <PlanCard
+                key={plan.slug}
+                plan={plan}
+                destacado={plan.recomendado === true}
+                etiquetaCta="Contratar"
+                onCta={(elegido) => {
+                  if (sesion.emailPago) {
+                    void elegir('plan', elegido.slug, sesion.emailPago);
+                  } else {
+                    setPendiente({ tipo: 'plan', id: elegido.slug });
                   }
-                />
-              );
-            })}
+                }}
+              />
+            ))}
           </div>
         </section>
+      ) : mostrarPlanes ? (
+        <PlanesComparativa
+          activo={activo}
+          onElegir={(plan) => {
+            if (sesion.emailPago) {
+              void elegir('plan', plan.slug, sesion.emailPago);
+            } else {
+              setPendiente({ tipo: 'plan', id: plan.slug });
+            }
+          }}
+        />
       ) : (
         <section>
           {/* Mismo header que /coberturas (icono XL + nombre | Activa + próxima
@@ -258,5 +266,115 @@ export function Planes() {
         />
       ) : null}
     </div>
+  );
+}
+
+/**
+ * Tabla comparativa de planes. Columnas = los 3 planes (con el actual
+ * destacado); filas = la unión de todas las prestaciones. Cada celda
+ * muestra el chip de estado + opcional detalle. El header de cada columna
+ * trae el nombre del plan, el precio y el CTA ('Tu plan actual' o 'Subir
+ * de plan').
+ */
+function PlanesComparativa({
+  activo,
+  onElegir,
+}: {
+  activo: Plan;
+  onElegir: (plan: Plan) => void;
+}) {
+  // Unión ordenada de todas las prestaciones. Preserva el orden del primer
+  // plan en que aparece cada label (que ya viene curado desde planes.ts).
+  const todasLasPrestaciones: string[] = [];
+  const porLabel = new Map<PlanSlug, Map<string, Prestacion>>();
+  for (const plan of PLANES) {
+    const porPlan = new Map<string, Prestacion>();
+    for (const p of plan.prestaciones) {
+      porPlan.set(p.label, p);
+      if (!todasLasPrestaciones.includes(p.label)) todasLasPrestaciones.push(p.label);
+    }
+    porLabel.set(plan.slug, porPlan);
+  }
+
+  return (
+    <section className="flex flex-col gap-4">
+      <h2 className="font-display text-xl text-ink-950">Comparar planes</h2>
+      <div className="overflow-x-auto rounded-card bg-white shadow-card ring-1 ring-ink-100">
+        <table className="w-full border-collapse text-left">
+          <thead>
+            <tr className="border-b border-ink-100 align-top">
+              <th scope="col" className="px-4 pb-4 pt-5 text-xs font-medium uppercase tracking-wide text-ink-500">
+                Prestación
+              </th>
+              {PLANES.map((plan) => {
+                const esElTuyo = plan.slug === activo.slug;
+                return (
+                  <th
+                    key={plan.slug}
+                    scope="col"
+                    className={cn(
+                      'min-w-[180px] px-4 pb-4 pt-5 align-top',
+                      esElTuyo && 'bg-marca-50',
+                    )}
+                  >
+                    <div className="flex flex-col items-start gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-display text-base text-ink-950">{plan.nombre}</span>
+                        {esElTuyo ? (
+                          <span className="rounded-pill bg-marca-600 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white">
+                            Tu plan
+                          </span>
+                        ) : null}
+                      </div>
+                      <Money monto={plan.precio} periodo="/mes" />
+                      {esElTuyo ? (
+                        <span className="h-9 inline-flex items-center text-xs font-medium text-ink-500">
+                          Plan actual
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => onElegir(plan)}
+                          className="inline-flex h-9 cursor-pointer items-center justify-center rounded-pill bg-brand-oscurecido px-4 text-sm font-medium text-white shadow-elevada transition-colors"
+                        >
+                          Subir de plan
+                        </button>
+                      )}
+                    </div>
+                  </th>
+                );
+              })}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-ink-100">
+            {todasLasPrestaciones.map((label) => (
+              <tr key={label} className="align-top">
+                <td className="px-4 py-3 text-sm font-medium text-ink-900">{label}</td>
+                {PLANES.map((plan) => {
+                  const p = porLabel.get(plan.slug)?.get(label);
+                  const esElTuyo = plan.slug === activo.slug;
+                  const estado = p?.estado ?? 'no-incluido';
+                  return (
+                    <td
+                      key={plan.slug}
+                      className={cn('px-4 py-3', esElTuyo && 'bg-marca-50')}
+                    >
+                      <div className="flex flex-col gap-1">
+                        <Chip tono={TONO[estado]} icono={GLIFO[estado]}>
+                          {ETIQUETA[estado]}
+                        </Chip>
+                        {p?.detalle ? (
+                          <span className="text-xs text-ink-500">{p.detalle}</span>
+                        ) : null}
+                      </div>
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
