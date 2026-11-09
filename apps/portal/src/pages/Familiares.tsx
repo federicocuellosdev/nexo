@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { ShieldCheck, UserPlus } from 'lucide-react';
 import { setSession, useSession, type Beneficiario } from '@/mock/session';
 import { planContratado } from '@/features/cobertura/contrataciones';
-import { DialogoAgregarPersona } from '@/features/perfil/DialogoAgregarPersona';
+import { DialogoAgregarVariasPersonas } from '@/features/perfil/DialogoAgregarVariasPersonas';
+import { DialogoEmailMercadoPago } from '@/features/pago/DialogoEmailMercadoPago';
+import { crearSuscripcion } from '@/lib/api';
 import { Card } from '@/ui/Card';
 import { EmptyState } from '@/ui/EmptyState';
 import { clasesBoton } from '@/ui/Button';
-import { cn } from '@/lib/cn';
 
 const ETIQUETA_RELACION: Record<'conyuge' | 'hijo' | 'padre' | 'madre' | 'otro', string> = {
   conyuge: 'Cónyuge',
@@ -17,20 +18,71 @@ const ETIQUETA_RELACION: Record<'conyuge' | 'hijo' | 'padre' | 'madre' | 'otro',
   otro: 'Otro',
 };
 
-/**
- * Pantalla dedicada a adherentes del plan. Antes vivía como sección dentro de
- * /coberturas; se extrajo para que la gestión de familiares tenga su propio
- * menú y el usuario los pueda consultar/agregar sin pasar por cobertura.
- *
- * Con plan contratado: grid de cards (una por beneficiario del perfil) + card
- * dashed 'Agregar persona' al final.
- * Sin plan: EmptyState con CTA a /planes.
- */
 export function Familiares() {
   const sesion = useSession();
+  const navegar = useNavigate();
   const plan = planContratado(sesion);
   const beneficiarios = sesion.perfil?.beneficiarios ?? [];
-  const [agregandoPersona, setAgregandoPersona] = useState(false);
+  const [agregando, setAgregando] = useState(false);
+  // Cuando el user completa el wizard sin emailPago en sesión, retenemos los
+  // beneficiarios nuevos acá para disparar el pago en cuanto el popup de MP
+  // nos devuelva el email.
+  const [pendientes, setPendientes] = useState<Beneficiario[] | null>(null);
+
+  async function crearSuscripcionPorAdherentes(nuevos: Beneficiario[], emailMp: string) {
+    if (!plan) return;
+    const monto = plan.precio * nuevos.length;
+    try {
+      const { preapprovalId, initPoint } = await crearSuscripcion({
+        planId: plan.slug,
+        planNombre: `${plan.nombre} · ${nuevos.length} adherente(s)`,
+        monto,
+        emailMp,
+      });
+      window.open(initPoint, '_blank', 'noopener,noreferrer');
+      // Persistir los beneficiarios + bumpar familiares. El pago no está
+      // confirmado todavía — el polling de /pago (que escucha pagoPendiente)
+      // transiciona a 'authorized' cuando MP confirma.
+      const perfilActual = sesion.perfil;
+      if (perfilActual) {
+        setSession({
+          perfil: {
+            ...perfilActual,
+            beneficiarios: [...(perfilActual.beneficiarios ?? []), ...nuevos],
+          },
+          familiares: (sesion.familiares ?? 0) + nuevos.length,
+          emailPago: emailMp,
+          pagoPendiente: {
+            preapprovalId,
+            tipo: 'plan',
+            itemId: plan.slug,
+            nombre: `${plan.nombre} · ${nuevos.length} adherente(s)`,
+            monto,
+            emailMp,
+            checkoutUrl: initPoint,
+          },
+        });
+      } else {
+        setSession({
+          familiares: (sesion.familiares ?? 0) + nuevos.length,
+          emailPago: emailMp,
+          pagoPendiente: {
+            preapprovalId,
+            tipo: 'plan',
+            itemId: plan.slug,
+            nombre: `${plan.nombre} · ${nuevos.length} adherente(s)`,
+            monto,
+            emailMp,
+            checkoutUrl: initPoint,
+          },
+        });
+      }
+      void navegar('/pago');
+    } catch (err) {
+      console.warn('[familiares] no se pudo crear la suscripcion, cayendo al mock', err);
+      void navegar('/pago');
+    }
+  }
 
   if (!plan) {
     return (
@@ -62,7 +114,7 @@ export function Familiares() {
         </p>
       </div>
 
-      <section aria-label="Lista de familiares" className={cn('flex flex-col gap-4')}>
+      <section aria-label="Lista de familiares" className="flex flex-col gap-4">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {beneficiarios.map((ben, i) => (
             <Card key={`${ben.numeroDocumento}-${i}`} className="flex items-center gap-3 p-4">
@@ -82,11 +134,9 @@ export function Familiares() {
             </Card>
           ))}
 
-          {/* Card dashed de 'Agregar persona' siempre al final. Abre el mismo
-              DialogoAgregarPersona que antes vivía en /coberturas. */}
           <button
             type="button"
-            onClick={() => setAgregandoPersona(true)}
+            onClick={() => setAgregando(true)}
             className="flex cursor-pointer items-center gap-3 rounded-card border-2 border-dashed border-ink-200 bg-transparent p-4 text-left transition-colors hover:border-marca-400 hover:bg-marca-50/40"
           >
             <span
@@ -97,29 +147,37 @@ export function Familiares() {
             </span>
             <div className="min-w-0">
               <p className="text-sm font-medium text-ink-900">Agregar persona</p>
-              <p className="text-xs text-ink-500">Sumá un adherente al plan</p>
+              <p className="text-xs text-ink-500">Sumá uno o varios adherentes</p>
             </div>
           </button>
         </div>
       </section>
 
-      {agregandoPersona ? (
-        <DialogoAgregarPersona
-          onCerrar={() => setAgregandoPersona(false)}
-          onAgregar={(beneficiario: Beneficiario) => {
-            const perfilActual = sesion.perfil;
-            if (perfilActual) {
-              setSession({
-                perfil: {
-                  ...perfilActual,
-                  beneficiarios: [...(perfilActual.beneficiarios ?? []), beneficiario],
-                },
-                familiares: (sesion.familiares ?? 0) + 1,
-              });
+      {agregando ? (
+        <DialogoAgregarVariasPersonas
+          precioPorPersona={plan.precio}
+          onCerrar={() => setAgregando(false)}
+          onFinalizar={(nuevos) => {
+            setAgregando(false);
+            const emailMp = sesion.emailPago;
+            if (emailMp) {
+              void crearSuscripcionPorAdherentes(nuevos, emailMp);
             } else {
-              setSession({ familiares: (sesion.familiares ?? 0) + 1 });
+              // Necesitamos pedir el email MP antes de crear la preapproval.
+              // Retenemos los beneficiarios y abrimos el popup correspondiente.
+              setPendientes(nuevos);
             }
-            setAgregandoPersona(false);
+          }}
+        />
+      ) : null}
+
+      {pendientes ? (
+        <DialogoEmailMercadoPago
+          onCerrar={() => setPendientes(null)}
+          onConfirmar={(email) => {
+            const nuevos = pendientes;
+            setPendientes(null);
+            if (nuevos) void crearSuscripcionPorAdherentes(nuevos, email);
           }}
         />
       ) : null}
