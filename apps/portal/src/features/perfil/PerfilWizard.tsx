@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
+import { cn } from '@/lib/cn';
 import type { PerfilPrevinca } from '@/mock/session';
 import {
   aPerfil,
@@ -130,17 +131,18 @@ export function PerfilWizard({
             aria-valuemin={1}
             aria-valuemax={TOTAL_PASOS}
             aria-label="Progreso del perfil"
-            className="mt-2 h-1.5 w-full overflow-hidden rounded-pill bg-ink-100"
+            className="mt-3 flex items-center gap-2"
           >
-            <div
-              // Este SÍ conserva el degradado de marca, y es el único lugar del
-              // portal que lo hace: no lleva texto ni glifo encima, así que no
-              // hay contraste que cumplir. Es el acento de marca de la pantalla.
-              // No "corregirlo" a sólido por consistencia con el botón: el
-              // motivo del cambio allá era de accesibilidad, y acá no aplica.
-              className="h-full rounded-pill bg-brand transition-[width] duration-300 ease-out-expo"
-              style={{ width: `${(paso / TOTAL_PASOS) * 100}%` }}
-            />
+            {Array.from({ length: TOTAL_PASOS }, (_, i) => i + 1).map((n) => (
+              <span
+                key={n}
+                aria-hidden="true"
+                className={cn(
+                  'size-2 rounded-pill transition-colors duration-200',
+                  n <= paso ? 'bg-marca-600' : 'bg-ink-200',
+                )}
+              />
+            ))}
           </div>
         </div>
       )}
