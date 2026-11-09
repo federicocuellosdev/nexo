@@ -133,6 +133,10 @@ export function Coberturas() {
                 buscadores de Farmacity y Rosario Visión) y se abren en pestaña
                 nueva: la persona está en el portal para consultar, no para
                 navegar a un sitio externo y perder el contexto. */}
+            {/* Mismo tratamiento que los Accesos rapidos de /inicio:
+                degradado de marca + sombra elevada + icono blanco a 22px.
+                Son los CTAs principales para USAR la cobertura, no acciones
+                secundarias. */}
             <div className="border-t border-ink-100 pt-5">
               <h3 className="mb-3 text-base font-medium text-ink-900">Usar mi cobertura</h3>
               <div className="grid gap-3 sm:grid-cols-3">
@@ -140,28 +144,31 @@ export function Coberturas() {
                   href="https://www.doc24.com.ar/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={clasesBoton({ variante: 'secundario', ancho: 'full' })}
+                  data-elevar
+                  className="flex items-center gap-3 rounded-card bg-brand-oscurecido px-5 py-5 text-white shadow-elevada"
                 >
-                  <Stethoscope size={16} aria-hidden="true" />
-                  Ir a Doc24
+                  <Stethoscope size={22} strokeWidth={1.75} aria-hidden="true" className="text-white" />
+                  <span className="text-sm font-medium">Ir a Doc24</span>
                 </a>
                 <a
                   href="https://www.farmacity.com/sucursales/?distance=5&province=santa-fe"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={clasesBoton({ variante: 'secundario', ancho: 'full' })}
+                  data-elevar
+                  className="flex items-center gap-3 rounded-card bg-brand-oscurecido px-5 py-5 text-white shadow-elevada"
                 >
-                  <Pill size={16} aria-hidden="true" />
-                  Buscar farmacias
+                  <Pill size={22} strokeWidth={1.75} aria-hidden="true" className="text-white" />
+                  <span className="text-sm font-medium">Buscar farmacias</span>
                 </a>
                 <a
                   href="https://www.rosariovision.com.ar/sucursales"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={clasesBoton({ variante: 'secundario', ancho: 'full' })}
+                  data-elevar
+                  className="flex items-center gap-3 rounded-card bg-brand-oscurecido px-5 py-5 text-white shadow-elevada"
                 >
-                  <Glasses size={16} aria-hidden="true" />
-                  Buscar ópticas
+                  <Glasses size={22} strokeWidth={1.75} aria-hidden="true" className="text-white" />
+                  <span className="text-sm font-medium">Buscar ópticas</span>
                 </a>
               </div>
             </div>
