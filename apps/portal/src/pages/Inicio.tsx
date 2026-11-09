@@ -256,25 +256,39 @@ export function Inicio() {
             estado={estado}
             proximoVencimiento={vencimiento}
             accionExtra={
-              credencial ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => void credDownload.descargar()}
-                    disabled={credDownload.generando}
-                    aria-busy={credDownload.generando}
-                    className={clasesBoton({ variante: 'secundario', tamano: 'sm', ancho: 'full' })}
-                  >
-                    <Download size={16} aria-hidden="true" />
-                    {credDownload.generando ? 'Generando…' : 'Descargar credencial'}
-                  </button>
-                  {credDownload.fallo ? (
-                    <p role="alert" className="text-sm text-danger-700">
-                      No pudimos generar la imagen. Probá de nuevo, o mostrá la credencial desde esta pantalla.
-                    </p>
-                  ) : null}
-                </>
-              ) : null
+              <>
+                {credencial ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => void credDownload.descargar()}
+                      disabled={credDownload.generando}
+                      aria-busy={credDownload.generando}
+                      className={clasesBoton({ variante: 'secundario', tamano: 'sm', ancho: 'full' })}
+                    >
+                      <Download size={16} aria-hidden="true" />
+                      {credDownload.generando ? 'Generando…' : 'Descargar credencial'}
+                    </button>
+                    {credDownload.fallo ? (
+                      <p role="alert" className="text-sm text-danger-700">
+                        No pudimos generar la imagen. Probá de nuevo, o mostrá la credencial desde esta pantalla.
+                      </p>
+                    ) : null}
+                  </>
+                ) : null}
+                {/* "Subir de plan" es el CTA de MAYOR jerarquía del bloque:
+                    usa el degradado de marca con texto blanco y sombra elevada
+                    (mismo tratamiento que los Accesos rápidos activos), para
+                    que se lea como la acción que se quiere traccionar por
+                    sobre "Ver mi cobertura" y "Descargar credencial". */}
+                <Link
+                  to="/planes"
+                  data-elevar
+                  className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-pill bg-brand-oscurecido px-5 text-sm font-medium text-white shadow-elevada transition-colors"
+                >
+                  Subir de plan
+                </Link>
+              </>
             }
           />
         ) : faltaTerminarCompra && planElegido ? (
