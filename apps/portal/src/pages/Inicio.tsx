@@ -4,7 +4,6 @@ import { Link, useLocation, useNavigate } from 'react-router';
 import * as RadixDialog from '@radix-ui/react-dialog';
 import { ChevronDown, LayoutGrid, Receipt, ShieldCheck, Sparkles, Users, X } from 'lucide-react';
 import { getSession, setSession, useSession } from '@/mock/session';
-import { Field } from '@/ui/Field';
 import { Input } from '@/ui/Input';
 import { Button } from '@/ui/Button';
 import { cn } from '@/lib/cn';
@@ -542,7 +541,9 @@ function PlanPendienteCard({ plan, familiares, onFamiliaresChange }: PlanPendien
 
       {pidiendoEmailMp ? (
         <DialogoEmailMercadoPago
-          valorInicial={getSession().emailPago ?? getSession().usuario?.email ?? ''}
+          // Siempre vacío: no asumimos que el email de contacto es el mismo
+          // que el de MercadoPago (es justamente lo que el popup pide).
+          valorInicial=""
           onCerrar={() => setPidiendoEmailMp(false)}
           onConfirmar={(email) => {
             setSession({ emailPago: email });
@@ -619,23 +620,29 @@ function DialogoEmailMercadoPago({ valorInicial, onCerrar, onConfirmar }: Dialog
               Brindanos el email asociado a tu cuenta de Mercado Pago para generar la suscripción.
             </RadixDialog.Description>
 
-            <div className="mt-2 w-full text-left">
-              <Field label="Email" htmlFor="mp-email" error={error} requerido>
-                <Input
-                  id="mp-email"
-                  type="email"
-                  inputMode="email"
-                  autoComplete="email"
-                  autoFocus
-                  placeholder="Email"
-                  value={valor}
-                  invalido={error !== undefined}
-                  onChange={(evento) => {
-                    setValor(evento.target.value);
-                    if (error) setError(undefined);
-                  }}
-                />
-              </Field>
+            {/* Sin label visible — el placeholder "Email" alcanza. Se mantiene
+                `aria-label` para screen readers y `role=alert` del error. */}
+            <div className="mt-2 flex w-full flex-col gap-1.5 text-left">
+              <Input
+                id="mp-email"
+                aria-label="Email de Mercado Pago"
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                autoFocus
+                placeholder="Email de Mercado Pago"
+                value={valor}
+                invalido={error !== undefined}
+                onChange={(evento) => {
+                  setValor(evento.target.value);
+                  if (error) setError(undefined);
+                }}
+              />
+              {error ? (
+                <p role="alert" className="text-xs text-danger-700">
+                  {error}
+                </p>
+              ) : null}
             </div>
             <Button type="submit" ancho="full" tamano="lg">
               Continuar al pago
