@@ -1,15 +1,18 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Check } from 'lucide-react';
+import { Check, ShieldCheck } from 'lucide-react';
 import { buscarPlan, buscarProducto, ON_DEMAND, PLANES, type Plan, type Producto } from '@/mock/planes';
 import { PlanCard } from '@/features/planes/PlanCard';
 import { iconoDeProducto } from '@/features/planes/iconoProducto';
-import { planContratado, productosContratados } from '@/features/cobertura/contrataciones';
+import { planContratado, productosContratados, proximoVencimiento } from '@/features/cobertura/contrataciones';
+import { CoberturaEstado } from '@/features/cobertura/CoberturaEstado';
+import { derivarEstado } from '@/lib/estado';
 import { setSession, useSession, type TipoItem } from '@/mock/session';
 import { crearSuscripcion } from '@/lib/api';
 import { DialogoEmailMercadoPago } from '@/features/pago/DialogoEmailMercadoPago';
 import { Card } from '@/ui/Card';
 import { CardHero } from '@/ui/CardHero';
+import { Icon } from '@/ui/Icon';
 import { Money } from '@/ui/Money';
 import { Chip } from '@/ui/Chip';
 import { Button } from '@/ui/Button';
@@ -24,6 +27,8 @@ export function Planes() {
   const navegar = useNavigate();
   const activo = planContratado(sesion);
   const contratados = productosContratados(sesion);
+  const estado = derivarEstado(sesion);
+  const vencimiento = proximoVencimiento(sesion);
   // Guarda el item que el usuario eligió contratar mientras el popup de
   // Mercado Pago está abierto. Al confirmar se dispara `elegir()` con estos
   // datos y se navega al checkout.
@@ -127,21 +132,33 @@ export function Planes() {
         </section>
       ) : (
         <section>
-          {/* Card compacta que resume el plan activo + CTA para cambiar.
-              Mantengo altura baja (sin iconos XL ni paddings grandes): es
-              info de contexto, no la carta de presentación del plan. */}
-          <Card className="flex flex-col items-start gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex min-w-0 flex-col gap-0.5">
-              <p className="text-xs uppercase tracking-wide text-ink-500">Tu plan actual</p>
-              <p className="font-display text-lg text-ink-950">{activo.nombre}</p>
+          {/* Mismo header que /coberturas (icono XL + nombre | Activa + próxima
+              cuota) pero con UN solo CTA: 'Subir de plan' jerarquizado con el
+              brand gradient. Sin 'Otros servicios' — esta pantalla ya los
+              muestra abajo. */}
+          <Card className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex min-w-0 items-center gap-4">
+              <Icon icono={ShieldCheck} tono="marca" tamano="lg" />
+              <div className="flex min-w-0 flex-col gap-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="font-display text-xl text-ink-950">{activo.nombre}</h2>
+                  <span aria-hidden="true" className="text-ink-300">|</span>
+                  <CoberturaEstado estado={estado} />
+                </div>
+                {vencimiento ? (
+                  <p className="text-sm text-ink-500">{`Próxima cuota: ${vencimiento}`}</p>
+                ) : null}
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={() => setMostrarPlanes(true)}
-              className="inline-flex h-11 cursor-pointer items-center justify-center rounded-pill bg-brand-oscurecido px-5 text-base font-medium text-white shadow-elevada transition-colors"
-            >
-              Subir de plan
-            </button>
+            <div className="flex flex-col gap-2 lg:basis-2/5 lg:shrink-0">
+              <button
+                type="button"
+                onClick={() => setMostrarPlanes(true)}
+                className="inline-flex h-11 w-full cursor-pointer items-center justify-center rounded-pill bg-brand-oscurecido px-5 text-base font-medium text-white shadow-elevada transition-colors"
+              >
+                Subir de plan
+              </button>
+            </div>
           </Card>
         </section>
       )}
