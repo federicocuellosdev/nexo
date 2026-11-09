@@ -111,23 +111,23 @@ export function Pago() {
         Revisá los datos y pagá con Mercado Pago. Podés cancelar la suscripción cuando quieras.
       </p>
 
-      {/* Card principal: nombre/bajada + chips de detalle (personas,
-          cobertura, ciclo) + desglose del total. Un solo bloque con la
-          info completa de la compra para que el paso a MP sea confirmación,
-          no descubrimiento. */}
-      <Card className="mt-6 flex flex-col gap-5">
-        <div>
+      {/* Card principal: cada bloque separado por línea tenue + padding
+          generoso para que el resumen respire. Un solo bloque con la info
+          completa para que el paso a MP sea confirmación, no descubrimiento. */}
+      <Card className="mt-6 flex flex-col divide-y divide-ink-100 p-0">
+        {/* Header */}
+        <div className="px-6 py-5 lg:px-7 lg:py-6">
           <p className="text-xs uppercase tracking-wide text-ink-500">
             {esPlan ? 'Plan de salud' : 'Producto on demand'}
           </p>
           <h2 className="mt-1 font-display text-2xl text-ink-950">{item.nombre}</h2>
-          {item.bajada ? <p className="mt-1 text-sm text-ink-600">{item.bajada}</p> : null}
+          {item.bajada ? <p className="mt-2 text-sm text-ink-600">{item.bajada}</p> : null}
         </div>
 
         {/* Chips informativos. En plan muestra las 3; en producto solo las
             dos aplicables (cobertura y ciclo) — sin personas porque los
             productos son individuales. */}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 px-6 py-5 lg:px-7">
           {esPlan ? (
             <ChipDetalle
               icono={Users}
@@ -140,7 +140,7 @@ export function Pago() {
 
         {/* Desglose del total. Si hay más de una persona, se ve claro que
             el precio por persona es `precioUnitario` y el total multiplica. */}
-        <div className="flex flex-col gap-2 border-t border-ink-100 pt-4">
+        <div className="flex flex-col gap-2 px-6 py-5 lg:px-7 lg:py-6">
           {titulares > 1 ? (
             <div className="flex items-baseline justify-between gap-3 text-sm text-ink-600">
               <span>
@@ -158,12 +158,12 @@ export function Pago() {
         {/* Medio de pago — solo cuando ya capturamos el email MP. Antes de
             eso el popup lo pide y después vuelve acá mostrándolo. */}
         {sesion.emailPago ? (
-          <div className="flex items-center gap-3 rounded-card bg-[#009EE3]/10 p-3 ring-1 ring-[#009EE3]/25">
+          <div className="flex items-center gap-3 px-6 py-5 lg:px-7">
             <img
               src={`${import.meta.env.BASE_URL}mercadopago.png`}
               alt=""
               aria-hidden="true"
-              className="size-8 shrink-0"
+              className="size-9 shrink-0"
             />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-ink-900">Mercado Pago</p>
