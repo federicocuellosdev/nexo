@@ -64,29 +64,50 @@ export function PortalLayout() {
   const usuario = sesion.usuario;
   const enfocado = RUTAS_ENFOCADAS.has(useLocation().pathname);
 
-  // Hidratar datos del alta desde v3.leads cuando la sesión no los tiene
-  // (caso típico post-login). Vive en el layout y no en /inicio para que la
-  // sidebar muestre "Federico Cuellos" apenas se entra al portal, sin importar
-  // qué ruta se abra primero.
+  // Sincroniza la sesion del portal con v3.leads en cada mount del layout.
+  // Dos responsabilidades:
   //
-  // Se fetchea si falta CUALQUIERA de los tres: nombre, DNI o intent. Antes
-  // solo se gateaba por `faltaNombre`, lo que dejaba sin sincronizar el DNI
-  // (y por lo tanto el `dniLead` nunca se seteaba) en sesiones que ya tenían
-  // el nombre pero no el documento. Resultado: `/perfil/completar` arrancaba
-  // en paso 1 y `/cuenta` mostraba el documento vacío.
+  //   1. HIDRATAR datos faltantes (nombre, DNI, intent) desde el ultimo lead
+  //      del email. Era el unico trabajo del efecto original: se ejecutaba
+  //      solo cuando algo faltaba, para que la sidebar mostrara "Federico
+  //      Cuellos" post-login sin importar que ruta se abriera primero.
+  //
+  //   2. INVALIDAR la sesion si el lead al que apunta `sesion.leadId` ya no
+  //      existe en el backend. Caso real: borramos leads de staging durante
+  //      un cleanup y el browser seguia pintando la cobertura del flujo
+  //      anterior porque la sesion vive en sessionStorage, no en la DB. Sin
+  //      este reset, el portal muestra estado fantasma indefinidamente.
+  //
+  // Guard de invalidacion: solo si la sesion tiene `leadId` seteado. Asi la
+  // demo con USUARIO_DEMO (que no tiene leadId) no se rompe queriendo validar
+  // un lead que nunca existio.
   const emailUsuario = usuario?.email;
+  const leadIdSesion = sesion.leadId;
   const faltaNombre =
     usuario !== undefined && (usuario.nombre ?? '').trim() === '' && (usuario.apellido ?? '').trim() === '';
   const faltaDni = sesion.dniLead === undefined;
   const faltaIntent = sesion.intent === undefined;
-  const necesitaHidratar = emailUsuario !== undefined && (faltaNombre || faltaDni || faltaIntent);
+  const necesitaHidratar = faltaNombre || faltaDni || faltaIntent;
+  const necesitaValidar = leadIdSesion !== undefined;
+  const debeConsultar = emailUsuario !== undefined && (necesitaHidratar || necesitaValidar);
   useEffect(() => {
-    if (!necesitaHidratar) return;
+    if (!debeConsultar) return;
     let cancelado = false;
     void (async () => {
       try {
         const lead = await obtenerUltimoLead(emailUsuario!);
-        if (cancelado || lead === null) return;
+        if (cancelado) return;
+        if (lead === null) {
+          if (necesitaValidar) {
+            // Backend no reconoce al titular → sesion fantasma, hay que
+            // tirarla. Despues de resetear mandamos al landing para que el
+            // usuario arranque un alta limpia si quiere.
+            console.warn('[portal] lead no existe en backend, reset de sesion');
+            resetSession();
+            window.location.href = landingUrl();
+          }
+          return;
+        }
         const sesionActual = getSession();
         const patch: Parameters<typeof setSession>[0] = {};
         // Patcheamos SOLO lo que falta: no pisamos nombre/apellido/intent ya
@@ -111,13 +132,13 @@ export function PortalLayout() {
         }
         if (Object.keys(patch).length > 0) setSession(patch);
       } catch (err) {
-        console.warn('[portal] no se pudo hidratar desde el lead', err);
+        console.warn('[portal] no se pudo consultar v3.leads', err);
       }
     })();
     return () => {
       cancelado = true;
     };
-  }, [emailUsuario, necesitaHidratar]);
+  }, [emailUsuario, debeConsultar, necesitaValidar]);
 
   // Todos los items del menú quedan siempre activos. En algún momento
   // probamos deshabilitar Coberturas y Movimientos mientras no hubiera plan
