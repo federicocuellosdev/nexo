@@ -91,21 +91,29 @@ export function Coberturas() {
               <div className="flex min-w-0 items-center gap-4">
                 <Icon icono={ShieldCheck} tono="marca" tamano="lg" />
                 <div className="flex min-w-0 flex-col gap-1">
-                  <h2 className="font-display text-xl text-ink-950">{plan.nombre}</h2>
+                  {/* Nombre + estado en una sola línea separados por `|`:
+                      más denso visualmente que el chip en línea aparte y
+                      deja el estado al lado del nombre del plan, donde se
+                      lee junto. */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="font-display text-xl text-ink-950">{plan.nombre}</h2>
+                    <span aria-hidden="true" className="text-ink-300">|</span>
+                    <CoberturaEstado estado={estado} />
+                  </div>
                   {vencimiento ? (
                     <p className="text-sm text-ink-500">{`Próxima cuota: ${vencimiento}`}</p>
                   ) : null}
-                  <div className="mt-1 flex flex-wrap items-center gap-3">
+                  <div className="mt-1">
                     <Money monto={plan.precio} periodo="por mes" />
-                    <CoberturaEstado estado={estado} />
                   </div>
                 </div>
               </div>
 
-              {/* Con perfil pendiente el único CTA posible es completarlo.
-                  Con cobertura activa: 'Subir de plan' es el CTA jerarquico
-                  (degradado de marca + sombra elevada) y 'Contratar servicios'
-                  queda debajo como secundario. */}
+              {/* Jerarquía: los botones 'Usar mi cobertura' de abajo son la
+                  primera (bg-brand). Acá 'Subir de plan' queda como segunda
+                  jerarquía (secundario con ring) y 'Contratar servicios' es
+                  terciario (fantasma / link).
+                  Con perfil pendiente el único CTA es completarlo. */}
               <div className="flex flex-col gap-2 lg:basis-2/5 lg:shrink-0">
                 {estado === 'pagadoSinPerfil' ? (
                   <Link to="/perfil/completar" className={clasesBoton({ ancho: 'full', tamano: 'lg' })}>
@@ -113,14 +121,10 @@ export function Coberturas() {
                   </Link>
                 ) : (
                   <>
-                    <Link
-                      to="/planes"
-                      data-elevar
-                      className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-pill bg-brand-oscurecido px-5 text-base font-medium text-white shadow-elevada transition-colors"
-                    >
+                    <Link to="/planes" className={clasesBoton({ variante: 'secundario', ancho: 'full' })}>
                       Subir de plan
                     </Link>
-                    <Link to="/planes" className={clasesBoton({ variante: 'secundario', ancho: 'full' })}>
+                    <Link to="/planes" className={clasesBoton({ variante: 'fantasma', ancho: 'full' })}>
                       Contratar servicios
                     </Link>
                   </>
@@ -183,7 +187,7 @@ export function Coberturas() {
                 aria-expanded={prestacionesAbiertas}
                 aria-controls="tabla-prestaciones"
                 onClick={() => setPrestacionesAbiertas((v) => !v)}
-                className="flex w-full items-center justify-between gap-3 text-left"
+                className="flex w-full cursor-pointer items-center justify-between gap-3 text-left"
               >
                 <span className="text-base font-medium text-ink-900">
                   {`Coberturas del plan ${plan.nombre}`}
