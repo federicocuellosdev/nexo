@@ -20,24 +20,28 @@ export function PlanPrestaciones({ prestaciones }: PlanPrestacionesProps) {
       {/* Desktop: tabla con encabezados Prestación / Estado / Detalle.
           El borde inferior de cada row da ritmo visual; hover con bg-ink-50/50
           ayuda a seguir una fila larga sin perder el renglón. */}
+      {/* Celdas sin padding horizontal en los extremos para que el texto de
+          la primera columna arranque alineado con el h2 'Nexo III' y la
+          última columna llegue hasta el borde derecho. La separación entre
+          columnas intermedias sale del pr-6 de cada celda (menos la ultima). */}
       <table className="hidden w-full border-collapse text-left sm:table">
         <thead>
           <tr className="border-b border-ink-100 text-xs font-medium uppercase tracking-wide text-ink-500">
-            <th scope="col" className="px-4 pb-3 pt-2 font-medium">
+            <th scope="col" className="pb-3 pr-6 pt-2 font-medium">
               Prestación
             </th>
-            <th scope="col" className="px-4 pb-3 pt-2 font-medium">
+            <th scope="col" className="pb-3 pr-6 pt-2 font-medium">
               Estado
             </th>
-            <th scope="col" className="px-4 pb-3 pt-2 font-medium">
+            <th scope="col" className="pb-3 pt-2 font-medium">
               Detalle
             </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-ink-100">
           {prestaciones.map((prestacion) => (
-            <tr key={prestacion.label} className="align-top transition-colors hover:bg-ink-50/50">
-              <td className="px-4 py-3">
+            <tr key={prestacion.label} className="align-top">
+              <td className="py-3 pr-6">
                 <div className="flex flex-wrap items-center gap-2">
                   <span
                     className={cn(
@@ -56,12 +60,12 @@ export function PlanPrestaciones({ prestaciones }: PlanPrestacionesProps) {
                   ) : null}
                 </div>
               </td>
-              <td className="px-4 py-3">
+              <td className="py-3 pr-6">
                 <Chip tono={TONO[prestacion.estado]} icono={GLIFO[prestacion.estado]}>
                   {ETIQUETA[prestacion.estado]}
                 </Chip>
               </td>
-              <td className="px-4 py-3 text-sm text-ink-600">
+              <td className="py-3 text-sm text-ink-600">
                 {prestacion.detalle ?? <span className="text-ink-300">—</span>}
               </td>
             </tr>

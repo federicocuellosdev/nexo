@@ -59,7 +59,7 @@ export function CredencialCard({ datos, estado, origen, ref }: CredencialCardPro
       // contenido, es el único objeto del producto donde la metáfora de
       // "tarjeta" es literal. Un radio más generoso la separa de las demás
       // superficies sin necesidad de decorarla.
-      className="relative overflow-hidden rounded-[20px] p-5 text-white shadow-elevada sm:p-6"
+      className="relative h-full overflow-hidden rounded-[20px] p-5 text-white shadow-elevada sm:p-6"
       style={{
         backgroundImage:
           'linear-gradient(135deg, var(--color-ink-950) 0%, var(--color-marca-700) 100%)',

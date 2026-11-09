@@ -365,8 +365,15 @@ export function Inicio() {
             cobertura activa: la visibilidad por estado vive en ese helper y no
             se decide acá. */}
         {credencial ? (
-          <div className="w-full max-w-[420px]">
-            <CredencialCard ref={credDownload.ref} datos={credencial} estado={estado} origen={portalUrl()} />
+          <div className="flex h-full w-full max-w-[420px] flex-col">
+            <div className="flex-1">
+              <CredencialCard
+                ref={credDownload.ref}
+                datos={credencial}
+                estado={estado}
+                origen={portalUrl()}
+              />
+            </div>
           </div>
         ) : null}
       </section>
