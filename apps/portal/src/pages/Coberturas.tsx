@@ -20,18 +20,25 @@ import { clasesBoton } from '@/ui/Button';
 
 const COMO_USARLA = [
   {
-    id: 'optica',
-    icono: Glasses,
-    titulo: 'Óptica',
-    texto:
-      'Presentá tu credencial y la receta en cualquier sucursal de Rosario Visión, con la cuota al día. Retirás un par al año: armazón y cristales de stock. Lo que exceda la cobertura lo abonás con 20 % de descuento.',
-  },
-  {
     id: 'doc24',
     icono: Stethoscope,
     titulo: 'Telemedicina Doc24',
     texto:
-      'Entrás a la app de Doc24 con tu email y pedís consulta clínica sin turno previo. La primera consulta del mes va sin cargo según tu plan; el resto tiene coseguro.',
+      'Consultá un médico sin moverte de casa, 24/7. Tocá "Ir a Doc24", ingresá con tu email y conectate en minutos — tu primera consulta del mes va sin cargo.',
+  },
+  {
+    id: 'farmacia',
+    icono: Pill,
+    titulo: 'Farmacia',
+    texto:
+      'Hasta 50% de descuento en tus medicamentos. Tocá "Buscar farmacias", encontrá la sucursal más cercana y pedí el beneficio mostrando tu credencial en el mostrador.',
+  },
+  {
+    id: 'optica',
+    icono: Glasses,
+    titulo: 'Óptica',
+    texto:
+      'Tu par de anteojos al año sin costo extra. Tocá "Buscar ópticas", elegí la sucursal más cercana de Rosario Visión y retirá armazón + cristales presentando tu credencial.',
   },
 ];
 
@@ -253,7 +260,7 @@ export function Coberturas() {
 
       <section aria-label="Cómo usar tu cobertura">
         <h2 className="mb-3 text-xl text-ink-950">Cómo usar tu cobertura</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {COMO_USARLA.map((item) => (
             <Card key={item.id} className="flex flex-col gap-3">
               <Icon icono={item.icono} tono="marca" />
