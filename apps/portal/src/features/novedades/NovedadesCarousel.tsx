@@ -41,7 +41,15 @@ export function NovedadesCarousel({ novedades }: NovedadesCarouselProps) {
               : 'bg-white ring-ink-100',
           )}
         >
-          <Icon icono={novedad.icono} tono={novedad.tono} tamano="lg" />
+          <Icon
+            icono={novedad.icono}
+            tono={novedad.tono}
+            tamano="lg"
+            // En warn la card ya es bg-warn-50, así que el círculo del icono
+            // (default warn-50) se funde con el fondo. Lo pisamos con un
+            // tono más saturado para que el icono se separe del contenedor.
+            className={novedad.tono === 'warn' ? '!bg-warn-500/20' : undefined}
+          />
           <h3 className="mt-4 text-lg font-medium text-ink-950">{novedad.titulo}</h3>
           <p className="mt-2 text-sm text-ink-600">{novedad.texto}</p>
         </li>
