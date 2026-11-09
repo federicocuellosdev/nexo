@@ -107,7 +107,7 @@ export function Pago() {
   return (
     <div className="mx-auto max-w-[560px]">
       <h1 className="text-2xl text-ink-950">Confirmá tu pago</h1>
-      <p className="mt-1 text-sm text-ink-600">
+      <p className="mt-1 text-balance text-sm text-ink-600">
         Revisá los datos y pagá con Mercado Pago. Podés cancelar la suscripción cuando quieras.
       </p>
 
