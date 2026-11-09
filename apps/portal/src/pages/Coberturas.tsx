@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { Link } from 'react-router';
-import { CircleAlert, Glasses, ShieldCheck, Stethoscope } from 'lucide-react';
+import { ChevronDown, CircleAlert, Glasses, Pill, ShieldCheck, Stethoscope } from 'lucide-react';
+import { cn } from '@/lib/cn';
 import { useSession } from '@/mock/session';
 import { derivarEstado } from '@/lib/estado';
 import {
@@ -39,6 +41,7 @@ export function Coberturas() {
   const plan = planContratado(sesion);
   const productos = productosContratados(sesion);
   const vencimiento = proximoVencimiento(sesion);
+  const [prestacionesAbiertas, setPrestacionesAbiertas] = useState(false);
 
   if (plan === undefined && productos.length === 0) {
     return (
@@ -125,9 +128,80 @@ export function Coberturas() {
               </div>
             </div>
 
+            {/* Accesos directos a los servicios que la gente usa de verdad.
+                Las URLs son los destinos reales de cada servicio (Doc24 web,
+                buscadores de Farmacity y Rosario Visión) y se abren en pestaña
+                nueva: la persona está en el portal para consultar, no para
+                navegar a un sitio externo y perder el contexto. */}
             <div className="border-t border-ink-100 pt-5">
-              <h3 className="mb-3 text-base font-medium text-ink-900">{`Coberturas del plan ${plan.nombre}`}</h3>
-              <PlanPrestaciones prestaciones={plan.prestaciones} />
+              <h3 className="mb-3 text-base font-medium text-ink-900">Usar mi cobertura</h3>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <a
+                  href="https://www.doc24.com.ar/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={clasesBoton({ variante: 'secundario', ancho: 'full' })}
+                >
+                  <Stethoscope size={16} aria-hidden="true" />
+                  Ir a Doc24
+                </a>
+                <a
+                  href="https://www.farmacity.com/sucursales/?distance=5&province=santa-fe"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={clasesBoton({ variante: 'secundario', ancho: 'full' })}
+                >
+                  <Pill size={16} aria-hidden="true" />
+                  Buscar farmacias
+                </a>
+                <a
+                  href="https://www.rosariovision.com.ar/sucursales"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={clasesBoton({ variante: 'secundario', ancho: 'full' })}
+                >
+                  <Glasses size={16} aria-hidden="true" />
+                  Buscar ópticas
+                </a>
+              </div>
+            </div>
+
+            {/* Prestaciones adentro de un desplegable: por default cerrado.
+                Es información de referencia a la que se entra dos veces por
+                año (cuando hay que confirmar un copago, o antes de elegir
+                upgrade), no la primera lectura cuando se abre /coberturas. */}
+            <div className="border-t border-ink-100 pt-4">
+              <button
+                type="button"
+                aria-expanded={prestacionesAbiertas}
+                aria-controls="tabla-prestaciones"
+                onClick={() => setPrestacionesAbiertas((v) => !v)}
+                className="flex w-full items-center justify-between gap-3 text-left"
+              >
+                <span className="text-base font-medium text-ink-900">
+                  {`Coberturas del plan ${plan.nombre}`}
+                </span>
+                <ChevronDown
+                  size={20}
+                  aria-hidden="true"
+                  className={cn(
+                    'shrink-0 text-ink-500 transition-transform duration-200',
+                    prestacionesAbiertas && 'rotate-180',
+                  )}
+                />
+              </button>
+              <div
+                id="tabla-prestaciones"
+                className={cn(
+                  'grid overflow-hidden transition-[grid-template-rows,visibility] duration-300 ease-out',
+                  prestacionesAbiertas ? 'mt-3 grid-rows-[1fr] visible' : 'grid-rows-[0fr] invisible',
+                )}
+                aria-hidden={!prestacionesAbiertas}
+              >
+                <div className="min-h-0 overflow-hidden">
+                  <PlanPrestaciones prestaciones={plan.prestaciones} />
+                </div>
+              </div>
             </div>
           </Card>
         </section>
