@@ -24,21 +24,21 @@ const COMO_USARLA = [
     icono: Stethoscope,
     titulo: 'Telemedicina Doc24',
     texto:
-      'Consultá un médico sin moverte de casa, 24/7. Tocá "Ir a Doc24", ingresá con tu email y conectate en minutos — tu primera consulta del mes va sin cargo.',
+      'Atención médica 24/7 desde casa. Tocá "Ir a Doc24", ingresá con tu email y tu primera consulta del mes es sin cargo.',
   },
   {
     id: 'farmacia',
     icono: Pill,
     titulo: 'Farmacia',
     texto:
-      'Hasta 50% de descuento en tus medicamentos. Tocá "Buscar farmacias", encontrá la sucursal más cercana y pedí el beneficio mostrando tu credencial en el mostrador.',
+      'Hasta 50% de descuento en medicamentos. Tocá "Buscar farmacias", acercate a la sucursal y mostrá tu credencial.',
   },
   {
     id: 'optica',
     icono: Glasses,
     titulo: 'Óptica',
     texto:
-      'Tu par de anteojos al año sin costo extra. Tocá "Buscar ópticas", elegí la sucursal más cercana de Rosario Visión y retirá armazón + cristales presentando tu credencial.',
+      'Un par de anteojos al año sin costo. Tocá "Buscar ópticas", elegí tu sucursal y retirá con tu credencial.',
   },
 ];
 
