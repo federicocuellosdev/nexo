@@ -1,8 +1,19 @@
 import { useNavigate } from 'react-router';
 import { setSession, useSession } from '@/mock/session';
 import { PerfilWizard, type DatosDelWizard } from '@/features/perfil/PerfilWizard';
-import { BORRADOR_BENEFICIARIO, BORRADOR_DEMO } from '@/features/perfil/validacion';
+import { BORRADOR_BENEFICIARIO, BORRADOR_DEMO, BORRADOR_INICIAL } from '@/features/perfil/validacion';
 import { guardarPerfilBackend } from '@/lib/api';
+
+/**
+ * En staging/test precargamos el wizard con `BORRADOR_DEMO` para que el
+ * recorrido sea Enter→Enter→Enter→Guardar. En producción arrancamos vacío
+ * (`BORRADOR_INICIAL`) para no ensuciarle los datos reales al usuario.
+ *
+ * El flag se setea en Vercel como `VITE_DEMO_PREFILL=true` en `nexo-front`
+ * (staging). En el proyecto de producción no se declara y `BORRADOR_INICIAL`
+ * se usa por default — fail-safe correcto.
+ */
+const DEMO_PREFILL = import.meta.env.VITE_DEMO_PREFILL === 'true';
 
 export function PerfilCompletar() {
   const navegar = useNavigate();
@@ -71,7 +82,7 @@ export function PerfilCompletar() {
         <PerfilWizard
           key={`${dniLead ?? 'sin-dni'}-${familiares}`}
           borradorInicial={{
-            ...BORRADOR_DEMO,
+            ...(DEMO_PREFILL ? BORRADOR_DEMO : BORRADOR_INICIAL),
             nombre: usuario?.nombre ?? '',
             apellido: usuario?.apellido ?? '',
             ...(dniLead ? { tipoDocumento: 'DNI' as const, numeroDocumento: dniLead } : {}),

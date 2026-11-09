@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
-import { ChevronDown, LayoutGrid, Receipt, ShieldCheck, Sparkles, Users } from 'lucide-react';
+import { ChevronDown, Download, LayoutGrid, Receipt, ShieldCheck, Sparkles, Users } from 'lucide-react';
 import { agregarOrden, getSession, setSession, useSession } from '@/mock/session';
 import { DialogoEmailMercadoPago } from '@/features/pago/DialogoEmailMercadoPago';
 import { cn } from '@/lib/cn';
@@ -18,8 +18,9 @@ import { ETIQUETA, GLIFO, TONO } from '@/features/planes/estadoPrestacion';
 import { NOVEDADES } from '@/mock/novedades';
 import { NovedadesCarousel } from '@/features/novedades/NovedadesCarousel';
 import { CoberturaCard } from '@/features/cobertura/CoberturaCard';
-import { CredencialConDescarga } from '@/features/credencial/CredencialConDescarga';
+import { CredencialCard } from '@/features/credencial/CredencialCard';
 import { credencialDeLaSesion } from '@/features/credencial/datos';
+import { useCredencialDownload } from '@/features/credencial/useCredencialDownload';
 import { formatearFecha, planContratado, proximoVencimiento } from '@/features/cobertura/contrataciones';
 import { Card } from '@/ui/Card';
 import { Icon } from '@/ui/Icon';
@@ -48,6 +49,11 @@ export function Inicio() {
   const vencimiento = proximoVencimiento(sesion);
   const ultimos = sesion.ordenes.slice(0, 3);
   const credencial = credencialDeLaSesion(sesion);
+
+  // Botón de descarga vive junto a "Ver mi cobertura" en la columna
+  // izquierda (ver más abajo), pero sigue capturando el DOM de la credencial
+  // que vive a la derecha — por eso el ref y los flags viven acá, compartidos.
+  const credDownload = useCredencialDownload(credencial?.numeroAfiliado ?? '');
 
   // `sesion.intent` guarda lo que el usuario ELIGIÓ (spec §6), no lo que pagó.
   // Sin cruzarlo con el estado, quien elige un plan y no termina el pago cae
@@ -206,7 +212,7 @@ export function Inicio() {
       {reciénActivada ? (
         <p
           role="status"
-          className="flex items-center gap-2 rounded-card bg-ok-50 px-4 py-3 text-sm font-medium text-ok-700"
+          className="flex items-center gap-2 rounded-card bg-ok-50 px-4 py-3 text-sm font-medium text-ok-700 ring-1 ring-ok-500/30"
         >
           <Sparkles size={16} aria-hidden="true" />
           Cobertura activa. Ya podés usar todas tus prestaciones.
@@ -245,7 +251,28 @@ export function Inicio() {
         )}
       >
         {plan && vencimiento ? (
-          <CoberturaCard plan={plan} estado={estado} proximoVencimiento={vencimiento} />
+          <div className="flex flex-col gap-3">
+            <CoberturaCard plan={plan} estado={estado} proximoVencimiento={vencimiento} />
+            {credencial ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => void credDownload.descargar()}
+                  disabled={credDownload.generando}
+                  aria-busy={credDownload.generando}
+                  className={clasesBoton({ variante: 'secundario', ancho: 'full' })}
+                >
+                  <Download size={16} aria-hidden="true" />
+                  {credDownload.generando ? 'Generando…' : 'Descargar credencial'}
+                </button>
+                {credDownload.fallo ? (
+                  <p role="alert" className="text-sm text-danger-700">
+                    No pudimos generar la imagen. Probá de nuevo, o mostrá la credencial desde esta pantalla.
+                  </p>
+                ) : null}
+              </>
+            ) : null}
+          </div>
         ) : faltaTerminarCompra && planElegido ? (
           <PlanPendienteCard
             plan={planElegido}
@@ -320,7 +347,9 @@ export function Inicio() {
             cobertura activa: la visibilidad por estado vive en ese helper y no
             se decide acá. */}
         {credencial ? (
-          <CredencialConDescarga datos={credencial} estado={estado} origen={portalUrl()} />
+          <div className="w-full max-w-[420px]">
+            <CredencialCard ref={credDownload.ref} datos={credencial} estado={estado} origen={portalUrl()} />
+          </div>
         ) : null}
       </section>
 

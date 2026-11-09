@@ -185,12 +185,13 @@ export function PerfilWizard({
       <form
         onSubmit={enviar}
         noValidate
-        // `[&>*+*]:border-t`: cada bloque hijo (menos el primero) agrega una
-        // línea tenue arriba. Reemplaza al `gap-4` entre bloques para que la
+        // `border-t pt-4` en el form: línea tenue entre el header (Paso X de N
+        // + puntitos) y el primer input, para cerrar visualmente esa fila.
+        // `[&>*+*]:border-t`: cada bloque hijo (menos el primero) agrega otra
+        // línea arriba — reemplaza al `gap-4` entre bloques para que la
         // separación visual sea una regla, no solo espacio. Los botones al
-        // final mantienen su propio `mt-2` para quedar por fuera de la grilla
-        // de inputs.
-        className="flex flex-col [&>*+*]:border-t [&>*+*]:border-ink-100 [&>*+*]:pt-4"
+        // final mantienen su propio `mt-2` para quedar por fuera de la grilla.
+        className="flex flex-col border-t border-ink-100 pt-4 [&>*+*]:border-t [&>*+*]:border-ink-100 [&>*+*]:pt-4"
       >
         {paso === 1 ? (
           <>
