@@ -100,16 +100,27 @@ export function Coberturas() {
               </div>
 
               {/* Con perfil pendiente el único CTA posible es completarlo.
-                  Con cobertura activa, ofrecer contratar servicios extra. */}
+                  Con cobertura activa: 'Subir de plan' es el CTA jerarquico
+                  (degradado de marca + sombra elevada) y 'Contratar servicios'
+                  queda debajo como secundario. */}
               <div className="flex flex-col gap-2 lg:basis-2/5 lg:shrink-0">
                 {estado === 'pagadoSinPerfil' ? (
                   <Link to="/perfil/completar" className={clasesBoton({ ancho: 'full', tamano: 'lg' })}>
                     Completar perfil
                   </Link>
                 ) : (
-                  <Link to="/planes" className={clasesBoton({ variante: 'secundario', ancho: 'full' })}>
-                    Contratar servicios
-                  </Link>
+                  <>
+                    <Link
+                      to="/planes"
+                      data-elevar
+                      className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-pill bg-brand-oscurecido px-5 text-base font-medium text-white shadow-elevada transition-colors"
+                    >
+                      Subir de plan
+                    </Link>
+                    <Link to="/planes" className={clasesBoton({ variante: 'secundario', ancho: 'full' })}>
+                      Contratar servicios
+                    </Link>
+                  </>
                 )}
               </div>
             </div>

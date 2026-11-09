@@ -118,36 +118,52 @@ export function Planes() {
       </section>
 
       <section className="flex flex-col gap-4">
-        {/* Hoy los productos on demand están deshabilitados mientras el
-            usuario no tenga un plan contratado: son complementos del plan,
-            no un producto independiente. La oferta se muestra igual (precio,
-            nombre, bajada) para que la persona la conozca; solo el CTA queda
-            no accionable. */}
+        {/* Los productos on demand se habilitan cuando el usuario ya tiene un
+            plan contratado: son complementos, no un producto independiente.
+            Sin plan, la oferta se muestra igual (precio, nombre, bajada) pero
+            el CTA queda no accionable con el aviso correspondiente. */}
         <div className="flex flex-col gap-1 border-b border-ink-100 pb-4">
           <h2 className="font-display text-xl text-ink-950">Productos</h2>
-          <p className="text-sm text-ink-500">
-            Es necesario tener un plan contratado para acceder a estos servicios.
-          </p>
+          {activo === undefined ? (
+            <p className="text-sm text-ink-500">
+              Es necesario tener un plan contratado para acceder a estos servicios.
+            </p>
+          ) : null}
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {ON_DEMAND.map((producto: Producto) => {
             const yaLoTiene = contratados.some((p) => p.id === producto.id);
             const icono = iconoDeProducto(producto.id);
+            const habilitado = activo !== undefined;
             return (
               <Card
                 key={producto.id}
                 as="article"
-                // Card deshabilitada: bg gris + ring más marcado (ink-200)
-                // para que el borde se note contra el bg-app, y bajada con
-                // alto reservado para 2 líneas así todos los precios quedan
-                // alineados verticalmente aunque las descripciones varíen.
-                className="flex flex-col gap-3 !bg-ink-50 !ring-ink-200"
+                className={
+                  habilitado
+                    ? 'flex flex-col gap-3'
+                    : 'flex flex-col gap-3 !bg-ink-50 !ring-ink-200'
+                }
               >
-                {icono ? <CardHero icono={icono} deshabilitado /> : null}
-                <h3 className="text-lg font-medium text-ink-500">{producto.nombre}</h3>
-                <p className="line-clamp-2 min-h-[2.5rem] text-sm text-ink-500">{producto.detalle}</p>
-                <div className="flex flex-wrap items-center gap-2 text-ink-500">
-                  <Money monto={producto.precio} periodo="por mes" className="!text-ink-500" />
+                {icono ? <CardHero icono={icono} deshabilitado={!habilitado} /> : null}
+                <h3 className={habilitado ? 'text-lg font-medium text-ink-950' : 'text-lg font-medium text-ink-500'}>
+                  {producto.nombre}
+                </h3>
+                <p
+                  className={
+                    habilitado
+                      ? 'line-clamp-2 min-h-[2.5rem] text-sm text-ink-600'
+                      : 'line-clamp-2 min-h-[2.5rem] text-sm text-ink-500'
+                  }
+                >
+                  {producto.detalle}
+                </p>
+                <div className={habilitado ? 'flex flex-wrap items-center gap-2' : 'flex flex-wrap items-center gap-2 text-ink-500'}>
+                  <Money
+                    monto={producto.precio}
+                    periodo="por mes"
+                    {...(habilitado ? {} : { className: '!text-ink-500' })}
+                  />
                 </div>
                 <div className="mt-auto pt-1">
                   {yaLoTiene ? (
@@ -155,7 +171,22 @@ export function Planes() {
                       Ya contratado
                     </Chip>
                   ) : (
-                    <Button variante="secundario" ancho="full" disabled>
+                    <Button
+                      variante="secundario"
+                      ancho="full"
+                      disabled={!habilitado}
+                      onClick={
+                        habilitado
+                          ? () => {
+                              if (sesion.emailPago) {
+                                void elegir('producto', producto.id, sesion.emailPago);
+                              } else {
+                                setPendiente({ tipo: 'producto', id: producto.id });
+                              }
+                            }
+                          : undefined
+                      }
+                    >
                       Contratar
                     </Button>
                   )}

@@ -238,7 +238,7 @@ export function Inicio() {
           // 3. El resto (sin plan, con intent sin pago): columna única capeada
           //    en 720px para que el bloque no quede estirado al ancho del main.
           credencial
-            ? 'lg:grid lg:grid-cols-[1fr_420px] lg:items-start'
+            ? 'lg:grid lg:grid-cols-[1fr_420px] lg:items-stretch'
             : estado === 'pagadoSinPerfil'
               ? 'lg:grid lg:grid-cols-[1fr_340px] lg:items-start'
               : // Cuando hay plan pendiente de pago renderizamos resumen full-width

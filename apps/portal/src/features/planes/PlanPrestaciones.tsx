@@ -1,6 +1,5 @@
 import { CircleAlert } from 'lucide-react';
 import type { Prestacion } from '@/mock/planes';
-import { Icon } from '@/ui/Icon';
 import { Chip } from '@/ui/Chip';
 import { cn } from '@/lib/cn';
 import { ETIQUETA, GLIFO, TONO } from '@/features/planes/estadoPrestacion';
@@ -9,37 +8,96 @@ export interface PlanPrestacionesProps {
   prestaciones: Prestacion[];
 }
 
+/**
+ * Tabla de prestaciones del plan. Desktop usa `<table>` real (semántica
+ * correcta para datos tabulares, mejor para lectores de pantalla y para copy
+ * de la tabla a otro lado). Mobile cae en una lista apilada porque tres
+ * columnas angostas se vuelven ilegibles en < 640px.
+ */
 export function PlanPrestaciones({ prestaciones }: PlanPrestacionesProps) {
   return (
-    <ul className="flex flex-col divide-y divide-ink-100">
-      {prestaciones.map((prestacion) => (
-        <li key={prestacion.label} className="flex items-start gap-3 py-3">
-          <Icon
-            icono={GLIFO[prestacion.estado]}
-            tono={TONO[prestacion.estado]}
-            tamano="sm"
-            etiqueta={ETIQUETA[prestacion.estado]}
-          />
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
+    <>
+      {/* Desktop: tabla con encabezados Prestación / Estado / Detalle.
+          El borde inferior de cada row da ritmo visual; hover con bg-ink-50/50
+          ayuda a seguir una fila larga sin perder el renglón. */}
+      <table className="hidden w-full border-collapse text-left sm:table">
+        <thead>
+          <tr className="border-b border-ink-100 text-xs font-medium uppercase tracking-wide text-ink-500">
+            <th scope="col" className="px-4 pb-3 pt-2 font-medium">
+              Prestación
+            </th>
+            <th scope="col" className="px-4 pb-3 pt-2 font-medium">
+              Estado
+            </th>
+            <th scope="col" className="px-4 pb-3 pt-2 font-medium">
+              Detalle
+            </th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-ink-100">
+          {prestaciones.map((prestacion) => (
+            <tr key={prestacion.label} className="align-top transition-colors hover:bg-ink-50/50">
+              <td className="px-4 py-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={cn(
+                      'text-sm font-medium',
+                      prestacion.estado === 'no-incluido'
+                        ? 'text-ink-400 line-through'
+                        : 'text-ink-900',
+                    )}
+                  >
+                    {prestacion.label}
+                  </span>
+                  {prestacion.pendiente ? (
+                    <Chip tono="warn" icono={CircleAlert}>
+                      a confirmar
+                    </Chip>
+                  ) : null}
+                </div>
+              </td>
+              <td className="px-4 py-3">
+                <Chip tono={TONO[prestacion.estado]} icono={GLIFO[prestacion.estado]}>
+                  {ETIQUETA[prestacion.estado]}
+                </Chip>
+              </td>
+              <td className="px-4 py-3 text-sm text-ink-600">
+                {prestacion.detalle ?? <span className="text-ink-300">—</span>}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {/* Mobile: cada prestación en su propia caja. El chip queda a la
+          derecha del título en flex-wrap, y el detalle va debajo. */}
+      <ul className="flex flex-col divide-y divide-ink-100 sm:hidden">
+        {prestaciones.map((prestacion) => (
+          <li key={prestacion.label} className="flex flex-col gap-2 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <span
                 className={cn(
-                  'text-base',
+                  'text-sm font-medium',
                   prestacion.estado === 'no-incluido' ? 'text-ink-400 line-through' : 'text-ink-900',
                 )}
               >
                 {prestacion.label}
               </span>
-              {prestacion.pendiente ? (
-                <Chip tono="warn" icono={CircleAlert}>
-                  a confirmar
-                </Chip>
-              ) : null}
+              <Chip tono={TONO[prestacion.estado]} icono={GLIFO[prestacion.estado]}>
+                {ETIQUETA[prestacion.estado]}
+              </Chip>
             </div>
-            {prestacion.detalle ? <p className="mt-0.5 text-sm text-ink-600">{prestacion.detalle}</p> : null}
-          </div>
-        </li>
-      ))}
-    </ul>
+            {prestacion.pendiente ? (
+              <Chip tono="warn" icono={CircleAlert}>
+                a confirmar
+              </Chip>
+            ) : null}
+            {prestacion.detalle ? (
+              <p className="text-sm text-ink-600">{prestacion.detalle}</p>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </>
   );
 }
