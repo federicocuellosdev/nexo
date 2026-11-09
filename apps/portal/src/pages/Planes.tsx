@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Check } from 'lucide-react';
 import { ON_DEMAND, PLANES, type Plan, type Producto } from '@/mock/planes';
@@ -5,24 +6,34 @@ import { PlanCard } from '@/features/planes/PlanCard';
 import { iconoDeProducto } from '@/features/planes/iconoProducto';
 import { planContratado, productosContratados } from '@/features/cobertura/contrataciones';
 import { setSession, useSession, type TipoItem } from '@/mock/session';
+import { DialogoEmailMercadoPago } from '@/features/pago/DialogoEmailMercadoPago';
 import { Card } from '@/ui/Card';
 import { CardHero } from '@/ui/CardHero';
 import { Money } from '@/ui/Money';
 import { Chip } from '@/ui/Chip';
 import { Button } from '@/ui/Button';
 
+interface Pendiente {
+  tipo: TipoItem;
+  id: string;
+}
+
 export function Planes() {
   const sesion = useSession();
   const navegar = useNavigate();
   const activo = planContratado(sesion);
   const contratados = productosContratados(sesion);
+  // Guarda el item que el usuario eligió contratar mientras el popup de
+  // Mercado Pago está abierto. Al confirmar se dispara `elegir()` con estos
+  // datos y se navega al checkout.
+  const [pendiente, setPendiente] = useState<Pendiente | null>(null);
 
   /**
    * Con el perfil ya completo no hace falta volver a pasar por la bienvenida:
    * el usuario sabe qué contrata y solo le falta pagar (spec §6).
    */
-  function elegir(tipo: TipoItem, id: string) {
-    setSession({ intent: { tipo, id } });
+  function elegir(tipo: TipoItem, id: string, emailPago: string) {
+    setSession({ intent: { tipo, id }, emailPago });
     void navegar(sesion.perfil !== undefined ? '/pago' : '/bienvenida');
   }
 
@@ -46,8 +57,10 @@ export function Planes() {
                 destacado={plan.recomendado === true}
                 etiquetaCta={activo !== undefined ? 'Cambiar a este plan' : 'Contratar'}
                 // Sin CTA en el plan propio: la badge "Tu plan" ya lo comunica y
-                // ofrecer un botón sería invitar a recomprar lo mismo.
-                onCta={esElTuyo ? undefined : (elegido) => elegir('plan', elegido.slug)}
+                // ofrecer un botón sería invitar a recomprar lo mismo. Al elegir
+                // se abre el popup de Mercado Pago (toda primera suscripción
+                // arranca capturando la cuenta MP que recibirá el cobro).
+                onCta={esElTuyo ? undefined : (elegido) => setPendiente({ tipo: 'plan', id: elegido.slug })}
               />
             );
           })}
@@ -102,6 +115,16 @@ export function Planes() {
           })}
         </div>
       </section>
+
+      {pendiente ? (
+        <DialogoEmailMercadoPago
+          onCerrar={() => setPendiente(null)}
+          onConfirmar={(email) => {
+            elegir(pendiente.tipo, pendiente.id, email);
+            setPendiente(null);
+          }}
+        />
+      ) : null}
     </div>
   );
 }
