@@ -26,7 +26,7 @@ import { CardHero } from '@/ui/CardHero';
 import { Icon } from '@/ui/Icon';
 import { Money } from '@/ui/Money';
 import { Chip } from '@/ui/Chip';
-import { Button } from '@/ui/Button';
+import { Button, clasesBoton } from '@/ui/Button';
 
 interface Pendiente {
   tipo: TipoItem;
@@ -165,6 +165,20 @@ export function Planes() {
                 className="inline-flex h-11 w-full cursor-pointer items-center justify-center rounded-pill bg-brand-oscurecido px-5 text-base font-medium text-white shadow-elevada transition-colors"
               >
                 Subir de plan
+              </button>
+              {/* 'Agregar persona' suma un adherente a la cobertura y manda
+                  al wizard para completar sus datos. +1 a sesion.familiares
+                  y navegar a /perfil/completar — el wizard crea un slot de
+                  beneficiario por cada familiar y ya reconoce el nuevo. */}
+              <button
+                type="button"
+                onClick={() => {
+                  setSession({ familiares: (sesion.familiares ?? 0) + 1 });
+                  void navegar('/perfil/completar');
+                }}
+                className={clasesBoton({ variante: 'secundario', ancho: 'full' })}
+              >
+                Agregar persona
               </button>
             </div>
           </Card>
