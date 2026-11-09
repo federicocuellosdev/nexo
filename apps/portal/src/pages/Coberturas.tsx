@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { ChevronDown, CircleAlert, Glasses, Pill, ShieldCheck, Stethoscope } from 'lucide-react';
+import { ChevronDown, CircleAlert, Glasses, Pill, ShieldCheck, Stethoscope, UserPlus } from 'lucide-react';
 import { cn } from '@/lib/cn';
-import { useSession } from '@/mock/session';
+import { setSession, useSession, type Beneficiario } from '@/mock/session';
+import { DialogoAgregarPersona } from '@/features/perfil/DialogoAgregarPersona';
 import { derivarEstado } from '@/lib/estado';
 import {
   planContratado,
@@ -49,6 +50,7 @@ export function Coberturas() {
   const productos = productosContratados(sesion);
   const vencimiento = proximoVencimiento(sesion);
   const [prestacionesAbiertas, setPrestacionesAbiertas] = useState(false);
+  const [agregandoPersona, setAgregandoPersona] = useState(false);
 
   if (plan === undefined && productos.length === 0) {
     return (
@@ -261,6 +263,40 @@ export function Coberturas() {
         </section>
       ) : null}
 
+      {plan ? (
+        // Banner promocional: sumar un familiar al plan. Mismo tratamiento
+        // jerárquico que los Accesos rápidos / 'Subir de plan' (brand gradient
+        // + sombra elevada + texto blanco) para que funcione como CTA
+        // principal en la mitad inferior de la pantalla. El CTA abre un
+        // dialog con los campos que /additional-sales de SF requiere para el
+        // adherente (nombre, documento, sexo, fecha de nacimiento, relación).
+        <section aria-label="Agregar persona">
+          <Card className="flex flex-col gap-4 overflow-hidden p-6 !bg-brand-oscurecido !shadow-elevada !ring-marca-300 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-4">
+              <span
+                aria-hidden="true"
+                className="inline-flex size-12 shrink-0 items-center justify-center rounded-pill bg-white/15 text-white ring-1 ring-white/30"
+              >
+                <UserPlus size={22} strokeWidth={1.75} />
+              </span>
+              <div className="min-w-0">
+                <h2 className="font-display text-lg text-white">Sumá a tu familia al plan</h2>
+                <p className="text-sm text-white/85">
+                  Agregá un adherente y que acceda a las mismas prestaciones. Cargás sus datos una vez y queda vinculado al plan.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setAgregandoPersona(true)}
+              className="inline-flex h-11 shrink-0 cursor-pointer items-center justify-center rounded-pill bg-white px-5 text-base font-medium text-marca-700 shadow-suave transition-colors hover:bg-ink-50"
+            >
+              Agregar persona
+            </button>
+          </Card>
+        </section>
+      ) : null}
+
       <section aria-label="Cómo usar tu cobertura">
         <h2 className="mb-3 text-xl text-ink-950">Cómo usar tu cobertura</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -273,6 +309,31 @@ export function Coberturas() {
           ))}
         </div>
       </section>
+
+      {agregandoPersona ? (
+        <DialogoAgregarPersona
+          onCerrar={() => setAgregandoPersona(false)}
+          onAgregar={(beneficiario: Beneficiario) => {
+            // Agrega el beneficiario al perfil persistido Y aumenta el
+            // contador de familiares (el que usa el wizard y /sales).
+            const perfilActual = sesion.perfil;
+            if (perfilActual) {
+              setSession({
+                perfil: {
+                  ...perfilActual,
+                  beneficiarios: [...(perfilActual.beneficiarios ?? []), beneficiario],
+                },
+                familiares: (sesion.familiares ?? 0) + 1,
+              });
+            } else {
+              // Si todavía no completó el perfil, solo bumpamos el contador.
+              // Cuando entre al wizard, se le va a reservar el slot vacío.
+              setSession({ familiares: (sesion.familiares ?? 0) + 1 });
+            }
+            setAgregandoPersona(false);
+          }}
+        />
+      ) : null}
     </div>
   );
 }
