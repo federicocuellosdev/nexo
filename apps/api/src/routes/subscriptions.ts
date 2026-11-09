@@ -41,9 +41,17 @@ subscriptionsRouter.post('/subscriptions', async (req, res) => {
   // checkout. `${PORTAL_URL}` ya incluye `/app` en prod y queda sin él en dev.
   const backUrl = `${config.portalUrl}/pago/exito`;
 
-  // `external_reference` sirve para encontrar la suscripción desde el webhook
-  // sin tener que buscarla por payer_email (varios leads pueden compartir el
-  // mismo email MP). Si no hay leadId se omite — MP no lo exige.
+  // `external_reference` con sufijo `-test`: así el webhook de PRODUCCIÓN
+  // (que es el que recibe las notificaciones de MP porque está configurado en
+  // la cuenta del seller) detecta que es un pago de staging y lo reenvía a
+  // nuestro webhook con firma HMAC regenerada usando STAGING_WEBHOOK_SECRET
+  // = MP_WEBHOOK_SECRET de acá. Ver el "staging proxy" en
+  // nexo-portal-v2/.../webhooks/mercadopago/route.ts (~línea 250).
+  //
+  // Si no hay leadId igual mandamos un sufijo discriminador — sin él el
+  // webhook de producción no sabría que debe reenviar.
+  const externalReference = `${datos.leadId ?? `nexo3-${Date.now()}`}-test`;
+
   const body = {
     reason: datos.planNombre,
     auto_recurring: {
@@ -55,7 +63,7 @@ subscriptionsRouter.post('/subscriptions', async (req, res) => {
     back_url: backUrl,
     payer_email: datos.emailMp,
     status: 'pending' as const,
-    ...(datos.leadId ? { external_reference: datos.leadId } : {}),
+    external_reference: externalReference,
   };
 
   try {
