@@ -19,6 +19,14 @@ import { Chip } from '@/ui/Chip';
 import { EmptyState } from '@/ui/EmptyState';
 import { clasesBoton } from '@/ui/Button';
 
+const ETIQUETA_RELACION: Record<'conyuge' | 'hijo' | 'padre' | 'madre' | 'otro', string> = {
+  conyuge: 'Cónyuge',
+  hijo: 'Hijo/a',
+  padre: 'Padre',
+  madre: 'Madre',
+  otro: 'Otro',
+};
+
 const COMO_USARLA = [
   {
     id: 'doc24',
@@ -264,12 +272,11 @@ export function Coberturas() {
       ) : null}
 
       {plan ? (
-        // Banner promocional: sumar un familiar al plan. Mismo tratamiento
-        // jerárquico que los Accesos rápidos / 'Subir de plan' (brand gradient
-        // + sombra elevada + texto blanco) para que funcione como CTA
-        // principal en la mitad inferior de la pantalla. El CTA abre un
-        // dialog con los campos que /additional-sales de SF requiere para el
-        // adherente (nombre, documento, sexo, fecha de nacimiento, relación).
+        // Banner promocional: sumar un familiar al plan. Brand gradient +
+        // sombra elevada + texto blanco. El CTA abre DialogoAgregarPersona
+        // con los campos que /additional-sales de SF requiere para un
+        // adherente. La descripción usa line-clamp-2 para asegurar 2
+        // renglones máximo (evita que crezca a 3-4 en mobile).
         <section aria-label="Agregar persona">
           <Card className="flex flex-col gap-4 overflow-hidden p-6 !bg-brand-oscurecido !shadow-elevada !ring-marca-300 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-4">
@@ -281,8 +288,8 @@ export function Coberturas() {
               </span>
               <div className="min-w-0">
                 <h2 className="font-display text-lg text-white">Sumá a tu familia al plan</h2>
-                <p className="text-sm text-white/85">
-                  Agregá un adherente y que acceda a las mismas prestaciones. Cargás sus datos una vez y queda vinculado al plan.
+                <p className="line-clamp-2 text-sm text-white/85">
+                  Agregá un adherente al plan. Cargás sus datos una vez y queda vinculado.
                 </p>
               </div>
             </div>
@@ -296,6 +303,75 @@ export function Coberturas() {
           </Card>
         </section>
       ) : null}
+
+      {/* Sección Familiares: grid con una card por beneficiario + una card
+          de 'Agregar persona' siempre al final. Si NO hay plan contratado,
+          la sección aparece grisada con una card placeholder — queda visible
+          para que el usuario entienda que el plan la habilita, pero sin
+          acciones. Al contratar, se pone operativa. */}
+      <section aria-label="Familiares" className={cn('flex flex-col gap-4', !plan && 'opacity-60')}>
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-xl text-ink-950">Familiares</h2>
+          {!plan ? (
+            <span className="text-sm text-ink-500">Contratá un plan para sumar adherentes.</span>
+          ) : null}
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {plan
+            ? (sesion.perfil?.beneficiarios ?? []).map((ben, i) => (
+                <Card key={`${ben.numeroDocumento}-${i}`} className="flex items-center gap-3 p-4">
+                  <span
+                    aria-hidden="true"
+                    className="inline-flex size-10 shrink-0 items-center justify-center rounded-pill bg-marca-50 text-sm font-semibold text-marca-700"
+                  >
+                    {(ben.nombre[0] ?? '').toUpperCase()}
+                    {(ben.apellido[0] ?? '').toUpperCase()}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-ink-900">
+                      {`${ben.nombre} ${ben.apellido}`.trim()}
+                    </p>
+                    <p className="text-xs capitalize text-ink-500">{ETIQUETA_RELACION[ben.relacion]}</p>
+                  </div>
+                </Card>
+              ))
+            : null}
+
+          {/* Card de "Agregar persona". Siempre al final. Clickeable solo con
+              plan contratado — sin plan queda como placeholder deshabilitado. */}
+          {plan ? (
+            <button
+              type="button"
+              onClick={() => setAgregandoPersona(true)}
+              className="flex cursor-pointer items-center gap-3 rounded-card border-2 border-dashed border-ink-200 bg-transparent p-4 text-left transition-colors hover:border-marca-400 hover:bg-marca-50/40"
+            >
+              <span
+                aria-hidden="true"
+                className="inline-flex size-10 shrink-0 items-center justify-center rounded-pill bg-marca-50 text-marca-600"
+              >
+                <UserPlus size={18} strokeWidth={2} />
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-ink-900">Agregar persona</p>
+                <p className="text-xs text-ink-500">Sumá un adherente al plan</p>
+              </div>
+            </button>
+          ) : (
+            <div className="flex cursor-not-allowed items-center gap-3 rounded-card border-2 border-dashed border-ink-200 bg-ink-50/40 p-4">
+              <span
+                aria-hidden="true"
+                className="inline-flex size-10 shrink-0 items-center justify-center rounded-pill bg-ink-100 text-ink-400"
+              >
+                <UserPlus size={18} strokeWidth={2} />
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-ink-400">Agregar persona</p>
+                <p className="text-xs text-ink-400">Requiere plan contratado</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
 
       <section aria-label="Cómo usar tu cobertura">
         <h2 className="mb-3 text-xl text-ink-950">Cómo usar tu cobertura</h2>
