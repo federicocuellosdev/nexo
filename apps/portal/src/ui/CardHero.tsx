@@ -25,10 +25,9 @@ export function CardHero({ icono: Glifo, className, deshabilitado = false }: Car
         '-mx-5 -mt-5 flex h-28 items-center justify-center rounded-t-card',
         // Deshabilitado: bg-ink-100 (más oscuro que el ink-50 del Card padre)
         // para que la banda se diferencie del cuerpo y no queden fundidas.
-        // Activo: bg-brand-oscurecido (gradient de marca + overlay) + ícono
-        // blanco — mismo tratamiento jerárquico que usamos en /inicio y en
-        // 'Otros productos' para los bloques principales.
-        deshabilitado ? 'bg-ink-100 text-ink-400' : 'bg-brand-oscurecido text-white',
+        // Activo: fondo marca muy tenue (marca-50) + ícono violeta
+        // (marca-600) — queda claro y no compite con el precio ni el CTA.
+        deshabilitado ? 'bg-ink-100 text-ink-400' : 'bg-marca-50 text-marca-600',
         className,
       )}
     >
