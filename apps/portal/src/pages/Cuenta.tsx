@@ -334,12 +334,14 @@ export function Cuenta() {
             </dl>
           </Seccion>
 
-          <Seccion titulo="Datos de facturación">
+          <Seccion titulo="Datos de facturación" onEditar={() => setEditandoEmailPago(true)}>
             {/* Un único dato, pero ocupa TODO el ancho del grid (col-span-2)
-                para que la línea separadora se extienda completa y el valor
-                quede alineado a la derecha como en los demás bloques. */}
+                para que las líneas separadoras se extiendan completas y el
+                valor quede alineado a la derecha como en los demás bloques.
+                `border-y` dibuja arriba y abajo para igualar el tratamiento
+                de las otras secciones. */}
             <dl className="grid grid-cols-1 gap-x-6 text-sm sm:grid-cols-2">
-              <div className="flex justify-between gap-4 border-t border-ink-100 py-3 sm:col-span-2">
+              <div className="flex justify-between gap-4 border-y border-ink-100 py-3 sm:col-span-2">
                 <dt className="text-ink-500">Email de MercadoPago</dt>
                 <dd className="text-right text-ink-900">{emailPago ?? '—'}</dd>
               </div>
@@ -348,11 +350,16 @@ export function Cuenta() {
 
           {perfil ? (
             <Seccion titulo="Otros datos" onEditar={() => setPasoEditado(4)}>
-              <div className="text-sm text-ink-900">
-                {perfil.tieneObraSocial
-                  ? `Obra social: ${perfil.obraSocial ?? 'sin especificar'}`
-                  : 'Sin obra social'}
-              </div>
+              {/* Mismo tratamiento de líneas que 'Datos de facturación':
+                  border-y arriba y abajo del único dato, full width. */}
+              <dl className="grid grid-cols-1 gap-x-6 text-sm sm:grid-cols-2">
+                <div className="flex justify-between gap-4 border-y border-ink-100 py-3 sm:col-span-2">
+                  <dt className="text-ink-500">Obra social</dt>
+                  <dd className="text-right text-ink-900">
+                    {perfil.tieneObraSocial ? (perfil.obraSocial ?? 'sin especificar') : 'No tiene'}
+                  </dd>
+                </div>
+              </dl>
             </Seccion>
           ) : null}
         </div>
