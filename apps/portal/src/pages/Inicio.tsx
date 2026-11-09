@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
-import { ChevronDown, LayoutGrid, Receipt, ShieldCheck, Sparkles, Users } from 'lucide-react';
+import * as RadixDialog from '@radix-ui/react-dialog';
+import { ChevronDown, LayoutGrid, Receipt, ShieldCheck, Sparkles, Users, X } from 'lucide-react';
 import { getSession, setSession, useSession } from '@/mock/session';
-import { Dialog } from '@/ui/Dialog';
 import { Field } from '@/ui/Field';
 import { Input } from '@/ui/Input';
 import { Button } from '@/ui/Button';
@@ -585,45 +585,64 @@ function DialogoEmailMercadoPago({ valorInicial, onCerrar, onConfirmar }: Dialog
   }
 
   return (
-    <Dialog
-      abierto
-      onCambio={(abierto) => {
-        if (!abierto) onCerrar();
-      }}
-      titulo="Pagar con MercadoPago"
-    >
-      <form onSubmit={enviar} noValidate className="flex flex-col gap-5">
-        {/* Logo + marca en una sola línea compacta. `BASE_URL` (/ en dev,
-            /app/ en prod) resuelve el subpath del portal sin hardcodear. */}
-        <div className="flex items-center gap-2 text-sm text-ink-600">
-          <img
-            src={`${import.meta.env.BASE_URL}mercadopago.png`}
-            alt=""
-            aria-hidden="true"
-            className="size-5 shrink-0"
-          />
-          <span>Asociamos el cobro a tu cuenta.</span>
-        </div>
-        <Field label="Email de MercadoPago" htmlFor="mp-email" error={error} requerido>
-          <Input
-            id="mp-email"
-            type="email"
-            inputMode="email"
-            autoComplete="email"
-            autoFocus
-            placeholder="tu-email@ejemplo.com"
-            value={valor}
-            invalido={error !== undefined}
-            onChange={(evento) => {
-              setValor(evento.target.value);
-              if (error) setError(undefined);
-            }}
-          />
-        </Field>
-        <Button type="submit" ancho="full" tamano="lg">
-          Continuar al pago
-        </Button>
-      </form>
-    </Dialog>
+    // Radix Dialog directo (sin el wrapper `Dialog` + `EncabezadoModal`
+     // compartido) porque este popup centra ícono + título + descripción
+     // dentro del body, en vez del header lateral con botón cerrar.
+    <RadixDialog.Root open onOpenChange={(abierto) => { if (!abierto) onCerrar(); }}>
+      <RadixDialog.Portal>
+        <RadixDialog.Overlay className="fixed inset-0 z-40 bg-ink-950/40 transition-opacity duration-200 ease-out-quart starting:opacity-0" />
+        <RadixDialog.Content
+          className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card bg-white p-6 shadow-flotante transition-[opacity,transform] duration-250 ease-out-expo starting:opacity-0 motion-safe:starting:scale-95 motion-reduce:transition-[opacity] max-h-[85dvh]"
+        >
+          {/* Botón cerrar flotante en la esquina — mantiene el patrón del
+              Dialog compartido sin pisar el layout centrado. */}
+          <RadixDialog.Close
+            aria-label="Cerrar"
+            className="absolute right-4 top-4 inline-flex size-8 cursor-pointer items-center justify-center rounded-pill text-ink-500 transition-colors duration-200 hover:bg-ink-100 hover:text-ink-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca-500"
+          >
+            <X size={18} aria-hidden="true" />
+          </RadixDialog.Close>
+
+          <form onSubmit={enviar} noValidate className="flex flex-col items-center gap-4 text-center">
+            {/* `BASE_URL` (/ en dev, /app/ en prod) resuelve el subpath del
+                portal sin hardcodear. */}
+            <img
+              src={`${import.meta.env.BASE_URL}mercadopago.png`}
+              alt=""
+              aria-hidden="true"
+              className="size-14"
+            />
+            <RadixDialog.Title className="font-display text-xl text-ink-950">
+              Pagar con Mercado Pago
+            </RadixDialog.Title>
+            <RadixDialog.Description className="text-sm text-ink-600">
+              Brindanos el email asociado a tu cuenta de Mercado Pago para generar la suscripción.
+            </RadixDialog.Description>
+
+            <div className="mt-2 w-full text-left">
+              <Field label="Email" htmlFor="mp-email" error={error} requerido>
+                <Input
+                  id="mp-email"
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  autoFocus
+                  placeholder="Email"
+                  value={valor}
+                  invalido={error !== undefined}
+                  onChange={(evento) => {
+                    setValor(evento.target.value);
+                    if (error) setError(undefined);
+                  }}
+                />
+              </Field>
+            </div>
+            <Button type="submit" ancho="full" tamano="lg">
+              Continuar al pago
+            </Button>
+          </form>
+        </RadixDialog.Content>
+      </RadixDialog.Portal>
+    </RadixDialog.Root>
   );
 }
