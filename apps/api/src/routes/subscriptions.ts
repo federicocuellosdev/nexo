@@ -102,3 +102,38 @@ subscriptionsRouter.post('/subscriptions', async (req, res) => {
     return res.status(502).json({ ok: false, error: 'mp_network_error' });
   }
 });
+
+/**
+ * Consulta el estado de una suscripción en MercadoPago. Lo usa /pago del portal
+ * para hacer polling mientras el usuario completa el checkout en otra pestaña:
+ * cuando MP devuelve `authorized` sabemos que el pago quedó firme y se puede
+ * transicionar al estado de "pago confirmado" sin depender del webhook.
+ */
+subscriptionsRouter.get('/subscriptions/:id/status', async (req, res) => {
+  const id = req.params.id;
+  if (!/^[a-f0-9]{16,}$/i.test(id)) {
+    return res.status(400).json({ ok: false, error: 'id_invalido' });
+  }
+
+  if (!config.mp.accessToken) {
+    return res.status(503).json({ ok: false, error: 'mp_no_configurado' });
+  }
+
+  try {
+    const respuestaMp = await fetch(`https://api.mercadopago.com/preapproval/${id}`, {
+      headers: { Authorization: `Bearer ${config.mp.accessToken}` },
+    });
+    if (respuestaMp.status === 404) {
+      return res.status(404).json({ ok: false, error: 'no_encontrada' });
+    }
+    if (!respuestaMp.ok) {
+      console.error('[GET /subscriptions/:id/status] MP devolvió error', respuestaMp.status);
+      return res.status(502).json({ ok: false, error: 'mp_error', status: respuestaMp.status });
+    }
+    const data = (await respuestaMp.json()) as { status: string };
+    return res.status(200).json({ ok: true, status: data.status });
+  } catch (err) {
+    console.error('[GET /subscriptions/:id/status] network error', err);
+    return res.status(502).json({ ok: false, error: 'mp_network_error' });
+  }
+});
