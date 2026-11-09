@@ -1,12 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router';
-import { CreditCard, ExternalLink } from 'lucide-react';
+import { CalendarClock, CreditCard, ExternalLink, ShieldCheck, Users } from 'lucide-react';
 import { buscarPlan, buscarProducto } from '@/mock/planes';
 import { setSession, useSession, type TipoItem } from '@/mock/session';
 import { crearSuscripcion } from '@/lib/api';
+import { formatearPrecio } from '@/lib/formato';
 import { DialogoEmailMercadoPago } from '@/features/pago/DialogoEmailMercadoPago';
 import { Card } from '@/ui/Card';
-import { Icon } from '@/ui/Icon';
 import { Money } from '@/ui/Money';
 import { Button, clasesBoton } from '@/ui/Button';
 import { EmptyState } from '@/ui/EmptyState';
@@ -14,8 +14,9 @@ import { EmptyState } from '@/ui/EmptyState';
 interface ItemAPagar {
   tipo: TipoItem;
   id: string;
-  concepto: string;
   nombre: string;
+  bajada?: string;
+  precioUnitario: number;
   monto: number;
 }
 
@@ -32,16 +33,18 @@ export function Pago() {
     ? {
         tipo: 'plan',
         id: plan.slug,
-        concepto: `${plan.nombre} · cuota mensual`,
         nombre: plan.nombre,
+        bajada: plan.bajada,
+        precioUnitario: plan.precio,
         monto: plan.precio * titulares,
       }
     : producto
       ? {
           tipo: 'producto',
           id: producto.id,
-          concepto: `${producto.nombre} · cuota mensual`,
           nombre: producto.nombre,
+          bajada: producto.detalle,
+          precioUnitario: producto.precio,
           monto: producto.precio,
         }
       : undefined;
@@ -49,9 +52,6 @@ export function Pago() {
   const [generandoSub, setGenerandoSub] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [pidiendoEmail, setPidiendoEmail] = useState(false);
-  // Evita disparar la sub dos veces en el mismo mount (StrictMode monta/desmonta
-  // en dev, y queremos un solo POST a MP por visita a /pago).
-  const yaIntentadoRef = useRef(false);
 
   if (item === undefined) {
     return (
@@ -59,7 +59,6 @@ export function Pago() {
         <h1 className="text-2xl text-ink-950">Confirmá tu pago</h1>
         <div className="mt-6">
           <EmptyState
-            // h2: cuelga del h1 "Confirmá tu pago", sin nivel intermedio.
             como="h2"
             icono={CreditCard}
             titulo="No hay nada para pagar"
@@ -74,11 +73,6 @@ export function Pago() {
     );
   }
 
-  /**
-   * Crea la suscripción contra /api/subscriptions y abre el checkout real
-   * de Mercado Pago en una pestaña nueva. Si falla, muestra el error en
-   * pantalla para que la persona pueda reintentar sin perder contexto.
-   */
   async function irAlCheckout(emailMp: string) {
     if (item === undefined) return;
     setError(undefined);
@@ -108,51 +102,80 @@ export function Pago() {
     }
   }
 
-  // Auto-dispara al montar: si ya tenemos emailPago en sesión, creamos la
-  // sub y abrimos MP sin requerir otro click. Si falta el email abrimos el
-  // popup para capturarlo. Si el browser bloquea el popup de MP (porque
-  // window.open después de un await ya no es "user gesture"), el fallback
-  // es el botón "Pagar con Mercado Pago" de esta misma pantalla.
-  useEffect(() => {
-    if (yaIntentadoRef.current) return;
-    if (item === undefined) return;
-    yaIntentadoRef.current = true;
-    const emailMp = sesion.emailPago;
-    if (emailMp) {
-      void irAlCheckout(emailMp);
-    } else {
-      setPidiendoEmail(true);
-    }
-    // item.id + sesion.emailPago alcanza para discriminar "mismo pago" vs
-    // "pago distinto". Si cambia alguno, reseteamos el ref para volver a
-    // disparar (ej. usuario cambia de plan sin desmontar la ruta).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [item?.id, sesion.emailPago]);
+  const esPlan = item.tipo === 'plan';
 
   return (
     <div className="mx-auto max-w-[560px]">
       <h1 className="text-2xl text-ink-950">Confirmá tu pago</h1>
+      <p className="mt-1 text-sm text-ink-600">
+        Revisá los datos y pagá con Mercado Pago. Podés cancelar la suscripción cuando quieras.
+      </p>
 
-      <Card className="mt-6 flex flex-col gap-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-base text-ink-800">{item.concepto}</p>
-            {titulares > 1 ? (
-              <p className="mt-1 text-xs text-ink-500">
-                {titulares} personas · familia completa
-              </p>
-            ) : null}
-          </div>
-          <Money monto={item.monto} />
+      {/* Card principal: nombre/bajada + chips de detalle (personas,
+          cobertura, ciclo) + desglose del total. Un solo bloque con la
+          info completa de la compra para que el paso a MP sea confirmación,
+          no descubrimiento. */}
+      <Card className="mt-6 flex flex-col gap-5">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-ink-500">
+            {esPlan ? 'Plan de salud' : 'Producto on demand'}
+          </p>
+          <h2 className="mt-1 font-display text-2xl text-ink-950">{item.nombre}</h2>
+          {item.bajada ? <p className="mt-1 text-sm text-ink-600">{item.bajada}</p> : null}
         </div>
 
-        {sesion.emailPago ? (
-          <div className="flex items-center gap-3 border-t border-ink-100 pt-4">
-            <Icon icono={CreditCard} tono="marca" tamano="sm" />
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-ink-900">Mercado Pago</p>
-              <p className="truncate text-xs text-ink-500">{sesion.emailPago}</p>
+        {/* Chips informativos. En plan muestra las 3; en producto solo las
+            dos aplicables (cobertura y ciclo) — sin personas porque los
+            productos son individuales. */}
+        <div className="flex flex-wrap gap-2">
+          {esPlan ? (
+            <ChipDetalle
+              icono={Users}
+              etiqueta={titulares === 1 ? '1 persona' : `${titulares} personas`}
+            />
+          ) : null}
+          <ChipDetalle icono={ShieldCheck} etiqueta="Cobertura inmediata" />
+          <ChipDetalle icono={CalendarClock} etiqueta="Cuota mensual" />
+        </div>
+
+        {/* Desglose del total. Si hay más de una persona, se ve claro que
+            el precio por persona es `precioUnitario` y el total multiplica. */}
+        <div className="flex flex-col gap-2 border-t border-ink-100 pt-4">
+          {titulares > 1 ? (
+            <div className="flex items-baseline justify-between gap-3 text-sm text-ink-600">
+              <span>
+                {formatearPrecio(item.precioUnitario)} × {titulares} personas
+              </span>
+              <span className="tabular-nums">{formatearPrecio(item.monto)}</span>
             </div>
+          ) : null}
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="text-sm font-medium text-ink-900">Total por mes</span>
+            <Money monto={item.monto} periodo="/mes" />
+          </div>
+        </div>
+
+        {/* Medio de pago — solo cuando ya capturamos el email MP. Antes de
+            eso el popup lo pide y después vuelve acá mostrándolo. */}
+        {sesion.emailPago ? (
+          <div className="flex items-center gap-3 rounded-card bg-[#009EE3]/10 p-3 ring-1 ring-[#009EE3]/25">
+            <img
+              src={`${import.meta.env.BASE_URL}mercadopago.png`}
+              alt=""
+              aria-hidden="true"
+              className="size-8 shrink-0"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-ink-900">Mercado Pago</p>
+              <p className="truncate text-xs text-ink-600">{sesion.emailPago}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPidiendoEmail(true)}
+              className="shrink-0 text-xs font-medium text-marca-600 underline underline-offset-2 hover:text-marca-700 cursor-pointer"
+            >
+              Cambiar
+            </button>
           </div>
         ) : null}
       </Card>
@@ -195,5 +218,20 @@ export function Pago() {
         />
       ) : null}
     </div>
+  );
+}
+
+interface ChipDetalleProps {
+  icono: typeof Users;
+  etiqueta: string;
+}
+
+/** Chip neutral para los atributos del plan/producto en el resumen de pago. */
+function ChipDetalle({ icono: Icono, etiqueta }: ChipDetalleProps) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-pill bg-ink-50 px-3 py-1.5 text-xs font-medium text-ink-700 ring-1 ring-ink-200/60">
+      <Icono size={14} className="text-marca-600" aria-hidden="true" />
+      {etiqueta}
+    </span>
   );
 }
