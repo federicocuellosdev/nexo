@@ -264,7 +264,7 @@ export function Inicio() {
                       onClick={() => void credDownload.descargar()}
                       disabled={credDownload.generando}
                       aria-busy={credDownload.generando}
-                      className={clasesBoton({ variante: 'secundario', tamano: 'sm', ancho: 'full' })}
+                      className={clasesBoton({ variante: 'secundario', ancho: 'full' })}
                     >
                       <Download size={16} aria-hidden="true" />
                       {credDownload.generando ? 'Generando…' : 'Descargar credencial'}
@@ -284,7 +284,7 @@ export function Inicio() {
                 <Link
                   to="/planes"
                   data-elevar
-                  className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-pill bg-brand-oscurecido px-5 text-sm font-medium text-white shadow-elevada transition-colors"
+                  className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-pill bg-brand-oscurecido px-5 text-base font-medium text-white shadow-elevada transition-colors"
                 >
                   Subir de plan
                 </Link>

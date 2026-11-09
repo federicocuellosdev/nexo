@@ -91,7 +91,7 @@ export function CoberturaCard({ plan, estado, proximoVencimiento, accionExtra }:
       ) : (
         <Link
           to="/coberturas"
-          className={clasesBoton({ variante: 'secundario', tamano: 'sm', ancho: 'full' })}
+          className={clasesBoton({ variante: 'secundario', ancho: 'full' })}
         >
           Ver mi cobertura
         </Link>
