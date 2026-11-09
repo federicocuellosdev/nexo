@@ -96,3 +96,21 @@ export async function crearSuscripcion(payload: PayloadSuscripcion): Promise<Res
   const data = (await respuesta.json()) as { ok: true } & RespuestaSuscripcion;
   return { preapprovalId: data.preapprovalId, initPoint: data.initPoint };
 }
+
+/** Estados posibles que devuelve MP en una preapproval. Ver docs oficiales. */
+export type EstadoSuscripcion = 'pending' | 'authorized' | 'paused' | 'cancelled' | string;
+
+/**
+ * Consulta el estado de una suscripción. Lo usa /pago para hacer polling
+ * mientras el usuario completa el checkout en otra pestaña — el backend
+ * consulta directo a MP (no depende del webhook).
+ */
+export async function consultarEstadoSuscripcion(preapprovalId: string): Promise<EstadoSuscripcion> {
+  const respuesta = await fetch(`${API_URL}/api/subscriptions/${preapprovalId}/status`);
+  if (!respuesta.ok) {
+    const cuerpo = (await respuesta.json().catch(() => ({ ok: false, error: 'network' }))) as ErrorApi;
+    throw new ApiError(cuerpo, respuesta.status);
+  }
+  const data = (await respuesta.json()) as { ok: true; status: EstadoSuscripcion };
+  return data.status;
+}

@@ -1,9 +1,17 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import { CalendarClock, CreditCard, ExternalLink, ShieldCheck, Users } from 'lucide-react';
+import {
+  CalendarClock,
+  CheckCircle2,
+  CreditCard,
+  ExternalLink,
+  Loader2,
+  ShieldCheck,
+  Users,
+} from 'lucide-react';
 import { buscarPlan, buscarProducto } from '@/mock/planes';
 import { setSession, useSession, type TipoItem } from '@/mock/session';
-import { crearSuscripcion } from '@/lib/api';
+import { consultarEstadoSuscripcion, crearSuscripcion } from '@/lib/api';
 import { formatearPrecio } from '@/lib/formato';
 import { DialogoEmailMercadoPago } from '@/features/pago/DialogoEmailMercadoPago';
 import { Card } from '@/ui/Card';
@@ -19,6 +27,16 @@ interface ItemAPagar {
   precioUnitario: number;
   monto: number;
 }
+
+// Después de abrir el checkout de MP en una pestaña nueva pasamos a `esperando`
+// y hacemos polling: cuando MP devuelve `authorized` saltamos a `confirmado`.
+// Así, aunque el webhook demore o se pierda, la UI se entera igual.
+type Estado =
+  | { kind: 'resumen' }
+  | { kind: 'esperando'; preapprovalId: string; emailMp: string; checkoutUrl: string }
+  | { kind: 'confirmado'; emailMp: string };
+
+const POLL_MS = 4000;
 
 export function Pago() {
   const sesion = useSession();
@@ -49,9 +67,33 @@ export function Pago() {
         }
       : undefined;
 
+  const [estado, setEstado] = useState<Estado>({ kind: 'resumen' });
   const [generandoSub, setGenerandoSub] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [pidiendoEmail, setPidiendoEmail] = useState(false);
+
+  // Polling mientras esperamos la confirmación. El backend consulta directo a
+  // MP (no depende del webhook), así que esta función es la fuente de verdad
+  // para saber cuándo transicionar a `confirmado`.
+  useEffect(() => {
+    if (estado.kind !== 'esperando') return;
+    let cancelado = false;
+    const intervalo = setInterval(async () => {
+      try {
+        const status = await consultarEstadoSuscripcion(estado.preapprovalId);
+        if (cancelado) return;
+        if (status === 'authorized') {
+          setEstado({ kind: 'confirmado', emailMp: estado.emailMp });
+        }
+      } catch (err) {
+        console.warn('[pago] polling falló', err);
+      }
+    }, POLL_MS);
+    return () => {
+      cancelado = true;
+      clearInterval(intervalo);
+    };
+  }, [estado]);
 
   if (item === undefined) {
     return (
@@ -78,13 +120,14 @@ export function Pago() {
     setError(undefined);
     setGenerandoSub(true);
     try {
-      const { initPoint } = await crearSuscripcion({
+      const { preapprovalId, initPoint } = await crearSuscripcion({
         planId: item.id,
         planNombre: item.nombre,
         monto: item.monto,
         emailMp,
       });
       window.open(initPoint, '_blank', 'noopener,noreferrer');
+      setEstado({ kind: 'esperando', preapprovalId, emailMp, checkoutUrl: initPoint });
     } catch (err) {
       console.error('[pago] no se pudo crear la suscripcion', err);
       setError('No pudimos conectar con Mercado Pago. Probá de nuevo en un momento.');
@@ -100,6 +143,14 @@ export function Pago() {
     } else {
       setPidiendoEmail(true);
     }
+  }
+
+  if (estado.kind === 'esperando') {
+    return <EsperandoPago emailMp={estado.emailMp} checkoutUrl={estado.checkoutUrl} />;
+  }
+
+  if (estado.kind === 'confirmado') {
+    return <PagoConfirmado emailMp={estado.emailMp} />;
   }
 
   const esPlan = item.tipo === 'plan';
@@ -181,7 +232,7 @@ export function Pago() {
       </Card>
 
       {error ? (
-        <p role="alert" className="mt-4 rounded-card bg-danger-50 px-4 py-3 text-sm text-danger-700">
+        <p role="alert" className="mt-4 rounded-card bg-danger-50 px-4 py-3 text-sm text-danger-700 ring-1 ring-danger-200">
           {error}
         </p>
       ) : null}
@@ -233,5 +284,68 @@ function ChipDetalle({ icono: Icono, etiqueta }: ChipDetalleProps) {
       <Icono size={14} className="text-marca-600" aria-hidden="true" />
       {etiqueta}
     </span>
+  );
+}
+
+/**
+ * Estado "esperando confirmación de MP". Mismo tratamiento editorial que
+ * /revisa-tu-mail del landing: icono circular grande, título serif itálica y
+ * bajada en text-lg — es un momento transaccional de espera.
+ */
+function EsperandoPago({ emailMp, checkoutUrl }: { emailMp: string; checkoutUrl: string }) {
+  return (
+    <div className="mx-auto max-w-[600px] px-4 py-20 text-center lg:px-8 lg:py-28">
+      <div className="flex justify-center">
+        <span className="inline-flex size-20 items-center justify-center rounded-pill bg-marca-50 text-marca-700">
+          <Loader2 size={32} className="animate-spin" aria-hidden="true" />
+        </span>
+      </div>
+
+      <h1 className="mt-8 font-display text-4xl text-ink-950 italic">Esperando tu pago</h1>
+      <p className="mt-5 text-lg text-ink-600">
+        Completá el pago en Mercado Pago con{' '}
+        <span className="font-medium text-ink-900">{emailMp}</span>. Apenas se acredite te avisamos acá — no cierres esta ventana.
+      </p>
+
+      <p className="mt-10 text-sm text-ink-600">
+        ¿Se cerró la pestaña de Mercado Pago?{' '}
+        <a
+          href={checkoutUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-medium text-marca-600 underline underline-offset-2 hover:text-marca-700"
+        >
+          Abrir de nuevo
+        </a>
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Estado "pago confirmado". Misma estructura editorial que `EsperandoPago`
+ * para que la transición se sienta continua: cambia el icono (spinner → check)
+ * y el texto, pero la composición es la misma.
+ */
+function PagoConfirmado({ emailMp }: { emailMp: string }) {
+  return (
+    <div className="mx-auto max-w-[600px] px-4 py-20 text-center lg:px-8 lg:py-28">
+      <div className="flex justify-center">
+        <span className="inline-flex size-20 items-center justify-center rounded-pill bg-ok-50 text-ok-700">
+          <CheckCircle2 size={32} aria-hidden="true" />
+        </span>
+      </div>
+
+      <h1 className="mt-8 font-display text-4xl text-ink-950 italic">Pago confirmado</h1>
+      <p className="mt-5 text-lg text-ink-600">
+        Recibimos tu pago con <span className="font-medium text-ink-900">{emailMp}</span>. Tu suscripción ya quedó activa.
+      </p>
+
+      <div className="mt-10">
+        <Link to="/inicio" className={clasesBoton({ variante: 'primario', tamano: 'lg' })}>
+          Ir al inicio
+        </Link>
+      </div>
+    </div>
   );
 }
