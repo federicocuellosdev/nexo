@@ -35,7 +35,7 @@ export function Sidebar({ marca, items, identidad, pie }: SidebarProps) {
                 <span
                   role="link"
                   aria-disabled="true"
-                  className="flex cursor-not-allowed items-center gap-3 rounded-campo px-3 py-2.5 text-sm font-medium text-ink-300"
+                  className="flex cursor-not-allowed items-center gap-3 rounded-campo px-3 py-3.5 text-sm font-medium text-ink-300"
                 >
                   <item.icono size={18} strokeWidth={1.75} aria-hidden="true" />
                   <span>{item.label}</span>
@@ -47,7 +47,7 @@ export function Sidebar({ marca, items, identidad, pie }: SidebarProps) {
                   to={item.to}
                   className={({ isActive }) =>
                     cn(
-                      'flex items-center gap-3 rounded-campo px-3 py-2.5 text-sm font-medium',
+                      'flex items-center gap-3 rounded-campo px-3 py-3.5 text-sm font-medium',
                       'transition-colors duration-200 ease-out-quart',
                       isActive ? 'bg-marca-50 text-marca-700' : 'text-ink-600 hover:bg-ink-50 hover:text-ink-900',
                     )

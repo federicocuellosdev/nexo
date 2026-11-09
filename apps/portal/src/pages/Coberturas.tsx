@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { ChevronDown, CircleAlert, Glasses, Pill, ShieldCheck, Stethoscope, UserPlus } from 'lucide-react';
+import { ChevronDown, CircleAlert, Glasses, Pill, ShieldCheck, Stethoscope } from 'lucide-react';
 import { cn } from '@/lib/cn';
-import { setSession, useSession, type Beneficiario } from '@/mock/session';
-import { DialogoAgregarPersona } from '@/features/perfil/DialogoAgregarPersona';
+import { useSession } from '@/mock/session';
 import { derivarEstado } from '@/lib/estado';
 import {
   planContratado,
@@ -18,14 +17,6 @@ import { Money } from '@/ui/Money';
 import { Chip } from '@/ui/Chip';
 import { EmptyState } from '@/ui/EmptyState';
 import { clasesBoton } from '@/ui/Button';
-
-const ETIQUETA_RELACION: Record<'conyuge' | 'hijo' | 'padre' | 'madre' | 'otro', string> = {
-  conyuge: 'Cónyuge',
-  hijo: 'Hijo/a',
-  padre: 'Padre',
-  madre: 'Madre',
-  otro: 'Otro',
-};
 
 const COMO_USARLA = [
   {
@@ -58,7 +49,6 @@ export function Coberturas() {
   const productos = productosContratados(sesion);
   const vencimiento = proximoVencimiento(sesion);
   const [prestacionesAbiertas, setPrestacionesAbiertas] = useState(false);
-  const [agregandoPersona, setAgregandoPersona] = useState(false);
 
   if (plan === undefined && productos.length === 0) {
     return (
@@ -249,75 +239,6 @@ export function Coberturas() {
         </section>
       ) : null}
 
-      {/* Sección Familiares: va directo debajo del plan contratado. Grid con
-          una card por beneficiario del perfil + una card 'Agregar persona'
-          siempre al final. Sin plan: la sección queda grisada (opacity-60)
-          con una card placeholder deshabilitada — visible para que el
-          usuario entienda que el plan la habilita, pero sin acciones. */}
-      <section aria-label="Familiares" className={cn('flex flex-col gap-4', !plan && 'opacity-60')}>
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-xl text-ink-950">Familiares</h2>
-          {!plan ? (
-            <span className="text-sm text-ink-500">Contratá un plan para sumar adherentes.</span>
-          ) : null}
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {plan
-            ? (sesion.perfil?.beneficiarios ?? []).map((ben, i) => (
-                <Card key={`${ben.numeroDocumento}-${i}`} className="flex items-center gap-3 p-4">
-                  <span
-                    aria-hidden="true"
-                    className="inline-flex size-10 shrink-0 items-center justify-center rounded-pill bg-marca-50 text-sm font-semibold text-marca-700"
-                  >
-                    {(ben.nombre[0] ?? '').toUpperCase()}
-                    {(ben.apellido[0] ?? '').toUpperCase()}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-ink-900">
-                      {`${ben.nombre} ${ben.apellido}`.trim()}
-                    </p>
-                    <p className="text-xs capitalize text-ink-500">{ETIQUETA_RELACION[ben.relacion]}</p>
-                  </div>
-                </Card>
-              ))
-            : null}
-
-          {/* Card de "Agregar persona". Siempre al final. Clickeable solo con
-              plan contratado — sin plan queda como placeholder deshabilitado. */}
-          {plan ? (
-            <button
-              type="button"
-              onClick={() => setAgregandoPersona(true)}
-              className="flex cursor-pointer items-center gap-3 rounded-card border-2 border-dashed border-ink-200 bg-transparent p-4 text-left transition-colors hover:border-marca-400 hover:bg-marca-50/40"
-            >
-              <span
-                aria-hidden="true"
-                className="inline-flex size-10 shrink-0 items-center justify-center rounded-pill bg-marca-50 text-marca-600"
-              >
-                <UserPlus size={18} strokeWidth={2} />
-              </span>
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-ink-900">Agregar persona</p>
-                <p className="text-xs text-ink-500">Sumá un adherente al plan</p>
-              </div>
-            </button>
-          ) : (
-            <div className="flex cursor-not-allowed items-center gap-3 rounded-card border-2 border-dashed border-ink-200 bg-ink-50/40 p-4">
-              <span
-                aria-hidden="true"
-                className="inline-flex size-10 shrink-0 items-center justify-center rounded-pill bg-ink-100 text-ink-400"
-              >
-                <UserPlus size={18} strokeWidth={2} />
-              </span>
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-ink-400">Agregar persona</p>
-                <p className="text-xs text-ink-400">Requiere plan contratado</p>
-              </div>
-            </div>
-          )}
-        </div>
-      </section>
-
       {productos.length > 0 ? (
         <section aria-label="Productos contratados">
           <h2 className="mb-3 text-xl text-ink-950">Productos contratados</h2>
@@ -353,30 +274,6 @@ export function Coberturas() {
         </div>
       </section>
 
-      {agregandoPersona ? (
-        <DialogoAgregarPersona
-          onCerrar={() => setAgregandoPersona(false)}
-          onAgregar={(beneficiario: Beneficiario) => {
-            // Agrega el beneficiario al perfil persistido Y aumenta el
-            // contador de familiares (el que usa el wizard y /sales).
-            const perfilActual = sesion.perfil;
-            if (perfilActual) {
-              setSession({
-                perfil: {
-                  ...perfilActual,
-                  beneficiarios: [...(perfilActual.beneficiarios ?? []), beneficiario],
-                },
-                familiares: (sesion.familiares ?? 0) + 1,
-              });
-            } else {
-              // Si todavía no completó el perfil, solo bumpamos el contador.
-              // Cuando entre al wizard, se le va a reservar el slot vacío.
-              setSession({ familiares: (sesion.familiares ?? 0) + 1 });
-            }
-            setAgregandoPersona(false);
-          }}
-        />
-      ) : null}
     </div>
   );
 }

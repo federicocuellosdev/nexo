@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Bell, LayoutGrid, House, Receipt, ShieldCheck } from 'lucide-react';
+import { Bell, LayoutGrid, House, Receipt, ShieldCheck, Users } from 'lucide-react';
 import { Link, Outlet, useLocation } from 'react-router';
 import { TopBar } from '@/ui/TopBar';
 import { BottomNav } from '@/ui/BottomNav';
@@ -22,6 +22,7 @@ const ITEMS_PORTAL_BASE: NavItem[] = [
   { to: '/inicio', label: 'Inicio', icono: House },
   { to: '/planes', label: 'Planes', icono: LayoutGrid },
   { to: '/coberturas', label: 'Coberturas', icono: ShieldCheck },
+  { to: '/familiares', label: 'Familiares', icono: Users },
   { to: '/movimientos', label: 'Movimientos', icono: Receipt },
 ];
 

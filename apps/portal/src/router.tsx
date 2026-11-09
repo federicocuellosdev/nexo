@@ -11,6 +11,7 @@ import { PerfilCompletar } from '@/pages/PerfilCompletar';
 import { Inicio } from '@/pages/Inicio';
 import { Planes } from '@/pages/Planes';
 import { Coberturas } from '@/pages/Coberturas';
+import { Familiares } from '@/pages/Familiares';
 import { Movimientos } from '@/pages/Movimientos';
 import { Cuenta } from '@/pages/Cuenta';
 import { Demo } from '@/pages/Demo';
@@ -59,6 +60,7 @@ export const rutas: RouteObject[] = [
       },
       { path: 'planes', element: <Planes /> },
       { path: 'coberturas', element: <Coberturas /> },
+      { path: 'familiares', element: <Familiares /> },
       { path: 'movimientos', element: <Movimientos /> },
       { path: 'cuenta', element: <Cuenta /> },
     ],
