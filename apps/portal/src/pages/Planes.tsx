@@ -28,6 +28,10 @@ export function Planes() {
   // Mercado Pago está abierto. Al confirmar se dispara `elegir()` con estos
   // datos y se navega al checkout.
   const [pendiente, setPendiente] = useState<Pendiente | null>(null);
+  // Con cobertura activa la grilla de planes queda oculta por default; solo
+  // la revelamos al tocar 'Subir de plan'. Sin cobertura la mostramos directo
+  // porque elegir plan ES la tarea principal de la pantalla.
+  const [mostrarPlanes, setMostrarPlanes] = useState(false);
 
   /**
    * Con el perfil ya completo no hace falta volver a pasar por la bienvenida:
@@ -84,38 +88,54 @@ export function Planes() {
         <p className="mt-1 text-sm text-ink-600">Cambiá de plan o sumá una cobertura adicional.</p>
       </div>
 
-      <section className="flex flex-col gap-4">
-        <h2 className="font-display text-xl text-ink-950">Planes</h2>
-        <div className="grid gap-4 md:grid-cols-3">
-          {PLANES.map((plan: Plan) => {
-            const esElTuyo = activo?.slug === plan.slug;
-            return (
-              <PlanCard
-                key={plan.slug}
-                plan={plan}
-                activo={esElTuyo}
-                destacado={plan.recomendado === true}
-                etiquetaCta={activo !== undefined ? 'Cambiar a este plan' : 'Contratar'}
-                // Sin CTA en el plan propio: la badge "Tu plan" ya lo comunica y
-                // ofrecer un botón sería invitar a recomprar lo mismo. Al elegir,
-                // si ya tenemos emailPago (segunda+ suscripción) saltamos al
-                // checkout; si no, abrimos el popup para capturarlo.
-                onCta={
-                  esElTuyo
-                    ? undefined
-                    : (elegido) => {
-                        if (sesion.emailPago) {
-                          void elegir('plan', elegido.slug, sesion.emailPago);
-                        } else {
-                          setPendiente({ tipo: 'plan', id: elegido.slug });
+      {/* Grilla de planes solo visible cuando el usuario toca 'Subir de plan'.
+          Con cobertura activa la pantalla queda centrada en los productos; el
+          upgrade pasa a ser una acción opcional, no el contenido principal. */}
+      {activo === undefined || mostrarPlanes ? (
+        <section className="flex flex-col gap-4">
+          <h2 className="font-display text-xl text-ink-950">Planes</h2>
+          <div className="grid gap-4 md:grid-cols-3">
+            {PLANES.map((plan: Plan) => {
+              const esElTuyo = activo?.slug === plan.slug;
+              return (
+                <PlanCard
+                  key={plan.slug}
+                  plan={plan}
+                  activo={esElTuyo}
+                  destacado={plan.recomendado === true}
+                  etiquetaCta={activo !== undefined ? 'Cambiar a este plan' : 'Contratar'}
+                  // Sin CTA en el plan propio: la badge "Tu plan" ya lo
+                  // comunica y ofrecer un botón sería invitar a recomprar lo
+                  // mismo. Al elegir, si ya tenemos emailPago (segunda+
+                  // suscripción) saltamos al checkout; si no, abrimos el
+                  // popup para capturarlo.
+                  onCta={
+                    esElTuyo
+                      ? undefined
+                      : (elegido) => {
+                          if (sesion.emailPago) {
+                            void elegir('plan', elegido.slug, sesion.emailPago);
+                          } else {
+                            setPendiente({ tipo: 'plan', id: elegido.slug });
+                          }
                         }
-                      }
-                }
-              />
-            );
-          })}
-        </div>
-      </section>
+                  }
+                />
+              );
+            })}
+          </div>
+        </section>
+      ) : (
+        <section className="flex flex-col gap-3">
+          <button
+            type="button"
+            onClick={() => setMostrarPlanes(true)}
+            className="inline-flex h-11 w-full cursor-pointer items-center justify-center rounded-pill bg-brand-oscurecido px-5 text-base font-medium text-white shadow-elevada transition-colors sm:w-auto sm:self-start"
+          >
+            Subir de plan
+          </button>
+        </section>
+      )}
 
       <section className="flex flex-col gap-4">
         {/* Los productos on demand se habilitan cuando el usuario ya tiene un
