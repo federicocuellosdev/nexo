@@ -23,7 +23,7 @@ test('avisa que el checkout es una simulación', () => {
 test('resume el concepto y el monto', () => {
   montar();
   expect(screen.getByText('Nexo II · cuota mensual')).toBeInTheDocument();
-  expect(screen.getByText('$12.000,00')).toBeInTheDocument();
+  expect(screen.getByText('$15.000,00')).toBeInTheDocument();
 });
 
 test('muestra un medio de pago ficticio', () => {
@@ -34,7 +34,7 @@ test('muestra un medio de pago ficticio', () => {
 test('pagar crea una orden pagada y lleva al éxito', async () => {
   const usuario = userEvent.setup();
   montar();
-  await usuario.click(screen.getByRole('button', { name: 'Pagar $12.000' }));
+  await usuario.click(screen.getByRole('button', { name: 'Pagar $15.000' }));
 
   expect(screen.getByRole('heading', { name: '¡Gracias por tu pago!' })).toBeInTheDocument();
 
@@ -44,7 +44,7 @@ test('pagar crea una orden pagada y lleva al éxito', async () => {
     tipo: 'plan',
     itemId: 'nexo-2',
     concepto: 'Nexo II · cuota mensual',
-    monto: 12000,
+    monto: 15000,
     estado: 'pagada',
   });
 });

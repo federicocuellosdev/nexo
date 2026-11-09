@@ -66,7 +66,7 @@ export const PLANES: Plan[] = [
   {
     slug: 'nexo-1',
     nombre: 'Nexo I',
-    precio: 20000,
+    precio: 15000,
     bajada: 'La cobertura completa: emergencias, odontología y farmacia.',
     prestaciones: [
       { label: 'Emergencias médicas', estado: 'incluido' },
@@ -82,7 +82,7 @@ export const PLANES: Plan[] = [
   {
     slug: 'nexo-2',
     nombre: 'Nexo II',
-    precio: 12000,
+    precio: 15000,
     bajada: 'Seguro de salud, farmacia y óptica, con telemedicina.',
     recomendado: true,
     prestaciones: [
@@ -99,7 +99,7 @@ export const PLANES: Plan[] = [
   {
     slug: 'nexo-3',
     nombre: 'Nexo III',
-    precio: 7000,
+    precio: 15000,
     bajada: 'La puerta de entrada: seguro de salud y telemedicina.',
     prestaciones: [
       {

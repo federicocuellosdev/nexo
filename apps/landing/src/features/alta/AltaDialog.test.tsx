@@ -5,7 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { AltaDialog, type ItemAlta } from '@/features/alta/AltaDialog';
 import { leerHandoff } from '@/lib/handoff';
 
-const ITEM: ItemAlta = { tipo: 'plan', id: 'nexo-2', nombre: 'Nexo II', precio: 12000 };
+const ITEM: ItemAlta = { tipo: 'plan', id: 'nexo-2', nombre: 'Nexo II', precio: 15000 };
 
 function montar() {
   const router = createMemoryRouter(
@@ -32,7 +32,7 @@ async function completarDatosValidos(usuario: ReturnType<typeof userEvent.setup>
 test('muestra el resumen de lo que se está contratando', () => {
   montar();
   expect(screen.getByRole('dialog', { name: 'Contratar Nexo II' })).toBeInTheDocument();
-  expect(screen.getByText('$12.000,00 por mes')).toBeInTheDocument();
+  expect(screen.getByText('$15.000,00 por mes')).toBeInTheDocument();
   expect(screen.queryByText('a confirmar')).not.toBeInTheDocument();
 });
 

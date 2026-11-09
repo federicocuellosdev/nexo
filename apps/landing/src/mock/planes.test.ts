@@ -1,12 +1,15 @@
 import { buscarPlan, buscarProducto, ON_DEMAND, PLANES } from '@/mock/planes';
 import { precioDesde } from '@/lib/formato';
 
-test('hay exactamente tres planes, en orden de precio descendente', () => {
+test('hay exactamente tres planes en el orden canónico Nexo I → III', () => {
   expect(PLANES.map((p) => p.slug)).toEqual(['nexo-1', 'nexo-2', 'nexo-3']);
 });
 
-test('los precios son los del documento de producto', () => {
-  expect(PLANES.map((p) => p.precio)).toEqual([20000, 12000, 7000]);
+// SF valida que `recurringAmount` del sale_intake coincida con el precio del
+// offer XTEFO (hoy único código al que mapean los tres planes). Mientras Previnca
+// no diferencie precios por plan, los tres cobran lo mismo: $15.000.
+test('los tres planes cobran 15.000 ARS (precio único validado por SF)', () => {
+  expect(PLANES.map((p) => p.precio)).toEqual([15000, 15000, 15000]);
 });
 
 test('los nombres comerciales son los acordados con Previnca', () => {
@@ -17,8 +20,8 @@ test('Nexo I es el plan recomendado y es el único', () => {
   expect(PLANES.filter((p) => p.recomendado === true).map((p) => p.slug)).toEqual(['nexo-1']);
 });
 
-test('el precio de entrada se deriva de los planes y hoy es 7000', () => {
-  expect(precioDesde(PLANES)).toBe(7000);
+test('el precio de entrada se deriva de los planes y hoy es 15000', () => {
+  expect(precioDesde(PLANES)).toBe(15000);
 });
 
 test('hay cinco servicios on demand', () => {

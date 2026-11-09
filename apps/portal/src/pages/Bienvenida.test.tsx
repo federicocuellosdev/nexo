@@ -23,7 +23,7 @@ test('resume el plan que está contratando con su precio y prestaciones', () => 
   setSession({ usuario: USUARIO_DEMO, intent: { tipo: 'plan', id: 'nexo-2' } });
   montar();
   expect(screen.getByText('Nexo II')).toBeInTheDocument();
-  expect(screen.getByText('$12.000,00 por mes')).toBeInTheDocument();
+  expect(screen.getByText('$15.000,00 por mes')).toBeInTheDocument();
   expect(screen.getByText('Seguro de Salud I')).toBeInTheDocument();
 });
 

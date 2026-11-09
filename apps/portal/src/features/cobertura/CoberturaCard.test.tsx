@@ -12,7 +12,7 @@ test('muestra el plan, su precio y el próximo vencimiento', () => {
     </MemoryRouter>,
   );
   expect(screen.getByText('Nexo II')).toBeInTheDocument();
-  expect(screen.getByText('$12.000,00 por mes')).toBeInTheDocument();
+  expect(screen.getByText('$15.000,00 por mes')).toBeInTheDocument();
   expect(screen.getByText('Vence el 01/10/2026')).toBeInTheDocument();
 });
 

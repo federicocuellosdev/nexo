@@ -30,7 +30,7 @@ test('muestra nombre, bajada y precio del plan', () => {
   );
   expect(screen.getByRole('heading', { name: 'Nexo II' })).toBeInTheDocument();
   expect(screen.getByText('Seguro de salud, farmacia y óptica, con telemedicina.')).toBeInTheDocument();
-  expect(screen.getByText('$12.000,00 por mes')).toBeInTheDocument();
+  expect(screen.getByText('$15.000,00 por mes')).toBeInTheDocument();
 });
 
 test('lista solo las prestaciones incluidas, hasta cuatro', () => {
