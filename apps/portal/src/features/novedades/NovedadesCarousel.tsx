@@ -33,7 +33,7 @@ export function NovedadesCarousel({ novedades }: NovedadesCarouselProps) {
         >
           <Icon icono={novedad.icono} tono={novedad.tono} tamano="lg" />
           <h3 className="mt-4 text-lg font-medium text-ink-950">{novedad.titulo}</h3>
-          <p className="mt-2 text-base text-ink-600">{novedad.texto}</p>
+          <p className="mt-2 text-sm text-ink-600">{novedad.texto}</p>
         </li>
       ))}
     </ul>
