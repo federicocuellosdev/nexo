@@ -23,7 +23,7 @@ export function NovedadesCarousel({ novedades, onInvitar }: NovedadesCarouselPro
     <ul
       aria-label="Novedades"
       tabIndex={0}
-      className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-3 sm:overflow-visible sm:px-0 sm:pb-0"
+      className="-mx-3 flex snap-x snap-mandatory gap-4 overflow-x-auto px-3 pb-4 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-3 sm:gap-3 sm:overflow-visible sm:px-0 sm:pb-0"
     >
       {novedades.map((novedad) => (
         <li

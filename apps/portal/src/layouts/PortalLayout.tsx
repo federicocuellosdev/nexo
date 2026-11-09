@@ -223,8 +223,10 @@ export function PortalLayout() {
         </div>
 
         {/* px-3 en xs (360 px de ref) para dar +8 px de ancho util al contenido,
-            px-4 desde sm. pb-20 matchea la BottomNav de h-14 + safe-area. */}
-        <main className="mx-auto max-w-[1100px] px-3 pb-20 pt-6 sm:px-4 lg:px-6 lg:pb-14 lg:pt-10">
+            px-4 desde sm. pb-28 en mobile deja aire grande entre el contenido
+            y la BottomNav (h-14 + safe-area) — sin esto las cards de la ultima
+            seccion quedaban casi tocando el nav y se sentia agobiante. */}
+        <main className="mx-auto max-w-[1100px] px-3 pb-28 pt-6 sm:px-4 lg:px-6 lg:pb-14 lg:pt-10">
           <Outlet />
         </main>
       </div>
