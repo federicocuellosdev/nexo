@@ -29,6 +29,7 @@ const COMPLETO: BorradorPerfil = {
   tieneObraSocial: 'si',
   obraSocial: 'OSDE',
   tipoContratacion: 'tomador-beneficiario',
+  beneficiarios: [],
 };
 
 test('el borrador inicial no pasa los pasos 1 a 3; el 4 ya no bloquea', () => {

@@ -26,6 +26,19 @@ export type TipoDocumento = 'DNI' | 'Pasaporte';
 export type Sexo = 'F' | 'M' | 'X';
 export type TipoContratacion = 'beneficiario' | 'tomador' | 'tomador-beneficiario';
 
+export type RelacionBeneficiario = 'conyuge' | 'hijo' | 'padre' | 'madre' | 'otro';
+
+/** Datos mínimos por beneficiario adicional del plan (familiar adherente). */
+export interface Beneficiario {
+  nombre: string;
+  apellido: string;
+  tipoDocumento: TipoDocumento;
+  numeroDocumento: string;
+  sexo: Sexo;
+  fechaNacimiento: string;
+  relacion: RelacionBeneficiario;
+}
+
 /** Esquema de perfil validado por Previnca (ver docs/CONTEXTO.md). */
 export interface PerfilPrevinca {
   tipoDocumento: TipoDocumento;
@@ -37,6 +50,10 @@ export interface PerfilPrevinca {
   tieneObraSocial: boolean;
   obraSocial?: string;
   tipoContratacion: TipoContratacion;
+  /** Beneficiarios adicionales. Largo = sesion.familiares; se completan en el
+   *  wizard junto con los datos del titular y forman parte del payload /sales
+   *  que mandamos a SF. */
+  beneficiarios?: Beneficiario[];
 }
 
 export type TipoItem = 'plan' | 'producto';

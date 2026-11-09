@@ -1,6 +1,19 @@
-import type { PerfilPrevinca, Sexo, TipoContratacion, TipoDocumento } from '@/mock/session';
+import type {
+  Beneficiario,
+  PerfilPrevinca,
+  RelacionBeneficiario,
+  Sexo,
+  TipoContratacion,
+  TipoDocumento,
+} from '@/mock/session';
 
-export type PasoPerfil = 1 | 2 | 3 | 4;
+/**
+ * El wizard tiene 4 pasos fijos del titular + N pasos dinámicos para los
+ * beneficiarios. Como el tipo final es número y no literal, lo dejamos en
+ * `number` para no complicar los call sites.
+ */
+export type PasoPerfil = number;
+export const TOTAL_PASOS_TITULAR = 4;
 
 /**
  * Borrador plano (sin `domicilio` anidado) porque un formulario controlado es
@@ -9,6 +22,28 @@ export type PasoPerfil = 1 | 2 | 3 | 4;
  *
  * Los `| ''` representan "todavía no elegido" en los selects.
  */
+export interface BorradorBeneficiario {
+  nombre: string;
+  apellido: string;
+  tipoDocumento: TipoDocumento;
+  numeroDocumento: string;
+  sexo: Sexo | '';
+  fechaNacimiento: string;
+  relacion: RelacionBeneficiario | '';
+}
+
+export type ErroresBeneficiario = Partial<Record<keyof BorradorBeneficiario, string>>;
+
+export const BORRADOR_BENEFICIARIO: BorradorBeneficiario = {
+  nombre: '',
+  apellido: '',
+  tipoDocumento: 'DNI',
+  numeroDocumento: '',
+  sexo: '',
+  fechaNacimiento: '',
+  relacion: '',
+};
+
 export interface BorradorPerfil {
   /**
    * Nombre y apellido NO forman parte de `PerfilPrevinca`: viven en `Usuario`,
@@ -37,6 +72,9 @@ export interface BorradorPerfil {
   tieneObraSocial: 'si' | 'no' | '';
   obraSocial: string;
   tipoContratacion: TipoContratacion | '';
+  /** Uno por familiar adherente. Se precarga con N `BORRADOR_BENEFICIARIO`
+   *  vacíos al abrir el wizard, según `sesion.familiares`. */
+  beneficiarios: BorradorBeneficiario[];
 }
 
 export type ErroresPerfil = Partial<Record<keyof BorradorPerfil, string>>;
@@ -80,6 +118,7 @@ export const BORRADOR_INICIAL: BorradorPerfil = {
   // beneficiario", el campo sigue en el borrador para no romper los
   // consumidores (aPerfil, desdePerfil, SF intake) — hoy queda fijado.
   tipoContratacion: 'tomador-beneficiario',
+  beneficiarios: [],
 };
 
 /**
@@ -110,12 +149,32 @@ export const BORRADOR_DEMO: BorradorPerfil = {
   obraSocial: 'OSDE',
 };
 
-export const PASOS: readonly { numero: PasoPerfil; titulo: string }[] = [
+export const PASOS_TITULAR: readonly { numero: PasoPerfil; titulo: string }[] = [
   { numero: 1, titulo: 'Documento' },
   { numero: 2, titulo: 'Datos personales' },
   { numero: 3, titulo: 'Domicilio' },
   { numero: 4, titulo: 'Cobertura y contratación' },
 ];
+
+/** Alias legacy: `PASOS` sigue exportado para no romper call sites que lo usen
+ *  solo para calcular la cantidad total. Nuevos consumidores usan
+ *  `pasosDelWizard(cantFamiliares)`. */
+export const PASOS = PASOS_TITULAR;
+
+/**
+ * Lista completa de pasos para un wizard con `cantFamiliares` beneficiarios.
+ * Devuelve los 4 pasos del titular + 1 paso por familiar titulado
+ * "Familiar 1", "Familiar 2", etc.
+ */
+export function pasosDelWizard(
+  cantFamiliares: number,
+): readonly { numero: PasoPerfil; titulo: string }[] {
+  const extras = Array.from({ length: Math.max(0, cantFamiliares) }, (_, i) => ({
+    numero: (TOTAL_PASOS_TITULAR + i + 1) as PasoPerfil,
+    titulo: cantFamiliares === 1 ? 'Familiar adherente' : `Familiar ${i + 1}`,
+  }));
+  return [...PASOS_TITULAR, ...extras];
+}
 
 const EDAD_MINIMA = 18;
 
@@ -176,9 +235,59 @@ export function validarPaso(paso: PasoPerfil, borrador: BorradorPerfil, hoy: Dat
     return errores;
   }
 
-  // Paso 4. Ni la obra social ni el tipo de contratación bloquean:
-  // la primera por obligatoriedad en debate; el segundo porque el wizard
-  // ya no lo pregunta (ver `BORRADOR_INICIAL.tipoContratacion`).
+  if (paso === 4) {
+    // Ni la obra social ni el tipo de contratación bloquean: la primera por
+    // obligatoriedad en debate; el segundo porque el wizard ya no lo pregunta
+    // (ver `BORRADOR_INICIAL.tipoContratacion`).
+    return errores;
+  }
+
+  // Paso >= 5: beneficiario. Index 0 = paso 5, index 1 = paso 6, etc.
+  const idx = paso - TOTAL_PASOS_TITULAR - 1;
+  const b = borrador.beneficiarios[idx];
+  if (!b) return errores;
+  const erroresBen = validarBeneficiario(b, hoy);
+  // Mapeamos al namespace del borrador padre con prefijo para que el wizard
+  // sepa a qué input mostrarle el error. Convención `beneficiario_<idx>_<campo>`.
+  for (const [k, v] of Object.entries(erroresBen)) {
+    (errores as Record<string, string>)[`beneficiario_${idx}_${k}`] = v;
+  }
+  return errores;
+}
+
+/**
+ * Valida un beneficiario individual. Se usa desde `validarPaso` (pasos >= 5)
+ * y es el único lugar que conoce las reglas de edad / documento del adherente.
+ * No tiene edad mínima: Previnca cubre menores con el plan del tomador.
+ */
+export function validarBeneficiario(b: BorradorBeneficiario, hoy: Date = new Date()): ErroresBeneficiario {
+  const errores: ErroresBeneficiario = {};
+  if (b.nombre.trim() === '') errores.nombre = 'Ingresá el nombre';
+  if (b.apellido.trim() === '') errores.apellido = 'Ingresá el apellido';
+
+  const numero = b.numeroDocumento.trim();
+  if (numero === '') {
+    errores.numeroDocumento = 'Ingresá el número de documento';
+  } else if (b.tipoDocumento === 'DNI' && !/^\d{7,8}$/.test(numero)) {
+    errores.numeroDocumento = 'El DNI son 7 u 8 dígitos, sin puntos';
+  } else if (b.tipoDocumento === 'Pasaporte' && !/^[A-Za-z0-9]{6,}$/.test(numero)) {
+    errores.numeroDocumento = 'El pasaporte tiene al menos 6 caracteres';
+  }
+
+  if (b.sexo === '') errores.sexo = 'Elegí una opción';
+
+  if (b.fechaNacimiento === '') {
+    errores.fechaNacimiento = 'Ingresá la fecha de nacimiento';
+  } else {
+    const nacimiento = new Date(`${b.fechaNacimiento}T00:00:00Z`);
+    if (Number.isNaN(nacimiento.getTime())) {
+      errores.fechaNacimiento = 'Revisá la fecha';
+    } else if (nacimiento.getTime() > hoy.getTime()) {
+      errores.fechaNacimiento = 'Revisá la fecha: todavía no llegó';
+    }
+  }
+
+  if (b.relacion === '') errores.relacion = 'Elegí la relación con el titular';
   return errores;
 }
 
@@ -214,6 +323,24 @@ export function aPerfil(borrador: BorradorPerfil): PerfilPrevinca {
       ? { obraSocial: borrador.obraSocial.trim() }
       : {}),
     tipoContratacion: borrador.tipoContratacion,
+    ...(borrador.beneficiarios.length > 0
+      ? { beneficiarios: borrador.beneficiarios.map(toBeneficiario) }
+      : {}),
+  };
+}
+
+function toBeneficiario(b: BorradorBeneficiario): Beneficiario {
+  if (b.sexo === '' || b.relacion === '') {
+    throw new Error('Beneficiario incompleto');
+  }
+  return {
+    nombre: b.nombre.trim(),
+    apellido: b.apellido.trim(),
+    tipoDocumento: b.tipoDocumento,
+    numeroDocumento: b.numeroDocumento.trim(),
+    sexo: b.sexo,
+    fechaNacimiento: b.fechaNacimiento,
+    relacion: b.relacion,
   };
 }
 
@@ -258,5 +385,14 @@ export function desdePerfil(
     tieneObraSocial: perfil.tieneObraSocial ? 'si' : 'no',
     obraSocial: perfil.obraSocial ?? '',
     tipoContratacion: perfil.tipoContratacion,
+    beneficiarios: (perfil.beneficiarios ?? []).map((b) => ({
+      nombre: b.nombre,
+      apellido: b.apellido,
+      tipoDocumento: b.tipoDocumento,
+      numeroDocumento: b.numeroDocumento,
+      sexo: b.sexo,
+      fechaNacimiento: b.fechaNacimiento,
+      relacion: b.relacion,
+    })),
   };
 }

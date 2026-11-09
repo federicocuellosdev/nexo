@@ -1,18 +1,19 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { cn } from '@/lib/cn';
+import type { BorradorBeneficiario, PasoPerfil } from '@/features/perfil/validacion';
 import type { PerfilPrevinca } from '@/mock/session';
 import {
   aPerfil,
   BORRADOR_INICIAL,
   identidadDelBorrador,
   LOCALIDADES,
-  PASOS,
+  pasosDelWizard,
   PROVINCIA_POR_DEFECTO,
+  TOTAL_PASOS_TITULAR,
   validarPaso,
   type BorradorPerfil,
   type ErroresPerfil,
-  type PasoPerfil,
 } from '@/features/perfil/validacion';
 import { BirthDatePicker } from '@/features/perfil/BirthDatePicker';
 import { Field } from '@/ui/Field';
@@ -49,8 +50,6 @@ export interface DatosDelWizard {
   identidad: { nombre: string; apellido: string };
 }
 
-const TOTAL_PASOS = PASOS.length;
-
 const OPCIONES_DOCUMENTO = [
   { value: 'DNI', label: 'DNI' },
   { value: 'Pasaporte', label: 'Pasaporte' },
@@ -67,6 +66,14 @@ const OPCIONES_OBRA_SOCIAL = [
   { value: 'no', label: 'No' },
 ];
 
+const OPCIONES_RELACION = [
+  { value: 'conyuge', label: 'Cónyuge' },
+  { value: 'hijo', label: 'Hijo/a' },
+  { value: 'padre', label: 'Padre' },
+  { value: 'madre', label: 'Madre' },
+  { value: 'otro', label: 'Otro' },
+];
+
 const OPCIONES_LOCALIDAD = LOCALIDADES.map((l) => ({ value: l, label: l }));
 
 export function PerfilWizard({
@@ -79,14 +86,42 @@ export function PerfilWizard({
   const [borrador, setBorrador] = useState<BorradorPerfil>(borradorInicial ?? BORRADOR_INICIAL);
   const [errores, setErrores] = useState<ErroresPerfil>({});
 
-  const esUltimo = paso === TOTAL_PASOS;
+  // Pasos del wizard = 4 del titular + N de familiares. Si el borrador trae
+  // beneficiarios pre-poblados (p.ej. desde `familiares` de la sesión), cada
+  // uno agrega un paso al final.
+  const pasos = useMemo(() => pasosDelWizard(borrador.beneficiarios.length), [borrador.beneficiarios.length]);
+  const totalPasos = pasos.length;
+  const esUltimo = paso === totalPasos;
   // En modo sección puntual el CTA siempre guarda, sin importar en qué paso
   // esté parado: no hay "siguiente" al que avanzar.
   const guardaDirecto = soloEstePaso || esUltimo;
-  const titulo = PASOS.find((p) => p.numero === paso)?.titulo ?? '';
+  const titulo = pasos.find((p) => p.numero === paso)?.titulo ?? '';
+  const esPasoFamiliar = paso > TOTAL_PASOS_TITULAR;
+  const indiceFamiliar = esPasoFamiliar ? paso - TOTAL_PASOS_TITULAR - 1 : -1;
+  const familiarActual: BorradorBeneficiario | undefined = esPasoFamiliar
+    ? borrador.beneficiarios[indiceFamiliar]
+    : undefined;
 
   function actualizar<C extends keyof BorradorPerfil>(campo: C, valor: BorradorPerfil[C]) {
     setBorrador((previo) => ({ ...previo, [campo]: valor }));
+  }
+
+  function actualizarFamiliar<C extends keyof BorradorBeneficiario>(
+    idx: number,
+    campo: C,
+    valor: BorradorBeneficiario[C],
+  ) {
+    setBorrador((previo) => {
+      const siguiente = [...previo.beneficiarios];
+      siguiente[idx] = { ...siguiente[idx], [campo]: valor };
+      return { ...previo, beneficiarios: siguiente };
+    });
+  }
+
+  /** Lee el error del borrador (keys prefijadas `beneficiario_<idx>_<campo>`). */
+  function errorFamiliar(campo: keyof BorradorBeneficiario): string | undefined {
+    const key = `beneficiario_${indiceFamiliar}_${campo}`;
+    return (errores as Record<string, string | undefined>)[key];
   }
 
   function enviar(evento: FormEvent<HTMLFormElement>) {
@@ -122,18 +157,18 @@ export function PerfilWizard({
       ) : (
         <div>
           <div className="flex items-baseline justify-between gap-3">
-            <span className="text-sm font-medium text-ink-500">{`Paso ${paso} de ${TOTAL_PASOS}`}</span>
+            <span className="text-sm font-medium text-ink-500">{`Paso ${paso} de ${totalPasos}`}</span>
             <span className="text-sm text-ink-600">{titulo}</span>
           </div>
           <div
             role="progressbar"
             aria-valuenow={paso}
             aria-valuemin={1}
-            aria-valuemax={TOTAL_PASOS}
+            aria-valuemax={totalPasos}
             aria-label="Progreso del perfil"
             className="mt-3 flex items-center gap-2"
           >
-            {Array.from({ length: TOTAL_PASOS }, (_, i) => i + 1).map((n) => (
+            {Array.from({ length: totalPasos }, (_, i) => i + 1).map((n) => (
               <span
                 key={n}
                 aria-hidden="true"
@@ -147,7 +182,16 @@ export function PerfilWizard({
         </div>
       )}
 
-      <form onSubmit={enviar} noValidate className="flex flex-col gap-4">
+      <form
+        onSubmit={enviar}
+        noValidate
+        // `[&>*+*]:border-t`: cada bloque hijo (menos el primero) agrega una
+        // línea tenue arriba. Reemplaza al `gap-4` entre bloques para que la
+        // separación visual sea una regla, no solo espacio. Los botones al
+        // final mantienen su propio `mt-2` para quedar por fuera de la grilla
+        // de inputs.
+        className="flex flex-col [&>*+*]:border-t [&>*+*]:border-ink-100 [&>*+*]:pt-4"
+      >
         {paso === 1 ? (
           <>
             <Field label="Tipo de documento" htmlFor="perfil-tipo-doc" requerido>
@@ -337,6 +381,120 @@ export function PerfilWizard({
                 />
               </Field>
             ) : null}
+          </>
+        ) : null}
+
+        {esPasoFamiliar && familiarActual ? (
+          <>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field
+                label="Nombre"
+                htmlFor={`perfil-fam-${indiceFamiliar}-nombre`}
+                error={errorFamiliar('nombre')}
+                requerido
+              >
+                <Input
+                  id={`perfil-fam-${indiceFamiliar}-nombre`}
+                  value={familiarActual.nombre}
+                  invalido={errorFamiliar('nombre') !== undefined}
+                  onChange={(evento) => actualizarFamiliar(indiceFamiliar, 'nombre', evento.target.value)}
+                />
+              </Field>
+              <Field
+                label="Apellido"
+                htmlFor={`perfil-fam-${indiceFamiliar}-apellido`}
+                error={errorFamiliar('apellido')}
+                requerido
+              >
+                <Input
+                  id={`perfil-fam-${indiceFamiliar}-apellido`}
+                  value={familiarActual.apellido}
+                  invalido={errorFamiliar('apellido') !== undefined}
+                  onChange={(evento) => actualizarFamiliar(indiceFamiliar, 'apellido', evento.target.value)}
+                />
+              </Field>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-[1fr_2fr]">
+              <Field label="Tipo de documento" htmlFor={`perfil-fam-${indiceFamiliar}-tipo-doc`} requerido>
+                <Select
+                  id={`perfil-fam-${indiceFamiliar}-tipo-doc`}
+                  opciones={OPCIONES_DOCUMENTO}
+                  value={familiarActual.tipoDocumento}
+                  onChange={(valor) =>
+                    actualizarFamiliar(indiceFamiliar, 'tipoDocumento', valor as BorradorBeneficiario['tipoDocumento'])
+                  }
+                />
+              </Field>
+              <Field
+                label="Número de documento"
+                htmlFor={`perfil-fam-${indiceFamiliar}-numero-doc`}
+                error={errorFamiliar('numeroDocumento')}
+                ayuda="Sin puntos ni espacios"
+                requerido
+              >
+                <Input
+                  id={`perfil-fam-${indiceFamiliar}-numero-doc`}
+                  inputMode={familiarActual.tipoDocumento === 'DNI' ? 'numeric' : 'text'}
+                  value={familiarActual.numeroDocumento}
+                  invalido={errorFamiliar('numeroDocumento') !== undefined}
+                  onChange={(evento) =>
+                    actualizarFamiliar(indiceFamiliar, 'numeroDocumento', evento.target.value)
+                  }
+                />
+              </Field>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field
+                label="Sexo"
+                htmlFor={`perfil-fam-${indiceFamiliar}-sexo`}
+                error={errorFamiliar('sexo')}
+                requerido
+              >
+                <Select
+                  id={`perfil-fam-${indiceFamiliar}-sexo`}
+                  opciones={OPCIONES_SEXO}
+                  placeholder="Elegí una opción"
+                  value={familiarActual.sexo}
+                  invalido={errorFamiliar('sexo') !== undefined}
+                  onChange={(valor) =>
+                    actualizarFamiliar(indiceFamiliar, 'sexo', valor as BorradorBeneficiario['sexo'])
+                  }
+                />
+              </Field>
+              <Field
+                label="Relación con el titular"
+                htmlFor={`perfil-fam-${indiceFamiliar}-relacion`}
+                error={errorFamiliar('relacion')}
+                requerido
+              >
+                <Select
+                  id={`perfil-fam-${indiceFamiliar}-relacion`}
+                  opciones={OPCIONES_RELACION}
+                  placeholder="Elegí una opción"
+                  value={familiarActual.relacion}
+                  invalido={errorFamiliar('relacion') !== undefined}
+                  onChange={(valor) =>
+                    actualizarFamiliar(indiceFamiliar, 'relacion', valor as BorradorBeneficiario['relacion'])
+                  }
+                />
+              </Field>
+            </div>
+
+            <Field
+              label="Fecha de nacimiento"
+              htmlFor={`perfil-fam-${indiceFamiliar}-nacimiento`}
+              error={errorFamiliar('fechaNacimiento')}
+              requerido
+            >
+              <BirthDatePicker
+                id={`perfil-fam-${indiceFamiliar}-nacimiento`}
+                value={familiarActual.fechaNacimiento}
+                invalido={errorFamiliar('fechaNacimiento') !== undefined}
+                onChange={(iso) => actualizarFamiliar(indiceFamiliar, 'fechaNacimiento', iso)}
+              />
+            </Field>
           </>
         ) : null}
 
