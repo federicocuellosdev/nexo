@@ -5,7 +5,7 @@ import { setSession, useSession, type Beneficiario } from '@/mock/session';
 import { planContratado } from '@/features/cobertura/contrataciones';
 import { DialogoAgregarVariasPersonas } from '@/features/perfil/DialogoAgregarVariasPersonas';
 import { DialogoEmailMercadoPago } from '@/features/pago/DialogoEmailMercadoPago';
-import { crearSuscripcion } from '@/lib/api';
+import { altaBeneficiariosBackend, crearSuscripcion } from '@/lib/api';
 import { Card } from '@/ui/Card';
 import { EmptyState } from '@/ui/EmptyState';
 import { clasesBoton } from '@/ui/Button';
@@ -40,6 +40,31 @@ export function Familiares() {
         emailMp,
       });
       window.open(initPoint, '_blank', 'noopener,noreferrer');
+
+      // Persistir cada beneficiario como su propia fila en v3.leads
+      // (es_beneficiario=true, titular_lead_id=leadId del titular,
+      // mp_preapproval_id=id de esta tanda). Fire-and-forget: si el backend
+      // falla loggeamos pero no bloqueamos al usuario — el pago sigue.
+      const titularLeadId = sesion.leadId;
+      if (titularLeadId) {
+        try {
+          await altaBeneficiariosBackend(
+            titularLeadId,
+            nuevos.map((b) => ({
+              nombre: b.nombre,
+              apellido: b.apellido,
+              tipoDocumento: b.tipoDocumento,
+              numeroDocumento: b.numeroDocumento,
+              sexo: b.sexo,
+              fechaNacimiento: b.fechaNacimiento,
+              relacion: b.relacion,
+            })),
+            preapprovalId,
+          );
+        } catch (err) {
+          console.warn('[familiares] no se pudieron persistir los beneficiarios en v3.leads', err);
+        }
+      }
       // Persistir los beneficiarios + bumpar familiares. El pago no está
       // confirmado todavía — el polling de /pago (que escucha pagoPendiente)
       // transiciona a 'authorized' cuando MP confirma.

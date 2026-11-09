@@ -174,6 +174,43 @@ export interface PayloadPerfilBackend {
   familiaresCount: number;
 }
 
+export interface BeneficiarioBackend {
+  nombre: string;
+  apellido: string;
+  tipoDocumento: 'DNI' | 'Pasaporte';
+  numeroDocumento: string;
+  sexo: 'F' | 'M' | 'X';
+  fechaNacimiento: string;
+  relacion: 'conyuge' | 'hijo' | 'padre' | 'madre' | 'otro';
+}
+
+/**
+ * Da de alta N beneficiarios en `v3.leads` como filas propias con
+ * `es_beneficiario=true` y `titular_lead_id` apuntando al titular. Si pasás
+ * `mpPreapprovalId`, se guarda en cada fila para correlacionar con la tanda
+ * de pago (`v3.pagos`).
+ */
+export async function altaBeneficiariosBackend(
+  titularLeadId: string,
+  beneficiarios: BeneficiarioBackend[],
+  mpPreapprovalId?: string,
+): Promise<string[]> {
+  const respuesta = await fetch(`${API_URL}/api/leads/${titularLeadId}/beneficiarios`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      beneficiarios,
+      ...(mpPreapprovalId ? { mpPreapprovalId } : {}),
+    }),
+  });
+  if (!respuesta.ok) {
+    const cuerpo = (await respuesta.json().catch(() => ({ ok: false, error: 'network' }))) as ErrorApi;
+    throw new ApiError(cuerpo, respuesta.status);
+  }
+  const data = (await respuesta.json()) as { ok: true; beneficiarios: string[] };
+  return data.beneficiarios;
+}
+
 /**
  * Persiste perfil + beneficiarios en `v3.leads` y dispara `sale_intake` si ya
  * hay pago autorizado. El caller sigue guardando en sesion para no depender
