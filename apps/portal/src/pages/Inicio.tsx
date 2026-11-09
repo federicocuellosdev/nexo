@@ -593,15 +593,23 @@ function DialogoEmailMercadoPago({ valorInicial, onCerrar, onConfirmar }: Dialog
       titulo="Pagar con MercadoPago"
       descripcion="Cuenta a la que vamos a asociar el cobro de tu plan."
     >
-      <form onSubmit={enviar} noValidate className="flex flex-col gap-4">
-        {/* Logo centrado arriba del input. `BASE_URL` (/ en dev, /app/ en prod)
+      <form onSubmit={enviar} noValidate className="flex flex-col gap-5">
+        {/* Banner con logo + marca: fondo cian suave y ring del mismo tono
+            para que lea como un sello de "paga con X", no como una
+            ilustración decorativa. `BASE_URL` (/ en dev, /app/ en prod)
             resuelve el subpath del portal sin hardcodear. */}
-        <img
-          src={`${import.meta.env.BASE_URL}mercadopago.png`}
-          alt=""
-          aria-hidden="true"
-          className="mx-auto size-12"
-        />
+        <div className="flex items-center gap-3 rounded-card bg-[#009EE3]/10 p-4 ring-1 ring-[#009EE3]/25">
+          <img
+            src={`${import.meta.env.BASE_URL}mercadopago.png`}
+            alt=""
+            aria-hidden="true"
+            className="size-10 shrink-0"
+          />
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-ink-900">MercadoPago</p>
+            <p className="text-xs text-ink-600">Checkout seguro · tarjeta, débito o dinero en cuenta</p>
+          </div>
+        </div>
         <Field label="Email de MercadoPago" htmlFor="mp-email" error={error} requerido>
           <Input
             id="mp-email"
@@ -609,6 +617,7 @@ function DialogoEmailMercadoPago({ valorInicial, onCerrar, onConfirmar }: Dialog
             inputMode="email"
             autoComplete="email"
             autoFocus
+            placeholder="tu-email@ejemplo.com"
             value={valor}
             invalido={error !== undefined}
             onChange={(evento) => {
