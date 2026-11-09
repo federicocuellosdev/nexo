@@ -591,24 +591,18 @@ function DialogoEmailMercadoPago({ valorInicial, onCerrar, onConfirmar }: Dialog
         if (!abierto) onCerrar();
       }}
       titulo="Pagar con MercadoPago"
-      descripcion="Cuenta a la que vamos a asociar el cobro de tu plan."
     >
       <form onSubmit={enviar} noValidate className="flex flex-col gap-5">
-        {/* Banner con logo + marca: fondo cian suave y ring del mismo tono
-            para que lea como un sello de "paga con X", no como una
-            ilustración decorativa. `BASE_URL` (/ en dev, /app/ en prod)
-            resuelve el subpath del portal sin hardcodear. */}
-        <div className="flex items-center gap-3 rounded-card bg-[#009EE3]/10 p-4 ring-1 ring-[#009EE3]/25">
+        {/* Logo + marca en una sola línea compacta. `BASE_URL` (/ en dev,
+            /app/ en prod) resuelve el subpath del portal sin hardcodear. */}
+        <div className="flex items-center gap-2 text-sm text-ink-600">
           <img
             src={`${import.meta.env.BASE_URL}mercadopago.png`}
             alt=""
             aria-hidden="true"
-            className="size-10 shrink-0"
+            className="size-5 shrink-0"
           />
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-ink-900">MercadoPago</p>
-            <p className="text-xs text-ink-600">Checkout seguro · tarjeta, débito o dinero en cuenta</p>
-          </div>
+          <span>Asociamos el cobro a tu cuenta.</span>
         </div>
         <Field label="Email de MercadoPago" htmlFor="mp-email" error={error} requerido>
           <Input
