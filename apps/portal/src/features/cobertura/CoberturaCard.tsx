@@ -6,7 +6,6 @@ import type { EstadoCuenta } from '@/lib/estado';
 import { CoberturaEstado } from '@/features/cobertura/CoberturaEstado';
 import { Card } from '@/ui/Card';
 import { Icon } from '@/ui/Icon';
-import { Money } from '@/ui/Money';
 import { clasesBoton } from '@/ui/Button';
 
 export interface CoberturaCardProps {
@@ -53,8 +52,9 @@ export function CoberturaCard({ plan, estado, proximoVencimiento, accionExtra }:
         <CoberturaEstado estado={estado} />
       </div>
 
-      <div className="flex flex-wrap items-baseline justify-between gap-2 border-t border-ink-100 pt-4">
-        <Money monto={plan.precio} periodo="por mes" tamano="lg" />
+      {/* Línea con vencimiento (el precio se omite — ya lo vieron al pagar,
+          acá importa cuándo arranca la próxima cuota, no cuánto es). */}
+      <div className="border-t border-ink-100 pt-4">
         <span className="text-sm text-ink-500">{`Vence el ${proximoVencimiento}`}</span>
       </div>
 

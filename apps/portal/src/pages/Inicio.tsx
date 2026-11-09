@@ -17,11 +17,13 @@ import {
 import { ETIQUETA, GLIFO, TONO } from '@/features/planes/estadoPrestacion';
 import { NOVEDADES } from '@/mock/novedades';
 import { NovedadesCarousel } from '@/features/novedades/NovedadesCarousel';
+import { MovimientosList } from '@/features/movimientos/MovimientosList';
+import { DialogoInvitar } from '@/features/referidos/DialogoInvitar';
 import { CoberturaCard } from '@/features/cobertura/CoberturaCard';
 import { CredencialCard } from '@/features/credencial/CredencialCard';
 import { credencialDeLaSesion } from '@/features/credencial/datos';
 import { useCredencialDownload } from '@/features/credencial/useCredencialDownload';
-import { formatearFecha, planContratado, proximoVencimiento } from '@/features/cobertura/contrataciones';
+import { planContratado, proximoVencimiento } from '@/features/cobertura/contrataciones';
 import { Card } from '@/ui/Card';
 import { Icon } from '@/ui/Icon';
 import { Money } from '@/ui/Money';
@@ -54,6 +56,8 @@ export function Inicio() {
   // izquierda (ver más abajo), pero sigue capturando el DOM de la credencial
   // que vive a la derecha — por eso el ref y los flags viven acá, compartidos.
   const credDownload = useCredencialDownload(credencial?.numeroAfiliado ?? '');
+  // Diálogo de 'Invitar' que dispara la novedad de referidos.
+  const [invitandoAmigo, setInvitandoAmigo] = useState(false);
 
   // `sesion.intent` guarda lo que el usuario ELIGIÓ (spec §6), no lo que pagó.
   // Sin cruzarlo con el estado, quien elige un plan y no termina el pago cae
@@ -418,33 +422,11 @@ export function Inicio() {
           </Link>
         </div>
 
-        {ultimos.length === 0 ? (
-          <EmptyState
-            icono={Receipt}
-            titulo="Todavía no hay movimientos"
-            descripcion="Acá van a aparecer tus pagos y contrataciones."
-          />
-        ) : (
-          <div className="overflow-hidden rounded-card bg-white shadow-card ring-1 ring-ink-100">
-            <ul className="divide-y divide-ink-100">
-              {ultimos.map((orden) => (
-                <li key={orden.id} className="flex items-center gap-3 px-4 py-4">
-                  <Icon icono={Receipt} tono="neutro" />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-ink-900">{orden.concepto}</p>
-                    <p className="text-xs text-ink-500">{formatearFecha(orden.fecha)}</p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <Chip tono={orden.estado === 'pagada' ? 'ok' : 'warn'}>
-                      {orden.estado === 'pagada' ? 'Pagada' : 'Pendiente'}
-                    </Chip>
-                    <Money monto={orden.monto} />
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+        {/* Mismo tratamiento de tabla que /movimientos (CONCEPTO | FECHA |
+            ESTADO | MONTO con encabezados). Reusamos el mismo componente con
+            las 3 primeras ordenes para que la vista de /inicio no divirja
+            visualmente de la pantalla completa. */}
+        <MovimientosList ordenes={ultimos} />
       </section>
 
       {/* Novedades cierra la pantalla. Es lo único promocional de /inicio y va
@@ -453,8 +435,17 @@ export function Inicio() {
           compite con secciones que sí traen datos del socio. */}
       <section aria-label="Novedades" className="border-t border-ink-200 pt-8">
         <h2 className="mb-3 text-lg text-ink-950">Novedades</h2>
-        <NovedadesCarousel novedades={NOVEDADES} />
+        <NovedadesCarousel novedades={NOVEDADES} onInvitar={() => setInvitandoAmigo(true)} />
       </section>
+
+      {invitandoAmigo ? (
+        <DialogoInvitar
+          onCerrar={() => setInvitandoAmigo(false)}
+          onEnviar={(email) => {
+            console.log('[referidos] invitación enviada a', email);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

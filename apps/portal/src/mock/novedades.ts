@@ -8,6 +8,9 @@ export interface Novedad {
   texto: string;
   icono: LucideIcon;
   tono: Tono;
+  /** Acción opcional que el consumidor resuelve (p.ej. abrir diálogo de
+   *  invitación). Si está, la novedad renderiza un botón al lado del icono. */
+  cta?: { label: string; action: 'invitar' };
 }
 
 /** Contenido ficticio de demostración. A futuro se personaliza por perfil. */
@@ -32,5 +35,6 @@ export const NOVEDADES: Novedad[] = [
     texto: 'Programa de referidos en preparación. Te avisamos cuando esté disponible.',
     icono: Gift,
     tono: 'warn',
+    cta: { label: '+ Invitar', action: 'invitar' },
   },
 ];

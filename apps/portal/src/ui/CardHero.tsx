@@ -25,9 +25,12 @@ export function CardHero({ icono: Glifo, className, deshabilitado = false }: Car
         '-mx-5 -mt-5 flex h-28 items-center justify-center rounded-t-card',
         // Deshabilitado: bg-ink-100 (más oscuro que el ink-50 del Card padre)
         // para que la banda se diferencie del cuerpo y no queden fundidas.
-        // Activo: fondo marca muy tenue (marca-50) + ícono violeta
-        // (marca-600) — queda claro y no compite con el precio ni el CTA.
-        deshabilitado ? 'bg-ink-100 text-ink-400' : 'bg-marca-50 text-marca-600',
+        // Activo: degradado tenue marca-50 → acento-50 (mismo eje que la
+        // marca, pero con los niveles 50 para que no compita con el precio
+        // ni el CTA) + ícono violeta (marca-600).
+        deshabilitado
+          ? 'bg-ink-100 text-ink-400'
+          : 'bg-gradient-to-br from-marca-50 to-acento-50 text-marca-600',
         className,
       )}
     >
