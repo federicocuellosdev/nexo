@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { ShieldCheck } from 'lucide-react';
 import type { Plan } from '@/mock/planes';
@@ -13,6 +14,10 @@ export interface CoberturaCardProps {
   estado: EstadoCuenta;
   /** Fecha ficticia ya formateada para mostrar. */
   proximoVencimiento: string;
+  /** Acción adicional a renderizar inmediatamente debajo de "Ver mi cobertura".
+   *  /inicio lo usa para colgar "Descargar credencial" dentro de la misma
+   *  tarjeta, así las dos acciones se leen como una pila continua. */
+  accionExtra?: ReactNode;
 }
 
 /**
@@ -29,7 +34,7 @@ export interface CoberturaCardProps {
  * una grilla— y acá la tarjeta está sola, no compitiendo con hermanas. El
  * `ring-marca-100` dice "esto importa", que es otra cosa.
  */
-export function CoberturaCard({ plan, estado, proximoVencimiento }: CoberturaCardProps) {
+export function CoberturaCard({ plan, estado, proximoVencimiento, accionExtra }: CoberturaCardProps) {
   return (
     <Card className="flex flex-col gap-5 p-5 ring-marca-100 lg:p-6">
       <div className="flex items-start justify-between gap-3">
@@ -91,6 +96,8 @@ export function CoberturaCard({ plan, estado, proximoVencimiento }: CoberturaCar
           Ver mi cobertura
         </Link>
       )}
+
+      {accionExtra}
     </Card>
   );
 }

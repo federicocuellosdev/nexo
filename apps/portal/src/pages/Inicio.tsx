@@ -36,7 +36,7 @@ import { clasesBoton } from '@/ui/Button';
  * producto" porque es acción, no consulta.
  */
 const ACCESOS = [
-  { to: '/coberturas', label: 'Ver coberturas', icono: ShieldCheck, disabled: true },
+  { to: '/coberturas', label: 'Ver coberturas', icono: ShieldCheck, disabled: false },
   { to: '/planes', label: 'Otros productos', icono: LayoutGrid, disabled: false },
   { to: '/movimientos', label: 'Mis movimientos', icono: Receipt, disabled: false },
 ] as const;
@@ -251,28 +251,32 @@ export function Inicio() {
         )}
       >
         {plan && vencimiento ? (
-          <div className="flex flex-col gap-3">
-            <CoberturaCard plan={plan} estado={estado} proximoVencimiento={vencimiento} />
-            {credencial ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => void credDownload.descargar()}
-                  disabled={credDownload.generando}
-                  aria-busy={credDownload.generando}
-                  className={clasesBoton({ variante: 'secundario', ancho: 'full' })}
-                >
-                  <Download size={16} aria-hidden="true" />
-                  {credDownload.generando ? 'Generando…' : 'Descargar credencial'}
-                </button>
-                {credDownload.fallo ? (
-                  <p role="alert" className="text-sm text-danger-700">
-                    No pudimos generar la imagen. Probá de nuevo, o mostrá la credencial desde esta pantalla.
-                  </p>
-                ) : null}
-              </>
-            ) : null}
-          </div>
+          <CoberturaCard
+            plan={plan}
+            estado={estado}
+            proximoVencimiento={vencimiento}
+            accionExtra={
+              credencial ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => void credDownload.descargar()}
+                    disabled={credDownload.generando}
+                    aria-busy={credDownload.generando}
+                    className={clasesBoton({ variante: 'secundario', tamano: 'sm', ancho: 'full' })}
+                  >
+                    <Download size={16} aria-hidden="true" />
+                    {credDownload.generando ? 'Generando…' : 'Descargar credencial'}
+                  </button>
+                  {credDownload.fallo ? (
+                    <p role="alert" className="text-sm text-danger-700">
+                      No pudimos generar la imagen. Probá de nuevo, o mostrá la credencial desde esta pantalla.
+                    </p>
+                  ) : null}
+                </>
+              ) : null
+            }
+          />
         ) : faltaTerminarCompra && planElegido ? (
           <PlanPendienteCard
             plan={planElegido}

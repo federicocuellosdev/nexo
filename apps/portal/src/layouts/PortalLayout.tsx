@@ -21,7 +21,7 @@ import { obtenerUltimoLead } from '@/lib/api';
 const ITEMS_PORTAL_BASE: NavItem[] = [
   { to: '/inicio', label: 'Inicio', icono: House },
   { to: '/planes', label: 'Planes', icono: LayoutGrid },
-  { to: '/coberturas', label: 'Coberturas', icono: ShieldCheck, disabled: true },
+  { to: '/coberturas', label: 'Coberturas', icono: ShieldCheck },
   { to: '/movimientos', label: 'Movimientos', icono: Receipt },
 ];
 
