@@ -7,6 +7,7 @@ import { cn } from '@/lib/cn';
 import { saludo } from '@/lib/identidad';
 import { buscarPlan, buscarProducto } from '@/mock/planes';
 import { derivarEstado } from '@/lib/estado';
+import { rutaDeshabilitada } from '@/lib/navDisponibilidad';
 import { portalUrl } from '@/lib/urls';
 import {
   buscarSuscripcionesPorEmail,
@@ -32,19 +33,20 @@ import { EmptyState } from '@/ui/EmptyState';
 import { clasesBoton } from '@/ui/Button';
 
 /**
- * Accesos rápidos de /inicio. "Ver coberturas" y "Otros productos" solo tienen
- * sentido con plan vigente: sin plan no hay cobertura que ver y los productos
- * on-demand funcionan como add-on de un plan activo. "Mis movimientos" queda
- * siempre habilitado para que el historial (pagos y devoluciones) sea
- * consultable incluso en estado declientado.
+ * Accesos rápidos de /inicio. La disponibilidad de cada card la decide el
+ * mismo helper que usan Sidebar/BottomNav (`rutaDeshabilitada`), así no hay
+ * que recordar poner `disabled` acá cuando cambia la regla.
+ *
+ * Caso especial: "Otros productos" apunta a /planes (que siempre está
+ * habilitado como navegación) pero semánticamente es "contratar un producto
+ * on-demand", y los productos son add-on de un plan vigente. Por eso lleva
+ * su propia regla local además del check genérico.
  */
-function buildAccesos(tienePlan: boolean) {
-  return [
-    { to: '/coberturas', label: 'Ver coberturas', icono: ShieldCheck, disabled: !tienePlan },
-    { to: '/planes', label: 'Otros productos', icono: LayoutGrid, disabled: !tienePlan },
-    { to: '/movimientos', label: 'Mis movimientos', icono: Receipt, disabled: false },
-  ] as const;
-}
+const ACCESOS_BASE = [
+  { to: '/coberturas', label: 'Ver coberturas', icono: ShieldCheck },
+  { to: '/planes', label: 'Otros productos', icono: LayoutGrid, requierePlanVigente: true },
+  { to: '/movimientos', label: 'Mis movimientos', icono: Receipt },
+] as const;
 
 export function Inicio() {
   const sesion = useSession();
@@ -385,8 +387,10 @@ export function Inicio() {
       <section aria-label="Accesos rápidos" className="border-t border-ink-200 pt-8">
         <h2 className="mb-3 text-lg text-ink-950">Accesos rápidos</h2>
         <div className="grid gap-3 sm:grid-cols-3">
-          {buildAccesos(plan !== undefined).map((acceso) =>
-            acceso.disabled ? (
+          {ACCESOS_BASE.map((acceso) => {
+            const requierePlan = 'requierePlanVigente' in acceso && acceso.requierePlanVigente === true;
+            const disabled = rutaDeshabilitada(sesion, acceso.to) || (requierePlan && plan === undefined);
+            return disabled ? (
               <span
                 key={acceso.to}
                 role="link"
@@ -406,20 +410,22 @@ export function Inicio() {
                 <acceso.icono size={22} strokeWidth={1.75} aria-hidden="true" className="text-white" />
                 <span className="text-sm font-medium">{acceso.label}</span>
               </Link>
-            ),
-          )}
+            );
+          })}
         </div>
       </section>
 
       <section aria-label="Últimos movimientos" className="border-t border-ink-200 pt-8">
         <div className="mb-3 flex items-end justify-between gap-3">
           <h2 className="text-lg text-ink-950">Últimos movimientos</h2>
-          <Link
-            to="/movimientos"
-            className="text-sm font-medium text-marca-600 hover:text-marca-700"
-          >
-            Ver todos
-          </Link>
+          {rutaDeshabilitada(sesion, '/movimientos') ? null : (
+            <Link
+              to="/movimientos"
+              className="text-sm font-medium text-marca-600 hover:text-marca-700"
+            >
+              Ver todos
+            </Link>
+          )}
         </div>
 
         {/* Mismo tratamiento de tabla que /movimientos (CONCEPTO | FECHA |

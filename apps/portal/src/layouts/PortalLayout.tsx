@@ -10,6 +10,7 @@ import { landingUrl } from '@/lib/urls';
 import { LogoNexo, ETIQUETA_MARCA } from '@/ui/LogoNexo';
 import { iniciales, nombreVisible } from '@/lib/identidad';
 import { obtenerUltimoLead } from '@/lib/api';
+import { rutaDeshabilitada } from '@/lib/navDisponibilidad';
 import { supabase } from '@/lib/supabase';
 
 /**
@@ -191,23 +192,12 @@ export function PortalLayout() {
     };
   }, [emailUsuario, debeConsultar, tieneEstadoContratacion]);
 
-  // Reglas de habilitacion del menu segun estado de la sesion:
-  //   - Inicio y Planes: siempre. Base + camino de contratacion nueva.
-  //   - Coberturas y Familiares: solo con plan vigente. Sin plan, las
-  //     pantallas quedan vacias y el item grisado comunica el por que.
-  //   - Movimientos: solo si hay al menos una orden (pagada, pendiente o
-  //     devuelta). Sin historial no hay a donde ir — grisarlo evita el
-  //     click a un EmptyState generico.
-  const tienePlanVigente = sesion.ordenes.some((o) => o.tipo === 'plan' && o.estado === 'pagada');
-  const tieneMovimientos = sesion.ordenes.length > 0;
-  const items: NavItem[] = ITEMS_PORTAL_BASE.map((item) => {
-    if (item.to === '/inicio' || item.to === '/planes') return item;
-    if (item.to === '/movimientos') {
-      return tieneMovimientos ? item : { ...item, disabled: true };
-    }
-    // Coberturas y Familiares.
-    return tienePlanVigente ? item : { ...item, disabled: true };
-  });
+  // Disponibilidad centralizada en `lib/navDisponibilidad.rutaDeshabilitada`.
+  // Si aparece una ruta nueva, se agrega la regla ahí y se replica sola en
+  // Sidebar, BottomNav y en los Accesos rápidos de /inicio.
+  const items: NavItem[] = ITEMS_PORTAL_BASE.map((item) =>
+    rutaDeshabilitada(sesion, item.to) ? { ...item, disabled: true } : item,
+  );
 
   if (enfocado) {
     return (
