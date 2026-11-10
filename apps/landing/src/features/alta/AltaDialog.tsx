@@ -13,6 +13,7 @@ import {
   hayErrores,
   validarAlta,
   validarEmail,
+  validarPaso1,
   type DatosAlta,
   type ErroresAlta,
 } from '@/features/alta/validacion';
@@ -32,10 +33,12 @@ export interface AltaDialogProps {
 }
 
 type Modo = 'alta' | 'login';
+type PasoAlta = 1 | 2;
 
 // Orden visual de los campos (de arriba hacia abajo): decide a cuál volver el
 // foco cuando el envío falla con más de un error a la vez.
-const ORDEN_CAMPOS: Array<keyof DatosAlta> = ['nombre', 'apellido', 'email', 'dni'];
+const ORDEN_CAMPOS: Array<keyof DatosAlta> = ['nombre', 'apellido', 'email', 'telefono', 'dni'];
+const CAMPOS_PASO_1: Array<keyof DatosAlta> = ['nombre', 'apellido', 'email', 'telefono'];
 
 function idDelCampo(campo: keyof DatosAlta): string {
   return `alta-${campo}`;
@@ -52,6 +55,11 @@ function enfocarCampo(id: string) {
 export function AltaDialog({ abierto, onCambio, item }: AltaDialogProps) {
   const navegar = useNavigate();
   const [modo, setModo] = useState<Modo>('alta');
+  // Alta en dos pasos: paso 1 pide nombre/apellido/email/teléfono, paso 2
+  // pide solo el DNI. Se dividió porque la pantalla única con 5 campos
+  // intimidaba y el DNI es el único que no se pedía antes — separarlo deja
+  // claro que ese dato específico es para la póliza.
+  const [paso, setPaso] = useState<PasoAlta>(1);
   const [datos, setDatos] = useState<DatosAlta>(DATOS_ALTA_VACIOS);
   const [errores, setErrores] = useState<ErroresAlta>({});
   // `enviando` deshabilita el submit mientras el request a /api/leads está en
@@ -60,12 +68,14 @@ export function AltaDialog({ abierto, onCambio, item }: AltaDialogProps) {
   const [enviando, setEnviando] = useState(false);
   const [errorEnvio, setErrorEnvio] = useState<string | null>(null);
 
-  // Al reabrir el popup arranca siempre en modo alta, sin datos ni errores de
-  // un intento anterior: si alguien cerró estando en modo login, o cerró
-  // después de un submit fallido, la próxima apertura no hereda ese estado.
+  // Al reabrir el popup arranca siempre en modo alta paso 1, sin datos ni
+  // errores de un intento anterior: si alguien cerró estando en modo login,
+  // o cerró después de un submit fallido, la próxima apertura no hereda
+  // ese estado.
   useEffect(() => {
     if (!abierto) return;
     setModo('alta');
+    setPaso(1);
     setDatos(DATOS_ALTA_VACIOS);
     setErrores({});
     setErrorEnvio(null);
@@ -80,13 +90,16 @@ export function AltaDialog({ abierto, onCambio, item }: AltaDialogProps) {
   useEffect(() => {
     if (!abierto) return;
     const marco = requestAnimationFrame(() => {
-      enfocarCampo(modo === 'alta' ? idDelCampo('nombre') : idDelCampo('email'));
+      if (modo === 'login') enfocarCampo(idDelCampo('email'));
+      else if (paso === 1) enfocarCampo(idDelCampo('nombre'));
+      else enfocarCampo(idDelCampo('dni'));
     });
     return () => cancelAnimationFrame(marco);
-  }, [abierto, modo]);
+  }, [abierto, modo, paso]);
 
   function cambiarModo(nuevo: Modo) {
     setModo(nuevo);
+    setPaso(1);
     setErrores({});
   }
 
@@ -110,11 +123,31 @@ export function AltaDialog({ abierto, onCambio, item }: AltaDialogProps) {
       return;
     }
 
+    // Paso 1: validar los 4 campos personales. Si todo OK, avanzar al paso 2
+    // (DNI). Nada se manda al backend todavia.
+    if (paso === 1) {
+      const encontrados = validarPaso1(datos);
+      if (hayErrores(encontrados)) {
+        setErrores(encontrados);
+        const primero = CAMPOS_PASO_1.find((campo) => encontrados[campo] !== undefined);
+        if (primero) enfocarCampo(idDelCampo(primero));
+        return;
+      }
+      setErrores({});
+      setPaso(2);
+      return;
+    }
+
+    // Paso 2: validar todo (incluido DNI) y disparar el POST.
     const encontrados = validarAlta(datos);
     if (hayErrores(encontrados)) {
       setErrores(encontrados);
       const primerCampoConError = ORDEN_CAMPOS.find((campo) => encontrados[campo] !== undefined);
-      if (primerCampoConError) enfocarCampo(idDelCampo(primerCampoConError));
+      if (primerCampoConError) {
+        // Si el error es en un campo del paso 1, volver al paso 1 y enfocarlo.
+        if (CAMPOS_PASO_1.includes(primerCampoConError)) setPaso(1);
+        enfocarCampo(idDelCampo(primerCampoConError));
+      }
       return;
     }
 
@@ -122,6 +155,7 @@ export function AltaDialog({ abierto, onCambio, item }: AltaDialogProps) {
       nombre: datos.nombre.trim(),
       apellido: datos.apellido.trim(),
       email: datos.email.trim(),
+      telefono: datos.telefono.trim(),
       dni: datos.dni.trim(),
     };
 
@@ -161,7 +195,10 @@ export function AltaDialog({ abierto, onCambio, item }: AltaDialogProps) {
           if (Object.keys(porCampo).length > 0) {
             setErrores(porCampo);
             const primerCampoConError = ORDEN_CAMPOS.find((campo) => porCampo[campo] !== undefined);
-            if (primerCampoConError) enfocarCampo(idDelCampo(primerCampoConError));
+            if (primerCampoConError) {
+              if (CAMPOS_PASO_1.includes(primerCampoConError)) setPaso(1);
+              enfocarCampo(idDelCampo(primerCampoConError));
+            }
             setErrorEnvio(null);
           } else {
             setErrorEnvio('Revisá los datos e intentá de nuevo.');
@@ -209,48 +246,66 @@ export function AltaDialog({ abierto, onCambio, item }: AltaDialogProps) {
         <input type="hidden" name="itemId" value={item.id} />
 
         {modo === 'alta' ? (
-          <>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Nombre" htmlFor={idDelCampo('nombre')} error={errores.nombre} requerido>
+          paso === 1 ? (
+            <>
+              <p className="text-xs font-medium uppercase tracking-wide text-ink-500">Paso 1 de 2 · Tus datos</p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Nombre" htmlFor={idDelCampo('nombre')} error={errores.nombre} requerido>
+                  <Input
+                    id={idDelCampo('nombre')}
+                    name="nombre"
+                    autoComplete="given-name"
+                    value={datos.nombre}
+                    onChange={(evento) => actualizar('nombre', evento.target.value)}
+                  />
+                </Field>
+                <Field label="Apellido" htmlFor={idDelCampo('apellido')} error={errores.apellido} requerido>
+                  <Input
+                    id={idDelCampo('apellido')}
+                    name="apellido"
+                    autoComplete="family-name"
+                    value={datos.apellido}
+                    onChange={(evento) => actualizar('apellido', evento.target.value)}
+                  />
+                </Field>
+              </div>
+
+              {campoEmail}
+
+              <Field label="Teléfono" htmlFor={idDelCampo('telefono')} error={errores.telefono} requerido>
                 <Input
-                  id={idDelCampo('nombre')}
-                  name="nombre"
-                  autoComplete="given-name"
-                  value={datos.nombre}
-                  onChange={(evento) => actualizar('nombre', evento.target.value)}
+                  id={idDelCampo('telefono')}
+                  name="telefono"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  placeholder="3415551234"
+                  value={datos.telefono}
+                  onChange={(evento) => actualizar('telefono', evento.target.value.replace(/[^\d+]/g, ''))}
                 />
               </Field>
-              <Field label="Apellido" htmlFor={idDelCampo('apellido')} error={errores.apellido} requerido>
+            </>
+          ) : (
+            <>
+              <p className="text-xs font-medium uppercase tracking-wide text-ink-500">Paso 2 de 2 · Documento</p>
+              {/* DNI: SF lo usa como clave de reconocimiento del Prospecto
+                  (documentType=DNI + documentNumber). Sin esto el envío a
+                  /leads rebota 400. Lo pedimos en paso aparte para que el
+                  usuario entienda que es un dato especifico de la poliza. */}
+              <Field label="DNI" htmlFor={idDelCampo('dni')} error={errores.dni} requerido>
                 <Input
-                  id={idDelCampo('apellido')}
-                  name="apellido"
-                  autoComplete="family-name"
-                  value={datos.apellido}
-                  onChange={(evento) => actualizar('apellido', evento.target.value)}
+                  id={idDelCampo('dni')}
+                  name="dni"
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={8}
+                  autoComplete="off"
+                  value={datos.dni}
+                  onChange={(evento) => actualizar('dni', evento.target.value.replace(/\D/g, ''))}
                 />
               </Field>
-            </div>
-
-            {campoEmail}
-
-            {/* DNI: SF lo usa como clave de reconocimiento del Prospecto
-                (documentType=DNI + documentNumber). Sin esto el envío a
-                /leads rebota 400. El resto de datos personales (teléfono,
-                fecha de nacimiento, domicilio) se completa después en el
-                portal para el enrich. */}
-            <Field label="DNI" htmlFor={idDelCampo('dni')} error={errores.dni} requerido>
-              <Input
-                id={idDelCampo('dni')}
-                name="dni"
-                type="text"
-                inputMode="numeric"
-                maxLength={8}
-                autoComplete="off"
-                value={datos.dni}
-                onChange={(evento) => actualizar('dni', evento.target.value.replace(/\D/g, ''))}
-              />
-            </Field>
-          </>
+            </>
+          )
         ) : (
           campoEmail
         )}
@@ -264,9 +319,36 @@ export function AltaDialog({ abierto, onCambio, item }: AltaDialogProps) {
           </div>
         ) : null}
 
-        <Button type="submit" ancho="full" tamano="lg" disabled={enviando}>
-          {enviando ? 'Enviando…' : modo === 'alta' ? 'Crear cuenta' : 'Enviarme el enlace'}
-        </Button>
+        {modo === 'alta' && paso === 2 ? (
+          <div className="flex flex-col gap-3 sm:flex-row-reverse">
+            <Button type="submit" ancho="full" tamano="lg" disabled={enviando}>
+              {enviando ? 'Enviando…' : 'Crear cuenta'}
+            </Button>
+            <Button
+              type="button"
+              variante="secundario"
+              ancho="full"
+              tamano="lg"
+              disabled={enviando}
+              onClick={() => {
+                setErrores({});
+                setPaso(1);
+              }}
+            >
+              Volver
+            </Button>
+          </div>
+        ) : (
+          <Button type="submit" ancho="full" tamano="lg" disabled={enviando}>
+            {modo === 'login'
+              ? 'Enviarme el enlace'
+              : paso === 1
+                ? 'Continuar'
+                : enviando
+                  ? 'Enviando…'
+                  : 'Crear cuenta'}
+          </Button>
+        )}
 
         <p className="text-center text-sm text-ink-600">
           {modo === 'alta' ? (

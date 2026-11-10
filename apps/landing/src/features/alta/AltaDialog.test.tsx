@@ -18,15 +18,23 @@ function montar() {
   return render(<RouterProvider router={router} />);
 }
 
-// Los cuatro campos son `requerido`, así que `Field` les agrega un asterisco
-// visual (" *") dentro del propio <label>: el texto accesible real es
-// "Nombre *", no "Nombre" (ver Field.test.tsx, que ya usa regex por lo mismo).
-// Por eso se matchea con regex de inicio de cadena en vez de string exacto.
-async function completarDatosValidos(usuario: ReturnType<typeof userEvent.setup>) {
+// Los campos son `requerido`, así que `Field` les agrega un asterisco visual
+// (" *") dentro del propio <label>: el texto accesible real es "Nombre *",
+// no "Nombre" (ver Field.test.tsx, que ya usa regex por lo mismo). Por eso
+// se matchea con regex de inicio de cadena en vez de string exacto.
+async function completarPaso1(usuario: ReturnType<typeof userEvent.setup>) {
   await usuario.type(screen.getByLabelText(/^Nombre/), 'Camila');
   await usuario.type(screen.getByLabelText(/^Apellido/), 'Pérez');
   await usuario.type(screen.getByLabelText(/^Email/), 'camila.perez@ejemplo.com');
   await usuario.type(screen.getByLabelText(/^Teléfono/), '3415551234');
+}
+
+/** Paso 1 (4 campos) + "Continuar" + DNI + "Crear cuenta". */
+async function completarAltaFull(usuario: ReturnType<typeof userEvent.setup>) {
+  await completarPaso1(usuario);
+  await usuario.click(screen.getByRole('button', { name: 'Continuar' }));
+  await usuario.type(screen.getByLabelText(/^DNI/), '34567890');
+  await usuario.click(screen.getByRole('button', { name: 'Crear cuenta' }));
 }
 
 test('muestra el resumen de lo que se está contratando', () => {
@@ -75,29 +83,28 @@ test('el plan elegido viaja como campo oculto', () => {
   expect(dialogo.querySelector('input[type="hidden"][name="itemTipo"]')).toHaveValue('plan');
 });
 
-test('enviar vacío muestra los cuatro errores y no navega', async () => {
+test('enviar vacío en paso 1 muestra los cuatro errores y no avanza', async () => {
   const usuario = userEvent.setup();
   montar();
-  await usuario.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+  await usuario.click(screen.getByRole('button', { name: 'Continuar' }));
   expect(screen.getAllByRole('alert')).toHaveLength(4);
-  expect(screen.queryByText('pantalla revisa tu mail')).not.toBeInTheDocument();
+  expect(screen.queryByLabelText(/^DNI/)).not.toBeInTheDocument();
 });
 
-test('un email mal escrito muestra el error del email', async () => {
+test('un email mal escrito muestra el error del email en paso 1', async () => {
   const usuario = userEvent.setup();
   montar();
-  await completarDatosValidos(usuario);
+  await completarPaso1(usuario);
   await usuario.clear(screen.getByLabelText(/^Email/));
   await usuario.type(screen.getByLabelText(/^Email/), 'camila.ejemplo.com');
-  await usuario.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+  await usuario.click(screen.getByRole('button', { name: 'Continuar' }));
   expect(screen.getByRole('alert')).toHaveTextContent('Revisá el email: falta el @ o el dominio');
 });
 
 test('el envío válido guarda el handoff de alta y navega a revisá tu mail', async () => {
   const usuario = userEvent.setup();
   montar();
-  await completarDatosValidos(usuario);
-  await usuario.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+  await completarAltaFull(usuario);
 
   expect(screen.getByText('pantalla revisa tu mail')).toBeInTheDocument();
   expect(leerHandoff()).toEqual({
@@ -109,6 +116,7 @@ test('el envío válido guarda el handoff de alta y navega a revisá tu mail', a
       apellido: 'Pérez',
       email: 'camila.perez@ejemplo.com',
       telefono: '3415551234',
+      dni: '34567890',
     },
   });
 });

@@ -4,6 +4,7 @@ const VALIDOS = {
   nombre: 'Camila',
   apellido: 'Pérez',
   email: 'camila.perez@ejemplo.com',
+  telefono: '3415551234',
   dni: '34567890',
 };
 
@@ -12,9 +13,9 @@ test('los datos completos no producen errores', () => {
   expect(hayErrores(validarAlta(VALIDOS))).toBe(false);
 });
 
-test('el formulario vacío marca los cuatro campos requeridos', () => {
+test('el formulario vacío marca los cinco campos requeridos', () => {
   const errores = validarAlta(DATOS_ALTA_VACIOS);
-  expect(Object.keys(errores).sort()).toEqual(['apellido', 'dni', 'email', 'nombre']);
+  expect(Object.keys(errores).sort()).toEqual(['apellido', 'dni', 'email', 'nombre', 'telefono']);
 });
 
 test('un nombre de una sola letra no alcanza', () => {

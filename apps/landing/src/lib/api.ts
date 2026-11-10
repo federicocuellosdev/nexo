@@ -12,6 +12,7 @@ export interface PayloadCrearLead {
   nombre: string;
   apellido: string;
   email: string;
+  telefono: string;
   dni: string;
 }
 

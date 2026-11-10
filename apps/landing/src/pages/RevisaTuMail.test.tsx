@@ -18,6 +18,7 @@ test('muestra el email al que se envió el enlace', () => {
       nombre: 'Camila',
       apellido: 'Pérez',
       email: 'camila.perez@ejemplo.com',
+      telefono: '3415551234',
       dni: '34567890',
     },
   });

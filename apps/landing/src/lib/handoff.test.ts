@@ -15,6 +15,7 @@ const ALTA: Handoff = {
     nombre: 'Camila',
     apellido: 'Pérez',
     email: 'camila.perez@ejemplo.com',
+    telefono: '3415551234',
     dni: '34567890',
   },
 };
@@ -22,7 +23,8 @@ const ALTA: Handoff = {
 test('la URL de alta lleva todos los parámetros del spec §4, en orden', () => {
   expect(construirUrlCallback(ALTA)).toBe(
     'http://localhost:5174/auth/callback?token=demo&intent=alta&tipo=plan&id=nexo-2' +
-      '&nombre=Camila&apellido=P%C3%A9rez&email=camila.perez%40ejemplo.com&dni=34567890',
+      '&nombre=Camila&apellido=P%C3%A9rez&email=camila.perez%40ejemplo.com' +
+      '&telefono=3415551234&dni=34567890',
   );
 });
 
