@@ -13,6 +13,7 @@ import {
   buscarSuscripcionesPorEmail,
   consultarEstadoSuscripcion,
   crearSuscripcion,
+  enviarInvitacion,
   obtenerUltimoLead,
 } from '@/lib/api';
 import { ETIQUETA, GLIFO, TONO } from '@/features/planes/estadoPrestacion';
@@ -451,9 +452,7 @@ export function Inicio() {
       {invitandoAmigo ? (
         <DialogoInvitar
           onCerrar={() => setInvitandoAmigo(false)}
-          onEnviar={(email) => {
-            console.log('[referidos] invitación enviada a', email);
-          }}
+          onEnviar={(email) => enviarInvitacion(email, sesion.leadId)}
         />
       ) : null}
     </div>
