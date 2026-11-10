@@ -92,10 +92,19 @@ leadsRouter.post('/leads', async (req, res) => {
   // 3. Generamos el magic link vía Supabase Auth. `type: 'magiclink'` crea el
   //    usuario si no existía (shouldCreateUser default true en magiclink).
   //    El `redirectTo` es a dónde cae el usuario tras clickear el link.
+  //    `data` → raw_user_meta_data del usuario Supabase: así nombre/apellido/
+  //    dni viajan en `data.session.user.user_metadata` y el portal puede
+  //    hidratar `sesion.usuario` sin tener que ir a v3.leads (lo que fallaba
+  //    para usuarios declientados cuya fila fue borrada).
   const { data: linkData, error: errorLink } = await supabaseAdmin.auth.admin.generateLink({
     type: 'magiclink',
     email: datos.email.toLowerCase(),
     options: {
+      data: {
+        nombre: datos.nombre,
+        apellido: datos.apellido,
+        dni: datos.dni,
+      },
       // En staging/prod el portal vive como subpath `/app` del dominio único
       // nexo-front (landing + portal sirviéndose juntos). En dev local, el
       // portal corre en su propio Vite en 5174: PORTAL_URL puede incluir

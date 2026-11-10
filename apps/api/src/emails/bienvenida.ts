@@ -20,6 +20,12 @@ export function asuntoBienvenida(): string {
 }
 
 export function htmlBienvenida({ nombre, magicLink, logoUrl }: DatosEmailBienvenida): string {
+  // Primer nombre solamente (antes del primer espacio): "Federico Cuellos"
+  // en la DB queda como "Federico" en el saludo del email. Mas natural que
+  // repetir el nombre completo. Si no hay nombre, cae a "Hola" sin trailing
+  // space para no dejar el ultimo caracter colgado.
+  const primerNombre = (nombre ?? '').trim().split(/\s+/)[0] ?? '';
+  const saludo = primerNombre ? `Hola, ${primerNombre}` : 'Hola';
   return `<!DOCTYPE html>
 <html lang="es">
 <body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
@@ -30,7 +36,7 @@ export function htmlBienvenida({ nombre, magicLink, logoUrl }: DatosEmailBienven
   <img src="${logoUrl}" alt="Nexo" width="66" height="22" style="display:block;height:22px;width:auto;border:0;outline:0;" />
 </td></tr>
 <tr><td style="padding:36px 36px 32px;">
-  <h1 style="margin:0 0 20px;font-family:'DM Serif Display',Georgia,'Times New Roman',serif;font-style:italic;font-weight:400;font-size:28px;line-height:1.2;color:#111827;">Hola ${nombre}</h1>
+  <h1 style="margin:0 0 20px;font-family:'DM Serif Display',Georgia,'Times New Roman',serif;font-style:italic;font-weight:400;font-size:28px;line-height:1.2;color:#111827;">${saludo}</h1>
   <p style="margin:0 0 28px;color:#374151;font-size:15px;line-height:1.5;">Hacé clic en el botón para confirmar esta dirección de email y activar tu cuenta.</p>
   <a href="${magicLink}" style="display:inline-block;background:#8660EF;color:#ffffff;padding:13px 32px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;">Verificar email</a>
   <div style="margin:28px 0 0;border-top:1px solid #f3f4f6;"></div>

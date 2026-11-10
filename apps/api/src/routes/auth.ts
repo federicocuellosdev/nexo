@@ -83,7 +83,7 @@ authRouter.post('/auth/magic-link', async (req, res) => {
   const { data: leads, error: errorLeads } = await supabaseAdmin
     .schema('v3')
     .from('leads')
-    .select('item_tipo, item_id, nombre')
+    .select('id, item_tipo, item_id, nombre, apellido, dni')
     .eq('email', email)
     .order('created_at', { ascending: false })
     .limit(1);
@@ -95,18 +95,38 @@ authRouter.post('/auth/magic-link', async (req, res) => {
   const ultimoLead = leads && leads[0] ? leads[0] : undefined;
 
   const redirectBase = `${config.portalUrl}/auth/callback`;
+  // Incluimos leadId + planTipo + planId cuando hay lead: el portal usa
+  // leadId para disparar la validacion anti-sesion-fantasma del PortalLayout
+  // y planTipo+planId para armar el intent directo sin consultar backend.
   const redirectTo = ultimoLead
-    ? `${redirectBase}?planTipo=${encodeURIComponent(ultimoLead.item_tipo)}&planId=${encodeURIComponent(ultimoLead.item_id)}`
+    ? `${redirectBase}?leadId=${encodeURIComponent(ultimoLead.id)}` +
+      `&planTipo=${encodeURIComponent(ultimoLead.item_tipo)}` +
+      `&planId=${encodeURIComponent(ultimoLead.item_id)}`
     : redirectBase;
 
   // Generamos el magic link vía Supabase Auth. `type: 'magiclink'` NO crea el
   // usuario si no existe (es login, no signup). Si Supabase devuelve error de
   // "user not found", respondemos ok igual para no filtrar qué emails están
   // registrados — práctica estándar en flujos de login sin contraseña.
+  //
+  // `data` propaga nombre/apellido/dni al `user_metadata` para que el
+  // AuthCallback del portal hidrate sesion.usuario sin ir a v3.leads
+  // (indispensable para usuarios declientados cuya fila fue borrada).
   const { data: linkData, error: errorLink } = await supabaseAdmin.auth.admin.generateLink({
     type: 'magiclink',
     email,
-    options: { redirectTo },
+    options: {
+      ...(ultimoLead
+        ? {
+            data: {
+              nombre: ultimoLead.nombre,
+              apellido: ultimoLead.apellido,
+              dni: ultimoLead.dni,
+            },
+          }
+        : {}),
+      redirectTo,
+    },
   });
 
   if (errorLink || !linkData.properties?.action_link) {
