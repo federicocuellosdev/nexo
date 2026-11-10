@@ -7,6 +7,28 @@ import { asuntoBienvenida, htmlBienvenida } from '../emails/bienvenida.js';
 
 export const authRouter = Router();
 
+/**
+ * ¿El email tiene un auth.user asociado? Lo usamos antes de disparar
+ * generateLink para no crear usuarios "fantasma" en el flujo de LOGIN. La SDK
+ * admin trae una API paginada `listUsers` que no filtra por email, así que
+ * armamos el query directamente contra la tabla `auth.users` con el service
+ * role. Si el lookup falla por cualquier motivo, asumimos "no existe" para
+ * no mandar emails espúreos.
+ */
+async function emailTieneCuenta(email: string): Promise<boolean> {
+  const { data, error } = await supabaseAdmin
+    .schema('auth' as never)
+    .from('users' as never)
+    .select('id')
+    .eq('email', email.toLowerCase())
+    .limit(1);
+  if (error) {
+    console.warn('[auth lookup] no se pudo leer auth.users', error);
+    return false;
+  }
+  return Array.isArray(data) && data.length > 0;
+}
+
 // Payload mínimo: solo el email. No llevamos planId/planTipo porque este
 // endpoint es el LOGIN de alguien que ya pasó por el alta (no está eligiendo
 // un plan ahora) — su intent anterior, si lo tiene, lo resuelve el portal
@@ -98,6 +120,18 @@ authRouter.post('/auth/magic-link', async (req, res) => {
     console.error('[POST /auth/magic-link] no se pudo leer v3.leads', errorLeads);
   }
   const ultimoLead = leads && leads[0] ? leads[0] : undefined;
+
+  // Pre-check: `generateLink({ type: 'magiclink' })` por default CREA el user
+  // si no existe, lo cual rompe la semántica login≠signup y genera un auth
+  // user fantasma cada vez que alguien tipea un email desconocido en
+  // /ingresar. Chequeamos primero contra auth.users: si no está,
+  // respondemos ok sin mandar email — misma respuesta que para emails
+  // válidos → no filtramos qué cuentas existen.
+  const existeUser = await emailTieneCuenta(email);
+  if (!existeUser) {
+    console.log('[POST /auth/magic-link] email sin cuenta, skip:', email);
+    return res.status(200).json({ ok: true });
+  }
 
   const redirectBase = `${config.portalUrl}/auth/callback`;
   // Incluimos leadId + planTipo + planId cuando hay lead: el portal usa
