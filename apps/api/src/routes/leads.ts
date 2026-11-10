@@ -280,7 +280,7 @@ leadsRouter.post('/leads/:id/perfil', async (req, res) => {
   }
   const datos = parsed.data;
 
-  const { error } = await supabaseAdmin
+  const { data: leadRow, error } = await supabaseAdmin
     .schema('v3')
     .from('leads')
     .update({
@@ -289,12 +289,46 @@ leadsRouter.post('/leads/:id/perfil', async (req, res) => {
       familiares_count: datos.familiaresCount,
       perfil_updated_at: new Date().toISOString(),
     })
-    .eq('id', id);
+    .eq('id', id)
+    .select('id, nombre, apellido, email, dni, telefono, sf_lead_id')
+    .single();
 
-  if (error) {
+  if (error || !leadRow) {
     console.error('[POST /leads/:id/perfil] db update error', error);
     return res.status(500).json({ ok: false, error: 'db_update_error' });
   }
+
+  // Enriquecimiento final del lead en SF con el perfil completo (fecha de
+  // nacimiento + domicilio). SF Lead-Intake es upsert via sfLeadId, así que
+  // esta llamada actualiza el prospecto que creamos en el alta. Si falla no
+  // bloquea: sale_intake trae estos mismos datos y crea Account igual.
+  const enrichResult = await sendLeadIntake({
+    id: leadRow.id,
+    firstName: leadRow.nombre,
+    lastName: leadRow.apellido,
+    email: leadRow.email,
+    documentNumber: leadRow.dni,
+    mobilePhone: leadRow.telefono ?? undefined,
+    birthdate: datos.perfil.fechaNacimiento,
+    address: {
+      street: `${datos.perfil.domicilio.calle} ${datos.perfil.domicilio.numero}`.trim(),
+      city: datos.perfil.domicilio.localidad,
+      postalCode: datos.perfil.domicilio.cp,
+    },
+    sfLeadId: leadRow.sf_lead_id,
+  });
+  await registrarSfSync({
+    leadId: leadRow.id,
+    operation: 'lead_intake',
+    endpoint: '/leads',
+    messageId: enrichResult.payload.messageId,
+    payload: enrichResult.payload,
+    httpStatus: enrichResult.status,
+    status: enrichResult.ok ? 'success' : 'failed',
+    response: enrichResult.response,
+    errorCode: enrichResult.error ?? null,
+    sfLeadId: enrichResult.sfLeadId ?? leadRow.sf_lead_id,
+  });
 
   // Si el pago ya estaba autorizado (el usuario pagó primero y después
   // completó el perfil), este es el momento de disparar sale_intake.
@@ -302,6 +336,122 @@ leadsRouter.post('/leads/:id/perfil', async (req, res) => {
   await maybeDispararSaleIntake(id);
 
   return res.status(200).json({ ok: true });
+});
+
+/**
+ * Enriquecimiento incremental del perfil — se dispara al avanzar cada paso
+ * del wizard de /perfil/completar. A diferencia del endpoint full de arriba,
+ * acepta un subconjunto de los campos y:
+ *
+ *   - Hace merge en `v3.leads.perfil` (jsonb_merge via lectura previa).
+ *   - Dispara `sendLeadIntake` a SF con todo lo que haya acumulado en el
+ *     perfil hasta ahora, re-usando el `sf_lead_id` existente. SF trata la
+ *     llamada como UPSERT (ver aprendizajes §1): escribe los campos nuevos
+ *     y mantiene los viejos.
+ *   - Loggea el ack en `v3.sf_sync` (operation=lead_intake).
+ *   - NO dispara sale_intake. La sale solo arranca cuando el perfil está
+ *     completo Y el pago autorizado — ambos checks los hace el endpoint
+ *     full `/perfil` + el webhook de MP.
+ *
+ * Diseñado para fire-and-forget desde el wizard: un 500 acá no bloquea al
+ * usuario, el POST final de `/perfil` tiene la última palabra y vuelve a
+ * empujar todo.
+ */
+const PerfilDomicilioParcial = PerfilDomicilio.partial();
+const PerfilParcialPayload = PerfilPayload.partial().extend({
+  domicilio: PerfilDomicilioParcial.optional(),
+});
+
+leadsRouter.post('/leads/:id/perfil-paso', async (req, res) => {
+  const id = req.params.id;
+  if (!/^[0-9a-f-]{36}$/i.test(id)) {
+    return res.status(400).json({ ok: false, error: 'id_invalido' });
+  }
+
+  const parsed = PerfilParcialPayload.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      ok: false,
+      error: 'payload_invalido',
+      detalles: parsed.error.flatten().fieldErrors,
+    });
+  }
+  const parcial = parsed.data;
+
+  // Leemos la fila para armar el merge del perfil y conocer el sfLeadId.
+  const { data: leadRow, error: errorLee } = await supabaseAdmin
+    .schema('v3')
+    .from('leads')
+    .select('id, nombre, apellido, email, dni, telefono, sf_lead_id, perfil')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (errorLee || !leadRow) {
+    return res.status(404).json({ ok: false, error: 'lead_no_encontrado' });
+  }
+
+  // Merge superficial del perfil con lo que haya acumulado. `domicilio` se
+  // mergea aparte porque es un objeto anidado y el spread a un nivel lo
+  // pisaría entero si viniera parcial.
+  const perfilActual = (leadRow.perfil as Record<string, unknown> | null) ?? {};
+  const domicilioActual = (perfilActual.domicilio as Record<string, unknown> | undefined) ?? {};
+  const perfilMergeado = {
+    ...perfilActual,
+    ...parcial,
+    ...(parcial.domicilio ? { domicilio: { ...domicilioActual, ...parcial.domicilio } } : {}),
+  };
+
+  const { error: errorUpdate } = await supabaseAdmin
+    .schema('v3')
+    .from('leads')
+    .update({ perfil: perfilMergeado, perfil_updated_at: new Date().toISOString() })
+    .eq('id', id);
+
+  if (errorUpdate) {
+    console.error('[POST /leads/:id/perfil-paso] db update error', errorUpdate);
+    return res.status(500).json({ ok: false, error: 'db_update_error' });
+  }
+
+  // Armamos lo que sepamos para SF. Si todavía no hay fecha o domicilio
+  // completos, los omitimos — SF igual acepta payloads parciales.
+  const dom = perfilMergeado.domicilio as Record<string, string> | undefined;
+  const domicilioCompleto =
+    dom?.calle && dom.numero && dom.localidad && dom.cp
+      ? {
+          street: `${dom.calle} ${dom.numero}`.trim(),
+          city: dom.localidad,
+          postalCode: dom.cp,
+        }
+      : undefined;
+  const fechaNac = typeof perfilMergeado.fechaNacimiento === 'string'
+    ? perfilMergeado.fechaNacimiento
+    : undefined;
+
+  const result = await sendLeadIntake({
+    id: leadRow.id,
+    firstName: leadRow.nombre,
+    lastName: leadRow.apellido,
+    email: leadRow.email,
+    documentNumber: leadRow.dni,
+    mobilePhone: leadRow.telefono ?? undefined,
+    birthdate: fechaNac,
+    address: domicilioCompleto,
+    sfLeadId: leadRow.sf_lead_id,
+  });
+  await registrarSfSync({
+    leadId: leadRow.id,
+    operation: 'lead_intake',
+    endpoint: '/leads',
+    messageId: result.payload.messageId,
+    payload: result.payload,
+    httpStatus: result.status,
+    status: result.ok ? 'success' : 'failed',
+    response: result.response,
+    errorCode: result.error ?? null,
+    sfLeadId: result.sfLeadId ?? leadRow.sf_lead_id,
+  });
+
+  return res.status(200).json({ ok: true, sfOk: result.ok });
 });
 
 /**
