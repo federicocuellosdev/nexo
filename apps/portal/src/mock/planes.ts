@@ -60,7 +60,7 @@ export const PLANES: Plan[] = [
       { label: 'Doc24 · Psicología', estado: 'coseguro', detalle: '1° Sesión a $15.000' },
       { label: 'Emergencias médicas', estado: 'incluido' },
       { label: 'Guardia odontológica', estado: 'incluido' },
-      { label: 'Farmacia', estado: 'incluido' },
+      { label: 'Descuentos en farmacias', estado: 'incluido', detalle: 'Hasta 50% off en farmacias adheridas' },
     ],
   },
 ];
