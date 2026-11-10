@@ -1,10 +1,8 @@
-import { useState } from 'react';
-import { useSearchParams } from 'react-router';
+import { useSearchParams, useNavigate } from 'react-router';
 import { ON_DEMAND, PLANES, type Plan, type Producto } from '@/mock/planes';
 import { PlanCard } from '@/features/planes/PlanCard';
 import { ProductoCard } from '@/features/planes/ProductoCard';
 import { PlanComparador } from '@/features/planes/PlanComparador';
-import { AltaDialog, type ItemAlta } from '@/features/alta/AltaDialog';
 import { TabPanel, Tabs, type ItemTab } from '@/ui/Tabs';
 import { Revelar } from '@/ui/Revelar';
 import { EncabezadoSeccion } from '@/ui/EncabezadoSeccion';
@@ -25,35 +23,22 @@ const RECOMENDADO = PLANES.find((plan) => plan.recomendado === true) ?? PLANES[0
  */
 export function Catalogo() {
   const [parametros, setParametros] = useSearchParams();
+  const navegar = useNavigate();
   const pestana: Pestana = parametros.get('tab') === 'productos' ? 'productos' : 'planes';
-  // Un único AltaDialog compartido para toda la página: el item se arma a
-  // demanda cuando el usuario clickea "Contratar X" en una card. Así evitamos
-  // navegar a la ficha intermedia y dejamos el alta a un solo clic desde el
-  // catálogo.
-  const [itemAlta, setItemAlta] = useState<ItemAlta | null>(null);
 
   function cambiarPestana(valor: Pestana) {
     setParametros(valor === 'planes' ? {} : { tab: valor }, { replace: true });
   }
 
-  function abrirAltaPlan(plan: Plan) {
-    setItemAlta({
-      tipo: 'plan',
-      id: plan.slug,
-      nombre: plan.nombre,
-      precio: plan.precio,
-      pendiente: plan.prestaciones.some((p) => p.pendiente),
-    });
+  // "Contratar X" ya no abre popup: navega a /contratar/:tipo/:id. La página
+  // destino arma el flujo de dos pasos con la misma gramática visual del
+  // PerfilWizard del portal — más espacio, sin modal y con URL referible.
+  function irAAltaPlan(plan: Plan) {
+    void navegar(`/contratar/plan/${plan.slug}`);
   }
 
-  function abrirAltaProducto(producto: Producto) {
-    setItemAlta({
-      tipo: 'producto',
-      id: producto.id,
-      nombre: producto.nombre,
-      precio: producto.precio,
-      pendiente: producto.pendiente,
-    });
+  function irAAltaProducto(producto: Producto) {
+    void navegar(`/contratar/producto/${producto.id}`);
   }
 
   return (
@@ -100,7 +85,7 @@ export function Catalogo() {
                   <PlanCard
                     plan={plan}
                     destacado={plan.recomendado === true}
-                    onCta={abrirAltaPlan}
+                    onCta={irAAltaPlan}
                     etiquetaCta={`Contratar ${plan.nombre}`}
                   />
                 </Revelar>
@@ -127,7 +112,7 @@ export function Catalogo() {
                 <Revelar key={producto.id} className="h-full [&>*]:h-full">
                   <ProductoCard
                     producto={producto}
-                    onCta={abrirAltaProducto}
+                    onCta={irAAltaProducto}
                     etiquetaCta={`Contratar ${producto.nombre}`}
                   />
                 </Revelar>
@@ -137,18 +122,6 @@ export function Catalogo() {
         </Tabs>
       </Revelar>
 
-      {/* Dialog único: `item` arranca en null para que el componente no monte
-          formulario hasta que haya elección real. Al cerrarlo lo limpiamos
-          para que la próxima apertura sea un reset. */}
-      {itemAlta ? (
-        <AltaDialog
-          abierto={itemAlta !== null}
-          onCambio={(abierto) => {
-            if (!abierto) setItemAlta(null);
-          }}
-          item={itemAlta}
-        />
-      ) : null}
     </div>
   );
 }

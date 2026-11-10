@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useNavigate, useParams } from 'react-router';
 import { Info, SearchX } from 'lucide-react';
 import { buscarProducto, PLANES } from '@/mock/planes';
 import { formatearPrecio, precioDesde } from '@/lib/formato';
@@ -20,7 +19,6 @@ const PORTADA: Partial<Record<string, { src: string; alt: string }>> = {
   'salud-1': { src: portadaPoliza, alt: 'Una pareja leyendo juntos su póliza en el living de su casa' },
   vida: { src: portadaPoliza, alt: 'Una pareja leyendo juntos su póliza en el living de su casa' },
 };
-import { AltaDialog } from '@/features/alta/AltaDialog';
 import { Money } from '@/ui/Money';
 import { Icon } from '@/ui/Icon';
 import { Button, clasesBoton } from '@/ui/Button';
@@ -32,7 +30,7 @@ import { EncabezadoSeccion } from '@/ui/EncabezadoSeccion';
 export function FichaProducto() {
   const { id } = useParams();
   const producto = buscarProducto(id ?? '');
-  const [abierto, setAbierto] = useState(false);
+  const navegar = useNavigate();
   const portada = producto ? PORTADA[producto.id] : undefined;
 
   if (!producto) {
@@ -125,22 +123,14 @@ export function FichaProducto() {
         </Revelar>
 
         <BarraAccionFija>
-          <Button ancho="full" tamano="lg" onClick={() => setAbierto(true)}>
+          <Button
+            ancho="full"
+            tamano="lg"
+            onClick={() => void navegar(`/contratar/producto/${producto.id}`)}
+          >
             {`Contratar ${producto.nombre}`}
           </Button>
         </BarraAccionFija>
-
-        <AltaDialog
-          abierto={abierto}
-          onCambio={setAbierto}
-          item={{
-            tipo: 'producto',
-            id: producto.id,
-            nombre: producto.nombre,
-            precio: producto.precio,
-            pendiente: producto.pendiente,
-          }}
-        />
       </div>
     </>
   );

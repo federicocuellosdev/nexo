@@ -1,10 +1,8 @@
-import { useState } from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useNavigate, useParams } from 'react-router';
 import { SearchX } from 'lucide-react';
 import { buscarPlan, PLANES } from '@/mock/planes';
 import { PlanPrestaciones } from '@/features/planes/PlanPrestaciones';
 import { PlanComparador } from '@/features/planes/PlanComparador';
-import { AltaDialog } from '@/features/alta/AltaDialog';
 import { Money } from '@/ui/Money';
 import { Button, clasesBoton } from '@/ui/Button';
 import { EmptyState } from '@/ui/EmptyState';
@@ -35,7 +33,7 @@ const PORTADA: Record<PlanSlug, { src: string; alt: string }> = {
 export function FichaPlan() {
   const { slug } = useParams();
   const plan = buscarPlan(slug ?? '');
-  const [abierto, setAbierto] = useState(false);
+  const navegar = useNavigate();
 
   if (!plan) {
     return (
@@ -117,24 +115,17 @@ export function FichaPlan() {
           </Revelar>
         </section>
 
-        {/* CTA fijo inferior en mobile; estático desde lg. */}
+        {/* CTA fijo inferior en mobile; estático desde lg. Navega a la
+            página de alta (full-page, dos pasos) en vez de abrir popup. */}
         <BarraAccionFija>
-          <Button ancho="full" tamano="lg" onClick={() => setAbierto(true)}>
+          <Button
+            ancho="full"
+            tamano="lg"
+            onClick={() => void navegar(`/contratar/plan/${plan.slug}`)}
+          >
             {`Contratar ${plan.nombre}`}
           </Button>
         </BarraAccionFija>
-
-        <AltaDialog
-          abierto={abierto}
-          onCambio={setAbierto}
-          item={{
-            tipo: 'plan',
-            id: plan.slug,
-            nombre: plan.nombre,
-            precio: plan.precio,
-            pendiente: plan.prestaciones.some((p) => p.pendiente),
-          }}
-        />
       </div>
     </>
   );
