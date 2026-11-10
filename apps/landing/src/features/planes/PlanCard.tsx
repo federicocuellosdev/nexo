@@ -55,7 +55,7 @@ export function PlanCard({
       destacada={destacado || activo}
       className={`flex h-full flex-col gap-5${className ? ` ${className}` : ''}`}
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start justify-between gap-3 border-b border-ink-100 pb-5">
         <div className="min-w-0">
           <h3 className="font-display text-xl text-ink-950">{plan.nombre}</h3>
           <p className="mt-1 text-sm text-ink-600">{plan.bajada}</p>
