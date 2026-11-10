@@ -5,6 +5,7 @@ import { leadsRouter } from './routes/leads.js';
 import { authRouter } from './routes/auth.js';
 import { subscriptionsRouter } from './routes/subscriptions.js';
 import { webhooksRouter } from './routes/webhooks.js';
+import { referidosRouter } from './routes/referidos.js';
 
 /**
  * Crea la app Express. Se extrajo de `index.ts` para que la misma app sea
@@ -38,6 +39,7 @@ export function crearApp(): Express {
   app.use('/api', authRouter);
   app.use('/api', subscriptionsRouter);
   app.use('/api', webhooksRouter);
+  app.use('/api', referidosRouter);
 
   return app;
 }
