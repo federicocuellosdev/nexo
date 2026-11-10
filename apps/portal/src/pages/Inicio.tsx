@@ -7,7 +7,7 @@ import { cn } from '@/lib/cn';
 import { saludo } from '@/lib/identidad';
 import { buscarPlan, buscarProducto } from '@/mock/planes';
 import { derivarEstado } from '@/lib/estado';
-import { rutaDeshabilitada } from '@/lib/navDisponibilidad';
+import { rutaDeshabilitada, sinCoberturaActiva } from '@/lib/navDisponibilidad';
 import { portalUrl } from '@/lib/urls';
 import {
   buscarSuscripcionesPorEmail,
@@ -388,8 +388,12 @@ export function Inicio() {
         <h2 className="mb-3 text-lg text-ink-950">Accesos rápidos</h2>
         <div className="grid gap-3 sm:grid-cols-3">
           {ACCESOS_BASE.map((acceso) => {
+            // "Otros productos" apunta a /planes (siempre habilitado como
+            // ruta) pero semánticamente requiere cobertura activa (son add-on
+            // de un plan vivo). Misma regla que Coberturas/Familiares: no
+            // alcanza con haber pagado, el perfil tiene que estar completo.
             const requierePlan = 'requierePlanVigente' in acceso && acceso.requierePlanVigente === true;
-            const disabled = rutaDeshabilitada(sesion, acceso.to) || (requierePlan && plan === undefined);
+            const disabled = rutaDeshabilitada(sesion, acceso.to) || (requierePlan && sinCoberturaActiva(sesion));
             return disabled ? (
               <span
                 key={acceso.to}
