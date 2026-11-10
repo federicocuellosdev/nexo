@@ -219,6 +219,52 @@ export async function altaBeneficiariosBackend(
 }
 
 /**
+ * Enriquecimiento parcial del perfil: lo dispara el wizard en cada paso
+ * "Continuar" para que SF reciba el estado actual del Lead aunque el
+ * usuario todavía no haya terminado los 4 pasos. El backend hace merge
+ * con lo cargado antes y re-postea el Lead a SF (que acepta upsert).
+ *
+ * Fire-and-forget desde la UI: no bloquea el avance del wizard. Si el
+ * request falla, lo tragamos acá y lo logueamos en consola — el POST
+ * final de `guardarPerfilBackend` tiene la última palabra.
+ */
+export interface PerfilParcialBackend {
+  tipoDocumento?: 'DNI' | 'Pasaporte';
+  numeroDocumento?: string;
+  sexo?: 'F' | 'M' | 'X';
+  fechaNacimiento?: string;
+  domicilio?: {
+    calle?: string;
+    numero?: string;
+    piso?: string;
+    departamento?: string;
+    torre?: string;
+    localidad?: string;
+    provincia?: string;
+    cp?: string;
+    pais?: string;
+  };
+  tieneObraSocial?: boolean;
+  obraSocial?: string;
+  tipoContratacion?: 'beneficiario' | 'tomador' | 'tomador-beneficiario';
+}
+
+export async function enviarPerfilParcial(leadId: string, parcial: PerfilParcialBackend): Promise<void> {
+  try {
+    const respuesta = await fetch(`${API_URL}/api/leads/${leadId}/perfil-paso`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(parcial),
+    });
+    if (!respuesta.ok) {
+      console.warn('[perfil-paso] backend respondió no-ok', respuesta.status);
+    }
+  } catch (err) {
+    console.warn('[perfil-paso] network error', err);
+  }
+}
+
+/**
  * Persiste perfil + beneficiarios en `v3.leads` y dispara `sale_intake` si ya
  * hay pago autorizado. El caller sigue guardando en sesion para no depender
  * del network; esto es append-only al backend.

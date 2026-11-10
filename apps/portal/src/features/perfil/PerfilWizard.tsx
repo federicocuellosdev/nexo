@@ -56,6 +56,13 @@ export interface PerfilWizardProps {
    * fire-and-forget y el botón nunca entra en loading.
    */
   onGuardar: (datos: DatosDelWizard) => void | Promise<void>;
+  /**
+   * Opcional: se dispara después de validar un paso intermedio y ANTES de
+   * avanzar al siguiente. Permite enriquecer el Lead en SF por etapa sin
+   * bloquear al usuario — el wizard no awaitea esta promise (fire-and-forget).
+   * Caller recibe el nº de paso recién completado y el borrador actual.
+   */
+  onAvanzarPaso?: (paso: PasoPerfil, borrador: BorradorPerfil) => void;
 }
 
 /**
@@ -102,6 +109,7 @@ export function PerfilWizard({
   borradorInicial,
   soloEstePaso = false,
   onGuardar,
+  onAvanzarPaso,
 }: PerfilWizardProps) {
   const [paso, setPaso] = useState<PasoPerfil>(pasoInicial);
   const [borrador, setBorrador] = useState<BorradorPerfil>(borradorInicial ?? BORRADOR_INICIAL);
@@ -159,6 +167,9 @@ export function PerfilWizard({
     setErrores({});
 
     if (!guardaDirecto) {
+      // Enriquecimiento incremental del Lead en SF — ver docstring de la
+      // prop `onAvanzarPaso`. Fire-and-forget: avanzamos la UI sin esperar.
+      if (onAvanzarPaso) onAvanzarPaso(paso, borrador);
       setPaso((previo) => (previo + 1) as PasoPerfil);
       return;
     }

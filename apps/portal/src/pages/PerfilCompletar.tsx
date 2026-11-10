@@ -1,8 +1,49 @@
 import { useNavigate } from 'react-router';
 import { setSession, useSession } from '@/mock/session';
 import { PerfilWizard, type DatosDelWizard } from '@/features/perfil/PerfilWizard';
-import { BORRADOR_BENEFICIARIO, BORRADOR_DEMO, BORRADOR_INICIAL } from '@/features/perfil/validacion';
-import { guardarPerfilBackend } from '@/lib/api';
+import {
+  BORRADOR_BENEFICIARIO,
+  BORRADOR_DEMO,
+  BORRADOR_INICIAL,
+  type BorradorPerfil,
+  type PasoPerfil,
+} from '@/features/perfil/validacion';
+import { enviarPerfilParcial, guardarPerfilBackend, type PerfilParcialBackend } from '@/lib/api';
+
+/**
+ * Qué campos del perfil terminan de completarse en cada paso del wizard.
+ * El backend hace merge, así que mandar siempre "lo que corresponde al paso"
+ * es suficiente — no hace falta reenviar los campos de pasos anteriores.
+ */
+function parcialDelPaso(paso: PasoPerfil, b: BorradorPerfil): PerfilParcialBackend {
+  if (paso === 1) {
+    return { tipoDocumento: b.tipoDocumento, numeroDocumento: b.numeroDocumento.trim() };
+  }
+  if (paso === 2) {
+    const sexo = b.sexo === '' ? undefined : b.sexo;
+    return { ...(sexo ? { sexo } : {}), fechaNacimiento: b.fechaNacimiento };
+  }
+  if (paso === 3) {
+    const piso = b.piso.trim();
+    const departamento = b.departamento.trim();
+    const torre = b.torre.trim();
+    return {
+      domicilio: {
+        calle: b.calle.trim(),
+        numero: b.numero.trim(),
+        ...(piso ? { piso } : {}),
+        ...(departamento ? { departamento } : {}),
+        ...(torre ? { torre } : {}),
+        localidad: b.localidad.trim(),
+        provincia: b.provincia.trim(),
+        cp: b.cp.trim(),
+        pais: b.pais.trim(),
+      },
+    };
+  }
+  // Paso 4 y los pasos de beneficiarios: el POST final /perfil ya empuja todo.
+  return {};
+}
 
 /**
  * En staging/test precargamos el wizard con `BORRADOR_DEMO` para que el
@@ -92,6 +133,15 @@ export function PerfilCompletar() {
           // Devolvemos el promise para que el wizard pueda awaitear y mostrar
           // "Guardando…" + spinner mientras POSTeamos a /leads/:id/perfil.
           onGuardar={guardar}
+          // Enriquecimiento incremental: en cada "Continuar" mandamos al back
+          // los campos del paso que se acaba de completar. El back hace merge
+          // en v3.leads.perfil y re-postea el Lead a SF. Fire-and-forget.
+          onAvanzarPaso={(paso, borrador) => {
+            if (!leadId) return;
+            const parcial = parcialDelPaso(paso, borrador);
+            if (Object.keys(parcial).length === 0) return;
+            void enviarPerfilParcial(leadId, parcial);
+          }}
         />
       </div>
     </div>
