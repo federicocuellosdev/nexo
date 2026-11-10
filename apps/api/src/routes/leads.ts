@@ -6,6 +6,7 @@ import { config } from '../config.js';
 import { asuntoBienvenida, htmlBienvenida } from '../emails/bienvenida.js';
 import { sendLeadIntake } from '../sf/leads.js';
 import { maybeDispararSaleIntake } from '../sf/saleIntakeTrigger.js';
+import { registrarSfSync } from '../sf/syncLog.js';
 
 export const leadsRouter = Router();
 
@@ -94,6 +95,23 @@ leadsRouter.post('/leads', async (req, res) => {
   } else if (!sfResult.ok) {
     console.warn('[POST /leads] SF devolvió error, el lead queda sin sfLeadId:', sfResult.error);
   }
+
+  // Auditoría completa en v3.sf_sync: payload + ack + status. Lead-Intake vive
+  // en el v1/ de los contratos SF, por eso sigue cayendo en la tabla legacy
+  // `sf_sync` en vez de una dedicada como las de v2 (sale/additional/order).
+  // Fire-and-forget: si falla el log no hace rebotar el alta.
+  await registrarSfSync({
+    leadId: leadInsertado.id,
+    operation: 'lead_intake',
+    endpoint: '/leads',
+    messageId: sfResult.payload.messageId,
+    payload: sfResult.payload,
+    httpStatus: sfResult.status,
+    status: sfResult.ok ? 'success' : 'failed',
+    response: sfResult.response,
+    errorCode: sfResult.error ?? null,
+    sfLeadId: sfResult.sfLeadId,
+  });
 
   // 3. Generamos el magic link vía Supabase Auth. `type: 'magiclink'` crea el
   //    usuario si no existía (shouldCreateUser default true en magiclink).

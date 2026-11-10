@@ -1,6 +1,6 @@
 import { supabaseAdmin } from '../lib/supabase.js';
 import { sendSaleIntake, type SaleParaSf } from './sales.js';
-import { registrarSfSync } from './syncLog.js';
+import { registrarSaleIntake } from './syncLog.js';
 import { esPerfilCompleto } from './perfilCompleto.js';
 
 interface LeadRow {
@@ -179,10 +179,8 @@ export async function maybeDispararSaleIntake(leadId: string): Promise<void> {
 
   const result = await sendSaleIntake(sale);
 
-  await registrarSfSync({
+  await registrarSaleIntake({
     leadId,
-    operation: 'sale_intake',
-    endpoint: '/sales',
     messageId: result.messageId,
     payload: result.payload,
     httpStatus: result.status,
