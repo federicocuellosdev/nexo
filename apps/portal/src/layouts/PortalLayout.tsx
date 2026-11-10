@@ -299,10 +299,12 @@ export function PortalLayout() {
             px-4 desde sm. pb-28 en mobile deja aire grande entre el contenido
             y la BottomNav (h-14 + safe-area) — sin esto las cards de la ultima
             seccion quedaban casi tocando el nav y se sentia agobiante.
-            overflow-x-hidden evita que un carrusel interno (o cualquier
-            elemento ancho) propague scroll horizontal a la pagina y
-            desplace toda la UI a la izquierda. */}
-        <main className="mx-auto max-w-[1100px] overflow-x-hidden px-3 pb-28 pt-6 sm:px-4 lg:px-6 lg:pb-14 lg:pt-10">
+            overflow-x-clip (NO hidden) evita que un carrusel interno propague
+            scroll horizontal a la pagina SIN romper position:sticky de los
+            hijos. `overflow-x-hidden` crea un scroll container y mata el
+            sticky de la TarjetaPerfil en /cuenta — clip es la variante nueva
+            especificamente para este caso. */}
+        <main className="mx-auto max-w-[1100px] overflow-x-clip px-3 pb-28 pt-6 sm:px-4 lg:px-6 lg:pb-14 lg:pt-10">
           <Outlet />
         </main>
       </div>
