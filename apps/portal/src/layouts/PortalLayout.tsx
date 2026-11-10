@@ -10,6 +10,7 @@ import { landingUrl } from '@/lib/urls';
 import { LogoNexo, ETIQUETA_MARCA } from '@/ui/LogoNexo';
 import { iniciales, nombreVisible } from '@/lib/identidad';
 import { obtenerUltimoLead } from '@/lib/api';
+import { supabase } from '@/lib/supabase';
 
 /**
  * Items base del menú principal. `Planes` queda siempre activo (es el
@@ -88,6 +89,38 @@ export function PortalLayout() {
   // doble guarda `declientar()` no seria idempotente y el useEffect
   // entraria en loop (consulta → declientar → consulta → ...).
   const emailUsuario = usuario?.email;
+
+  // Verificacion dura del lado de Supabase Auth: si la sesion local tiene un
+  // `usuario` pero Supabase ya no reconoce al user (fue borrado desde el
+  // dashboard / API / purga de staging), hay que descolgar al cliente. Sin
+  // esto el portal muestra la sesion fantasma indefinidamente aunque hagas
+  // cleanup del backend. Solo corre una vez por mount y SOLO cuando hay
+  // usuario en storage — si no hay nadie logueado, no tocamos Supabase.
+  useEffect(() => {
+    if (!supabase || !emailUsuario) return;
+    let cancelado = false;
+    void (async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (cancelado) return;
+      // `getUser()` devuelve 403 cuando el token esta huerfano (user deleted).
+      // `data.user === null` tambien cubre el caso de sesion expirada sin
+      // poder refrescar. En ambos casos: hard reset + landing.
+      if (error || !data.user) {
+        console.warn('[portal] auth session invalida, reset completo', error?.message);
+        try {
+          await supabase.auth.signOut();
+        } catch {
+          /* ignore: el user ya no existe, signOut puede fallar */
+        }
+        resetSession();
+        window.location.href = landingUrl();
+      }
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, [emailUsuario]);
+
   const tienePagadaPendienteDeDev = sesion.ordenes.some((o) => {
     if (o.tipo !== 'plan' || o.estado !== 'pagada') return false;
     const yaDevuelta = sesion.ordenes.some((d) => d.estado === 'devuelta' && d.id === `dev-${o.id}`);
