@@ -10,9 +10,12 @@
 -- `referidor_nombre` que SIEMPRE vienen del portal — así la invitación queda
 -- trazada aunque falte el lead.
 --
--- Unique (lower(referidor_email), lower(email_invitado)): no tiene sentido
--- mandar 10 invitaciones del mismo referrer al mismo mail. El unique viejo
--- por lead_id no servía cuando el lead es null.
+-- Unique (referidor_email, email_invitado): no tiene sentido mandar 10
+-- invitaciones del mismo referrer al mismo mail. El route normaliza ambos
+-- campos a lowercase antes del upsert, así que un unique plano alcanza —
+-- un índice por expresión (lower(...)) no es matcheable desde el
+-- ON CONFLICT del supabase-js sin referenciarlo por nombre y el supabase-js
+-- no expone esa opción.
 
 create table if not exists v3.referidos (
   id                  uuid primary key default gen_random_uuid(),
@@ -31,6 +34,8 @@ create table if not exists v3.referidos (
 create index if not exists referidos_referidor_lead_id_idx
   on v3.referidos (referidor_lead_id);
 create index if not exists referidos_referidor_email_idx
-  on v3.referidos (lower(referidor_email));
-create unique index if not exists referidos_email_pair_uq
-  on v3.referidos (lower(referidor_email), lower(email_invitado));
+  on v3.referidos (referidor_email);
+alter table v3.referidos
+  drop constraint if exists referidos_email_pair_uq;
+alter table v3.referidos
+  add constraint referidos_email_pair_uq unique (referidor_email, email_invitado);
