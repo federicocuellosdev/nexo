@@ -162,11 +162,16 @@ export function PortalLayout() {
         if (lead.titular && sesionActual.usuario) {
           const nombreVacio = (sesionActual.usuario.nombre ?? '').trim() === '';
           const apellidoVacio = (sesionActual.usuario.apellido ?? '').trim() === '';
-          if (nombreVacio || apellidoVacio) {
+          const telefonoVacio = (sesionActual.usuario.telefono ?? '').trim() === '';
+          const telefonoLead = lead.titular.telefono ?? '';
+          const hayQueActualizar =
+            nombreVacio || apellidoVacio || (telefonoVacio && telefonoLead !== '');
+          if (hayQueActualizar) {
             patch.usuario = {
               ...sesionActual.usuario,
               ...(nombreVacio ? { nombre: lead.titular.nombre } : {}),
               ...(apellidoVacio ? { apellido: lead.titular.apellido } : {}),
+              ...(telefonoVacio && telefonoLead ? { telefono: telefonoLead } : {}),
             };
           }
         }

@@ -44,31 +44,35 @@ export function AuthCallback() {
         const meta = data.session.user.user_metadata ?? {};
         const nombreMeta = typeof meta.nombre === 'string' ? meta.nombre : '';
         const apellidoMeta = typeof meta.apellido === 'string' ? meta.apellido : '';
+        const telefonoMeta = typeof meta.telefono === 'string' ? meta.telefono : '';
         const dniMeta = typeof meta.dni === 'string' ? meta.dni : undefined;
 
         // Reglas de merge del usuario:
         //   - Si no hay previo o cambio el email → armamos uno desde cero con
         //     lo que venga en user_metadata.
         //   - Si hay previo mismo email → lo conservamos pero "upgradeamos"
-        //     nombre/apellido cuando el previo los tiene vacios y el metadata
-        //     los trae con valor. Esto cierra el caso de la sesion vieja sin
-        //     nombre que no se hidrataba porque el `previo` ganaba por default.
+        //     nombre/apellido/telefono cuando el previo los tiene vacios y el
+        //     metadata los trae con valor. Esto cierra el caso de la sesion
+        //     vieja sin esos datos que no se hidrataba porque el `previo`
+        //     ganaba por default.
         const previo = getSession().usuario;
         let usuario: ReturnType<typeof getSession>['usuario'];
         if (previo !== undefined && previo.email === email) {
           const nombreVacio = (previo.nombre ?? '').trim() === '';
           const apellidoVacio = (previo.apellido ?? '').trim() === '';
+          const telefonoVacio = (previo.telefono ?? '').trim() === '';
           usuario = {
             ...previo,
             ...(nombreVacio && nombreMeta ? { nombre: nombreMeta } : {}),
             ...(apellidoVacio && apellidoMeta ? { apellido: apellidoMeta } : {}),
+            ...(telefonoVacio && telefonoMeta ? { telefono: telefonoMeta } : {}),
           };
         } else {
           usuario = {
             nombre: nombreMeta,
             apellido: apellidoMeta,
             email,
-            telefono: '',
+            telefono: telefonoMeta,
           };
         }
 
