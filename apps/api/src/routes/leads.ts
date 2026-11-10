@@ -243,9 +243,14 @@ const PerfilPayload = z.object({
   sexo: z.enum(['F', 'M', 'X']),
   fechaNacimiento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   domicilio: PerfilDomicilio,
-  tieneObraSocial: z.boolean(),
+  // tieneObraSocial / obraSocial / tipoContratacion quedaron fuera del payload:
+  // SF no consume ninguno (ni Lead-Intake ni Sale-Intake del folder
+  // nexo-integracion-salesforce). El wizard del portal dejó de preguntarlos y
+  // acá los aceptamos opcionales por compat con callers viejos: cualquier valor
+  // que llegue se ignora.
+  tieneObraSocial: z.boolean().optional(),
   obraSocial: z.string().optional(),
-  tipoContratacion: z.enum(['beneficiario', 'tomador', 'tomador-beneficiario']),
+  tipoContratacion: z.enum(['beneficiario', 'tomador', 'tomador-beneficiario']).optional(),
 });
 
 const BeneficiarioPayload = z.object({
