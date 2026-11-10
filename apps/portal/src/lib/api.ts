@@ -275,18 +275,36 @@ export async function guardarPerfilBackend(leadId: string, datos: PayloadPerfilB
   }
 }
 
+export interface PayloadInvitacion {
+  /** Email del invitado (destinatario). */
+  email: string;
+  /** Email del referrer (siempre lo tenemos en sesion.usuario.email). */
+  referidorEmail: string;
+  /** Nombre del referrer para personalizar el saludo. Opcional: si falta, el
+   *  backend cae a "Alguien te invita". */
+  referidorNombre?: string;
+  /** FK al lead del referrer. Opcional: la invitación queda registrada igual
+   *  aunque la fila no exista en v3.leads (declientado / pre-perfil). */
+  referidorLeadId?: string;
+}
+
 /**
- * Manda la invitación al programa de referidos. El backend crea/actualiza la
- * fila en `v3.referidos` y despacha un email con CTA al catálogo público de
- * la landing. `referidorLeadId` es opcional — si no lo tenemos a mano, el
- * backend igual manda el email (con saludo genérico) pero sin persistir la
- * fila de tracking.
+ * Manda la invitación al programa de referidos. El backend upserta la fila en
+ * `v3.referidos` (clave: referidor_email + email_invitado) y despacha un email
+ * con CTA al catálogo público de la landing. Nombre y email del referrer
+ * viajan en el payload — no depende del estado de v3.leads.
  */
-export async function enviarInvitacion(email: string, referidorLeadId?: string): Promise<void> {
+export async function enviarInvitacion(payload: PayloadInvitacion): Promise<void> {
+  const nombre = payload.referidorNombre?.trim();
   const respuesta = await fetch(`${API_URL}/api/referidos/invitar`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, ...(referidorLeadId ? { referidorLeadId } : {}) }),
+    body: JSON.stringify({
+      email: payload.email,
+      referidorEmail: payload.referidorEmail,
+      ...(nombre ? { referidorNombre: nombre } : {}),
+      ...(payload.referidorLeadId ? { referidorLeadId: payload.referidorLeadId } : {}),
+    }),
   });
   if (!respuesta.ok) {
     const cuerpo = (await respuesta.json().catch(() => ({ ok: false, error: 'network' }))) as ErrorApi;

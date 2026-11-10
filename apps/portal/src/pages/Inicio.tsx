@@ -462,10 +462,18 @@ export function Inicio() {
         <NovedadesCarousel novedades={NOVEDADES} onInvitar={() => setInvitandoAmigo(true)} />
       </section>
 
-      {invitandoAmigo ? (
+      {invitandoAmigo && sesion.usuario ? (
         <DialogoInvitar
           onCerrar={() => setInvitandoAmigo(false)}
-          onEnviar={(email) => enviarInvitacion(email, sesion.leadId)}
+          onEnviar={(email) => {
+            const u = sesion.usuario!;
+            return enviarInvitacion({
+              email,
+              referidorEmail: u.email,
+              referidorNombre: `${u.nombre ?? ''} ${u.apellido ?? ''}`.trim() || undefined,
+              referidorLeadId: sesion.leadId,
+            });
+          }}
         />
       ) : null}
     </div>
