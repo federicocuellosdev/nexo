@@ -123,25 +123,31 @@ export async function maybeDispararSaleIntake(leadId: string): Promise<void> {
     }));
   }
 
-  // Monto real: último pago autorizado (status='authorized' para preapproval,
-  // 'approved' para payment). Fallback a 0 si no hay row — igual se dispara
-  // para que SF arme el Account/Order; si el monto es crítico SF reventará y
-  // el error quedará en v3.sf_sync para debug.
-  let monto = 0;
+  // mp_payment_id del pago ya cobrado: va a SF como `firstPayment.paymentReference`
+  // para que pueda correlacionar con Payment-Confirmation-API cuando esta exista.
+  // Buscamos un row con mp_payment_id NO null (los eventos de subscription_preapproval
+  // dejan null; los de payment.* traen el id real) y status approved.
+  let paymentReference: string | null = null;
   if (row.mp_preapproval_id) {
     const { data: pagoRows } = await supabaseAdmin
       .schema('v3')
       .from('pagos')
-      .select('monto, status, mp_payment_id, created_at')
+      .select('mp_payment_id, status, created_at')
       .eq('mp_preapproval_id', row.mp_preapproval_id)
-      .in('status', ['authorized', 'approved'])
+      .not('mp_payment_id', 'is', null)
+      .in('status', ['approved', 'authorized'])
       .order('created_at', { ascending: false })
       .limit(1);
-    const first = pagoRows?.[0] as { monto?: number } | undefined;
-    if (first && typeof first.monto === 'number' && first.monto > 0) {
-      monto = first.monto;
-    }
+    const first = pagoRows?.[0] as { mp_payment_id?: string | null } | undefined;
+    if (first?.mp_payment_id) paymentReference = String(first.mp_payment_id);
   }
+
+  // Street = calle + número concatenados. SF Address schema no tiene campo
+  // `number` separado — todo se manda en `street` (ver Sale-Intake-API.yaml).
+  const street = `${perfil.domicilio.calle} ${perfil.domicilio.numero}`.trim();
+  const piso = typeof perfil.domicilio.piso === 'string' ? perfil.domicilio.piso.trim() : '';
+  const depto = typeof perfil.domicilio.departamento === 'string' ? perfil.domicilio.departamento.trim() : '';
+  const torre = typeof perfil.domicilio.torre === 'string' ? perfil.domicilio.torre.trim() : '';
 
   const sale: SaleParaSf = {
     leadId: row.id,
@@ -155,8 +161,10 @@ export async function maybeDispararSaleIntake(leadId: string): Promise<void> {
       sex: perfil.sexo,
       birthdate: perfil.fechaNacimiento,
       address: {
-        street: perfil.domicilio.calle,
-        number: perfil.domicilio.numero,
+        street,
+        ...(piso ? { floor: piso } : {}),
+        ...(depto ? { apartment: depto } : {}),
+        ...(torre ? { tower: torre } : {}),
         city: perfil.domicilio.localidad,
         state: perfil.domicilio.provincia,
         postalCode: perfil.domicilio.cp,
@@ -173,8 +181,7 @@ export async function maybeDispararSaleIntake(leadId: string): Promise<void> {
       relationship: b.perfil.relacion,
     })),
     offerCode: resolveOfferCode(row.item_id),
-    recurringAmount: monto,
-    firstAmount: monto,
+    paymentReference,
   };
 
   const result = await sendSaleIntake(sale);

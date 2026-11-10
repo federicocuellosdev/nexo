@@ -21,8 +21,12 @@ export interface SaleParaSf {
     birthdate: string;
     mobilePhone?: string;
     address: {
+      /** Calle + número ya concatenados (ej. "Córdoba 1234"). SF no tiene
+       *  campo `number` separado — todo va a `street`. */
       street: string;
-      number: string;
+      floor?: string;
+      apartment?: string;
+      tower?: string;
       city: string;
       state: string;
       postalCode: string;
@@ -41,10 +45,13 @@ export interface SaleParaSf {
   }>;
   /** Oferta (plan) que el usuario eligió, codificado como `offerCode` en SF. */
   offerCode: string;
-  /** Monto del cobro mensual (lo que mandamos a MP). */
-  recurringAmount: number;
-  /** Monto del primer cobro. Suele coincidir con recurring. */
-  firstAmount: number;
+  /**
+   * `payment.id` de MP del pago ya cobrado (cuota de ingreso). Viaja en
+   * `firstPayment.paymentReference` — SF lo usa para correlacionar con la
+   * Payment-Confirmation-API cuando esta exista. Sin este dato la cuenta
+   * queda en `InPreparation` indefinidamente aunque MP haya cobrado OK.
+   */
+  paymentReference?: string | null;
   /** Fecha de vigencia opcional. Si null, SF usa hoy. */
   effectiveDate?: string | null;
 }
@@ -52,6 +59,7 @@ export interface SaleParaSf {
 export interface SaleIntakePayload {
   messageId: string;
   sentAt: string;
+  salesChannel: 'Nexo';
   leadId?: string;
   policyholder: {
     firstName: string;
@@ -67,7 +75,9 @@ export interface SaleIntakePayload {
       state: string;
       city: string;
       street: string;
-      number: string;
+      floor?: string;
+      apartment?: string;
+      tower?: string;
       postalCode: string;
     };
   };
@@ -80,9 +90,17 @@ export interface SaleIntakePayload {
     birthdate: string;
     relationship: string;
   }>;
+  declaredMembersCount: number;
+  seniorMembersCount: number;
   offers: Array<{ offerCode: string }>;
-  firstPayment: { amount: number; method: 'MercadoPago' };
-  recurringPayment: { amount: number; method: 'MercadoPago' };
+  /**
+   * PaymentMethod del schema no tiene `amount` — solo `method`,
+   * `accountNumber`, `cardExpirationMonth/Year` y `paymentReference`. El
+   * amount sale del offer, no del payload. SF ignoraba el `amount: 0` que
+   * mandábamos antes.
+   */
+  firstPayment: { method: 'MercadoPago'; paymentReference?: string };
+  recurringPayment: { method: 'MercadoPago' };
   effectiveDate?: string | null;
 }
 
@@ -99,9 +117,16 @@ export interface SaleIntakeAck {
 }
 
 export function buildSaleIntakeBody(sale: SaleParaSf): SaleIntakePayload {
+  // `paymentReference` debe ser solo dígitos (pattern del schema). MP payment.id
+  // viene como number, lo stringifeamos y filtramos no-dígitos defensivamente.
+  const refDigits = sale.paymentReference ? String(sale.paymentReference).replace(/\D/g, '') : '';
+  // declaredMembersCount: titular + beneficiarios. seniorMembersCount lo
+  // dejamos en 0 hasta que tengamos edades de los beneficiarios cargadas.
+  const declaredMembers = 1 + sale.beneficiaries.length;
   return {
     messageId: randomUUID(),
     sentAt: new Date().toISOString(),
+    salesChannel: 'Nexo',
     ...(sale.sfLeadId ? { leadId: sale.sfLeadId } : {}),
     policyholder: {
       firstName: sale.policyholder.firstName,
@@ -117,7 +142,11 @@ export function buildSaleIntakeBody(sale: SaleParaSf): SaleIntakePayload {
         state: sale.policyholder.address.state,
         city: sale.policyholder.address.city,
         street: sale.policyholder.address.street,
-        number: sale.policyholder.address.number,
+        ...(sale.policyholder.address.floor ? { floor: sale.policyholder.address.floor } : {}),
+        ...(sale.policyholder.address.apartment
+          ? { apartment: sale.policyholder.address.apartment }
+          : {}),
+        ...(sale.policyholder.address.tower ? { tower: sale.policyholder.address.tower } : {}),
         postalCode: sale.policyholder.address.postalCode,
       },
     },
@@ -130,9 +159,14 @@ export function buildSaleIntakeBody(sale: SaleParaSf): SaleIntakePayload {
       birthdate: b.birthdate,
       relationship: b.relationship,
     })),
+    declaredMembersCount: declaredMembers,
+    seniorMembersCount: 0,
     offers: [{ offerCode: sale.offerCode }],
-    firstPayment: { amount: sale.firstAmount, method: 'MercadoPago' },
-    recurringPayment: { amount: sale.recurringAmount, method: 'MercadoPago' },
+    firstPayment: {
+      method: 'MercadoPago',
+      ...(refDigits ? { paymentReference: refDigits } : {}),
+    },
+    recurringPayment: { method: 'MercadoPago' },
     ...(sale.effectiveDate !== undefined ? { effectiveDate: sale.effectiveDate } : {}),
   };
 }
@@ -162,7 +196,9 @@ export async function sendSaleIntake(sale: SaleParaSf): Promise<SendSaleResult> 
       accountCode: `MOCK-${token.slice(0, 8)}`,
       orderId: `MOCK-ORD-${token}`,
       orderNumber: `MOCK-${Date.now()}`,
-      totalAmount: sale.recurringAmount,
+      // El monto real sale del offer en SF, no del payload. Mock lo expone
+      // igual para que los consumidores que lo lean en dev no se rompan.
+      totalAmount: 0,
       accountStatus: 'Active',
     };
     console.log('[sf/sales] MOCK envío (SF_ENABLED=false):', { leadId: sale.leadId, payload });
