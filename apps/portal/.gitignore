@@ -10,3 +10,4 @@ out/
 *.log
 .atl/.skill-registry.cache.json
 .superpowers/
+.vercel

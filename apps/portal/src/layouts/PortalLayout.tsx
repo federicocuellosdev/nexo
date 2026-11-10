@@ -5,7 +5,7 @@ import { TopBar } from '@/ui/TopBar';
 import { BottomNav } from '@/ui/BottomNav';
 import { Sidebar } from '@/ui/Sidebar';
 import type { NavItem } from '@/ui/tipos';
-import { getSession, resetSession, setSession, useSession } from '@/mock/session';
+import { declientar, getSession, resetSession, setSession, useSession } from '@/mock/session';
 import { landingUrl } from '@/lib/urls';
 import { LogoNexo, ETIQUETA_MARCA } from '@/ui/LogoNexo';
 import { iniciales, nombreVisible } from '@/lib/identidad';
@@ -106,12 +106,13 @@ export function PortalLayout() {
         if (lead === null) {
           if (tieneEstadoContratacion) {
             // Backend no reconoce al titular pero la sesion local todavia
-            // tiene contratacion cacheada → es estado fantasma de un test
-            // anterior / cleanup de staging. Reset completo y bounce al
-            // landing para que el usuario arranque un alta limpia.
-            console.warn('[portal] lead no existe en backend, reset de sesion');
-            resetSession();
-            window.location.href = landingUrl();
+            // tiene contratacion cacheada → "declientamos": el usuario sigue
+            // logueado con su perfil completo (no rehace onboarding), pero
+            // se le limpia ordenes/intent/pagoPendiente/leadId/numero de
+            // afiliado. El portal pasa a `conCuentaSinPago` y pinta
+            // "Elegí un plan" automáticamente.
+            console.warn('[portal] lead no existe en backend, declientando');
+            declientar();
           }
           return;
         }

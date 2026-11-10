@@ -291,6 +291,30 @@ export function resetSession(): void {
   emitir();
 }
 
+/**
+ * "Declientar" al usuario: sigue logueado y conserva los datos de onboarding
+ * (usuario, perfil, DNI, email de MP) pero se va todo lo que lo ata a un plan
+ * vigente — ordenes, intent, pagoPendiente, familiares, numero de afiliado y
+ * leadId. El resultado deja la sesion en `conCuentaSinPago`: el portal pinta
+ * el EmptyState "Elegí un plan" y, cuando el usuario arme uno nuevo, no tiene
+ * que rehacer el wizard de perfil (es la diferencia con `resetSession`).
+ *
+ * Se dispara cuando v3.leads no reconoce mas al titular — por ejemplo porque
+ * su lead fue borrado en un cleanup de staging, o porque la vigencia expiro
+ * en el backend.
+ */
+export function declientar(): void {
+  comprometer({
+    ...estado,
+    ordenes: [],
+    intent: undefined,
+    pagoPendiente: undefined,
+    familiares: undefined,
+    numeroAfiliado: undefined,
+    leadId: undefined,
+  });
+}
+
 export function agregarOrden(orden: Orden): void {
   comprometer({ ...estado, ordenes: [orden, ...estado.ordenes] });
 }
