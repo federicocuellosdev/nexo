@@ -30,7 +30,6 @@ import { Card } from '@/ui/Card';
 import { Icon } from '@/ui/Icon';
 import { Money } from '@/ui/Money';
 import { Chip } from '@/ui/Chip';
-import { EmptyState } from '@/ui/EmptyState';
 import { clasesBoton } from '@/ui/Button';
 
 /**
@@ -322,16 +321,30 @@ export function Inicio() {
             </Link>
           </Card>
         ) : (
-          <EmptyState
-            icono={ShieldCheck}
-            como="h2"
-            titulo="Todavía no tenés un plan"
-            descripcion="Elegí el plan que mejor te sirva y activá tu cobertura."
-          >
-            <Link to="/planes" className={clasesBoton({})}>
+          // Jerarquizado como la banda de "Completá tu perfil" en /cuenta:
+          // bg-brand-oscurecido + shadow-elevada + CTA invertido. Es el
+          // próximo paso prioritario del usuario, así que destaca por sobre
+          // el resto del dashboard.
+          <Card className="flex flex-col items-center gap-4 py-10 text-center !bg-brand-oscurecido !shadow-elevada !ring-marca-300">
+            <span
+              aria-hidden="true"
+              className="inline-flex size-14 items-center justify-center rounded-pill bg-white/15 text-white ring-1 ring-white/30"
+            >
+              <ShieldCheck size={26} strokeWidth={1.75} />
+            </span>
+            <div className="flex flex-col gap-2">
+              <h2 className="font-display text-xl text-white">Todavía no tenés un plan</h2>
+              <p className="max-w-sm text-sm text-white/85">
+                Elegí el plan que mejor te sirva y activá tu cobertura.
+              </p>
+            </div>
+            <Link
+              to="/planes"
+              className="mt-2 inline-flex h-11 cursor-pointer items-center justify-center rounded-pill bg-white px-5 text-base font-medium text-marca-700 shadow-suave transition-colors duration-200 ease-out-expo hover:bg-ink-50 motion-safe:active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            >
               Ver planes
             </Link>
-          </EmptyState>
+          </Card>
         )}
 
         {estado === 'pagadoSinPerfil' ? (

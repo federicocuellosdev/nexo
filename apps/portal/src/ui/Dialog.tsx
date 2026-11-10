@@ -8,11 +8,14 @@ export interface CapaModalProps {
   onCambio: (abierto: boolean) => void;
   titulo: string;
   descripcion?: string;
+  /** Oculta visualmente el header (deja solo el botón cerrar). Para pantallas
+   *  de éxito que muestran el título dentro del contenido centrado. */
+  tituloOculto?: boolean;
   children: ReactNode;
 }
 
 /** Diálogo centrado. Para el popup de alta usá `Sheet`, que es responsive. */
-export function Dialog({ abierto, onCambio, titulo, descripcion, children }: CapaModalProps) {
+export function Dialog({ abierto, onCambio, titulo, descripcion, tituloOculto, children }: CapaModalProps) {
   return (
     <RadixDialog.Root open={abierto} onOpenChange={onCambio}>
       <RadixDialog.Portal>
@@ -26,7 +29,7 @@ export function Dialog({ abierto, onCambio, titulo, descripcion, children }: Cap
             'motion-reduce:transition-[opacity]',
           )}
         >
-          <EncabezadoModal titulo={titulo} descripcion={descripcion} />
+          <EncabezadoModal titulo={titulo} descripcion={descripcion} tituloOculto={tituloOculto} />
           {children}
         </RadixDialog.Content>
       </RadixDialog.Portal>

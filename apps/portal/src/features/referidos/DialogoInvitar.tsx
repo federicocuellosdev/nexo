@@ -59,21 +59,23 @@ export function DialogoInvitar({ onCerrar, onEnviar }: DialogoInvitarProps) {
       }}
       titulo={enviado ? '¡Listo!' : 'Invitá a un amigo'}
       descripcion={enviado ? undefined : 'Vamos a mandarle un email con tu invitación al programa de referidos.'}
+      tituloOculto={enviado}
     >
       {enviado ? (
-        // Pantalla de éxito: ícono + mensaje breve + cerrar. Sin rastro del
-        // formulario ni banner sobre contenido anterior.
-        <div className="flex flex-col items-center gap-5 py-4 text-center">
+        // Pantalla de éxito: ícono + "¡Listo!" centrado + mensaje breve + cerrar.
+        // Sin rastro del formulario ni banner sobre contenido anterior.
+        <div className="flex flex-col items-center gap-4 py-2 text-center">
           <span
             aria-hidden="true"
             className="inline-flex size-16 items-center justify-center rounded-pill bg-ok-50 text-ok-700"
           >
             <CheckCircle2 size={36} strokeWidth={1.75} />
           </span>
+          <h2 className="font-display text-xl text-ink-950">¡Listo!</h2>
           <p className="text-base text-ink-700">
             Enviamos tu invitación a <strong className="font-medium text-ink-900">{email}</strong>.
           </p>
-          <Button type="button" ancho="full" onClick={onCerrar}>
+          <Button type="button" ancho="full" onClick={onCerrar} className="mt-2">
             Cerrar
           </Button>
         </div>

@@ -5,6 +5,9 @@ import { cn } from '@/lib/cn';
 export interface EncabezadoModalProps {
   titulo: string;
   descripcion?: string;
+  /** Oculta visualmente el título/descripción (solo lectores de pantalla). Para
+   *  estados "éxito" que muestran el título dentro del contenido centrado. */
+  tituloOculto?: boolean;
 }
 
 const CERRAR = cn(
@@ -17,7 +20,18 @@ const CERRAR = cn(
  * Título + descripción opcional + botón cerrar, compartidos por `Dialog` y
  * `Sheet`: antes vivían duplicados verbatim en ambos archivos.
  */
-export function EncabezadoModal({ titulo, descripcion }: EncabezadoModalProps) {
+export function EncabezadoModal({ titulo, descripcion, tituloOculto }: EncabezadoModalProps) {
+  if (tituloOculto) {
+    return (
+      <div className="flex justify-end">
+        <RadixDialog.Title className="sr-only">{titulo}</RadixDialog.Title>
+        {descripcion ? <RadixDialog.Description className="sr-only">{descripcion}</RadixDialog.Description> : null}
+        <RadixDialog.Close aria-label="Cerrar" className={CERRAR}>
+          <X size={18} aria-hidden="true" />
+        </RadixDialog.Close>
+      </div>
+    );
+  }
   return (
     <div className="mb-4 flex items-start justify-between gap-4">
       <div className="min-w-0">
