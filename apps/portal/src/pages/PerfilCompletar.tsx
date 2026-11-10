@@ -89,9 +89,9 @@ export function PerfilCompletar() {
             beneficiarios: Array.from({ length: familiares }, () => ({ ...BORRADOR_BENEFICIARIO })),
           }}
           pasoInicial={dniLead ? 2 : 1}
-          onGuardar={(d) => {
-            void guardar(d);
-          }}
+          // Devolvemos el promise para que el wizard pueda awaitear y mostrar
+          // "Guardando…" + spinner mientras POSTeamos a /leads/:id/perfil.
+          onGuardar={guardar}
         />
       </div>
     </div>

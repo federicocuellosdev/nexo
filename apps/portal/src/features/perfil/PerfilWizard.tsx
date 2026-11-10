@@ -21,6 +21,22 @@ import { Select } from '@/ui/Select';
 import { Button } from '@/ui/Button';
 import { Card } from '@/ui/Card';
 
+/** Spinner inline del botón "Guardar y activar". `currentColor` hereda el
+ *  color del botón, así sirve tanto sobre marca-600 como secundario. */
+function Spinner() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="size-4 animate-spin text-current"
+      fill="none"
+    >
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3" />
+      <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export interface PerfilWizardProps {
   /** Paso en el que abre. Lo usa /cuenta para editar una sección puntual. */
   pasoInicial?: PasoPerfil;
@@ -33,7 +49,13 @@ export interface PerfilWizardProps {
    * (4 pasos secuenciales) no pasa esta prop y sigue igual.
    */
   soloEstePaso?: boolean;
-  onGuardar: (datos: DatosDelWizard) => void;
+  /**
+   * Puede ser async: si el caller devuelve un Promise (caso típico: POST al
+   * backend con `guardarPerfilBackend`), el wizard lo awaitea y muestra un
+   * estado "Guardando…" con el botón deshabilitado. Si devuelve void, es
+   * fire-and-forget y el botón nunca entra en loading.
+   */
+  onGuardar: (datos: DatosDelWizard) => void | Promise<void>;
 }
 
 /**
@@ -123,8 +145,11 @@ export function PerfilWizard({
     return (errores as Record<string, string | undefined>)[key];
   }
 
-  function enviar(evento: FormEvent<HTMLFormElement>) {
+  const [guardando, setGuardando] = useState(false);
+
+  async function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
+    if (guardando) return;
 
     const encontrados = validarPaso(paso, borrador);
     if (Object.keys(encontrados).length > 0) {
@@ -138,7 +163,16 @@ export function PerfilWizard({
       return;
     }
 
-    onGuardar({ perfil: aPerfil(borrador), identidad: identidadDelBorrador(borrador) });
+    setGuardando(true);
+    try {
+      await onGuardar({ perfil: aPerfil(borrador), identidad: identidadDelBorrador(borrador) });
+    } catch (err) {
+      // El caller suele atajar y loggear por su cuenta, pero si burbujea hasta
+      // acá al menos salimos del estado "guardando" para que el usuario pueda
+      // reintentar en vez de dejar el botón colgado.
+      console.warn('[perfil-wizard] onGuardar falló', err);
+      setGuardando(false);
+    }
   }
 
   function volver() {
@@ -467,8 +501,26 @@ export function PerfilWizard({
         ) : null}
 
         <div className="mt-2 flex flex-col gap-3 sm:flex-row-reverse">
-          <Button type="submit" ancho="full" tamano="lg" className="sm:w-auto">
-            {soloEstePaso ? 'Guardar cambios' : esUltimo ? 'Guardar y activar' : 'Continuar'}
+          <Button
+            type="submit"
+            ancho="full"
+            tamano="lg"
+            className="sm:w-auto"
+            disabled={guardando}
+            aria-busy={guardando}
+          >
+            {guardando ? (
+              <span className="inline-flex items-center gap-2">
+                <Spinner />
+                Guardando…
+              </span>
+            ) : soloEstePaso ? (
+              'Guardar cambios'
+            ) : esUltimo ? (
+              'Guardar y activar'
+            ) : (
+              'Continuar'
+            )}
           </Button>
           {/* Sin "Volver" en modo sección puntual: no hay otro paso al que
               navegar, esta instancia solo edita `pasoInicial`. */}
@@ -480,6 +532,7 @@ export function PerfilWizard({
               tamano="lg"
               className="sm:w-auto"
               onClick={volver}
+              disabled={guardando}
             >
               Volver
             </Button>
