@@ -82,8 +82,20 @@ export function MovimientosList({ ordenes }: MovimientosListProps) {
                 {formatearFecha(orden.fecha)}
               </td>
               <td className="px-5 py-4">
-                <Chip tono={orden.estado === 'pagada' ? 'ok' : 'warn'}>
-                  {orden.estado === 'pagada' ? 'Pagada' : 'Pendiente'}
+                <Chip
+                  tono={
+                    orden.estado === 'pagada'
+                      ? 'ok'
+                      : orden.estado === 'devuelta'
+                        ? 'neutro'
+                        : 'warn'
+                  }
+                >
+                  {orden.estado === 'pagada'
+                    ? 'Pagada'
+                    : orden.estado === 'devuelta'
+                      ? 'Devuelta'
+                      : 'Pendiente'}
                 </Chip>
               </td>
               <td className="px-5 py-4 text-right">

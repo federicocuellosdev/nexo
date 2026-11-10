@@ -78,18 +78,23 @@ export function PortalLayout() {
   //      anterior porque la sesion vive en sessionStorage, no en la DB. Sin
   //      este reset, el portal muestra estado fantasma indefinidamente.
   //
-  // Guard de invalidacion: si la sesion tiene CUALQUIER evidencia de
-  // contratacion local (leadId, perfil, orden pagada o pagoPendiente) la
-  // validamos contra el backend. Sin esto, un usuario que tenia una sesion
-  // persistida en el browser (sessionStorage) seguia viendo cobertura/pago/
-  // perfil aunque la fila de v3.leads hubiera sido borrada: el portal lee
-  // de session local, no de la DB.
+  // Guard de invalidacion: si la sesion tiene evidencia de contratacion
+  // VIGENTE (leadId, pagoPendiente, o una orden pagada SIN devolucion
+  // asociada) la validamos contra v3.leads. El perfil NO se chequea
+  // porque `declientar()` lo preserva a proposito — no es evidencia de
+  // cobertura vigente, es onboarding completado que queremos reusar en
+  // la proxima contratacion. Las pagadas que ya tienen su `dev-<id>`
+  // emparejada tampoco cuentan: la devolucion las cerro. Sin esta
+  // doble guarda `declientar()` no seria idempotente y el useEffect
+  // entraria en loop (consulta → declientar → consulta → ...).
   const emailUsuario = usuario?.email;
+  const tienePagadaPendienteDeDev = sesion.ordenes.some((o) => {
+    if (o.tipo !== 'plan' || o.estado !== 'pagada') return false;
+    const yaDevuelta = sesion.ordenes.some((d) => d.estado === 'devuelta' && d.id === `dev-${o.id}`);
+    return !yaDevuelta;
+  });
   const tieneEstadoContratacion =
-    sesion.leadId !== undefined ||
-    sesion.perfil !== undefined ||
-    sesion.pagoPendiente !== undefined ||
-    sesion.ordenes.some((o) => o.tipo === 'plan' && o.estado === 'pagada');
+    sesion.leadId !== undefined || sesion.pagoPendiente !== undefined || tienePagadaPendienteDeDev;
   const faltaNombre =
     usuario !== undefined && (usuario.nombre ?? '').trim() === '' && (usuario.apellido ?? '').trim() === '';
   const faltaDni = sesion.dniLead === undefined;
@@ -148,12 +153,18 @@ export function PortalLayout() {
     };
   }, [emailUsuario, debeConsultar, tieneEstadoContratacion]);
 
-  // Todos los items del menú quedan siempre activos. En algún momento
-  // probamos deshabilitar Coberturas y Movimientos mientras no hubiera plan
-  // contratado, pero resulta más útil que la persona pueda navegarlos y vea
-  // su propio EmptyState con guía ("todavía no tenés movimientos", etc.) en
-  // vez de un ítem grisado sin explicación.
-  const items: NavItem[] = ITEMS_PORTAL_BASE;
+  // Si el usuario no tiene un plan vigente (post-declientado o alta nueva
+  // sin pagar todavia), desactivamos lo que depende de tener una cobertura
+  // activa: Coberturas y Familiares. Inicio, Planes y Movimientos quedan
+  // habilitados: Inicio es la base y pinta el EmptyState "Elegí un plan";
+  // Planes es por donde el usuario arranca una contratacion nueva;
+  // Movimientos mantiene visibles pagos y devoluciones historicos.
+  const tienePlanVigente = sesion.ordenes.some((o) => o.tipo === 'plan' && o.estado === 'pagada');
+  const habilitadosSinPlan = new Set(['/inicio', '/planes', '/movimientos']);
+  const items: NavItem[] = ITEMS_PORTAL_BASE.map((item) => {
+    if (tienePlanVigente) return item;
+    return habilitadosSinPlan.has(item.to) ? item : { ...item, disabled: true };
+  });
 
   if (enfocado) {
     return (

@@ -23,7 +23,13 @@ export function NovedadesCarousel({ novedades, onInvitar }: NovedadesCarouselPro
     <ul
       aria-label="Novedades"
       tabIndex={0}
-      className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4 sm:grid sm:snap-none sm:grid-cols-3 sm:gap-3 sm:pb-0"
+      // `px-1 py-1` + `-mx-1 -my-1` dejan colchon para que el `shadow-card`
+      // y el `ring-1` de las cards no queden recortados por el overflow:
+      // el shadow se dibuja 1-2 px afuera del bounding box, y sin el
+      // colchon la pared derecha del carrusel y el borde del main lo
+      // comen (en mobile se veia clip, en desktop quedaba el borde
+      // derecho cortado al rozar el edge de la grilla).
+      className="-mx-1 -my-1 flex snap-x snap-mandatory gap-4 overflow-x-auto px-1 py-1 pb-5 sm:grid sm:snap-none sm:grid-cols-3 sm:gap-3 sm:pb-1"
     >
       {novedades.map((novedad) => (
         <li

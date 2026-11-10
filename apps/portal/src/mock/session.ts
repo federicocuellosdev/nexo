@@ -71,7 +71,7 @@ export interface Orden {
   itemId: string;
   concepto: string;
   monto: number;
-  estado: 'pagada' | 'pendiente';
+  estado: 'pagada' | 'pendiente' | 'devuelta';
 }
 
 export interface Session {
@@ -304,9 +304,24 @@ export function resetSession(): void {
  * en el backend.
  */
 export function declientar(): void {
+  // Por cada orden pagada generamos UNA fila nueva de devolucion (asi en
+  // /movimientos se ve el cobro original + el refund como dos lineas, como
+  // en cualquier app financiera). Las pagadas se preservan sin tocar, las
+  // pendientes se descartan (no se cobraron nunca, no hay que reembolsar).
+  const pagadas = estado.ordenes.filter((o) => o.estado === 'pagada');
+  const hoyIso = new Date().toISOString().slice(0, 10);
+  const devoluciones: Orden[] = pagadas.map((o) => ({
+    id: `dev-${o.id}`,
+    fecha: hoyIso,
+    tipo: o.tipo,
+    itemId: o.itemId,
+    concepto: `Devolución · ${o.concepto}`,
+    monto: o.monto,
+    estado: 'devuelta' as const,
+  }));
   comprometer({
     ...estado,
-    ordenes: [],
+    ordenes: [...devoluciones, ...pagadas],
     intent: undefined,
     pagoPendiente: undefined,
     familiares: undefined,

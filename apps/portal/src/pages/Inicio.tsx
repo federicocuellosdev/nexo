@@ -32,16 +32,19 @@ import { EmptyState } from '@/ui/EmptyState';
 import { clasesBoton } from '@/ui/Button';
 
 /**
- * Accesos rápidos de /inicio: una card por destino. Dos quedan deshabilitadas
- * (Coberturas, Movimientos) mientras no haya nada que mostrar — coherente con
- * el estado deshabilitado del menú lateral. El único clickeable es "Contratar
- * producto" porque es acción, no consulta.
+ * Accesos rápidos de /inicio. "Ver coberturas" y "Otros productos" solo tienen
+ * sentido con plan vigente: sin plan no hay cobertura que ver y los productos
+ * on-demand funcionan como add-on de un plan activo. "Mis movimientos" queda
+ * siempre habilitado para que el historial (pagos y devoluciones) sea
+ * consultable incluso en estado declientado.
  */
-const ACCESOS = [
-  { to: '/coberturas', label: 'Ver coberturas', icono: ShieldCheck, disabled: false },
-  { to: '/planes', label: 'Otros productos', icono: LayoutGrid, disabled: false },
-  { to: '/movimientos', label: 'Mis movimientos', icono: Receipt, disabled: false },
-] as const;
+function buildAccesos(tienePlan: boolean) {
+  return [
+    { to: '/coberturas', label: 'Ver coberturas', icono: ShieldCheck, disabled: !tienePlan },
+    { to: '/planes', label: 'Otros productos', icono: LayoutGrid, disabled: !tienePlan },
+    { to: '/movimientos', label: 'Mis movimientos', icono: Receipt, disabled: false },
+  ] as const;
+}
 
 export function Inicio() {
   const sesion = useSession();
@@ -245,13 +248,10 @@ export function Inicio() {
             ? 'lg:grid lg:grid-cols-[1fr_420px] lg:items-stretch'
             : estado === 'pagadoSinPerfil'
               ? 'lg:grid lg:grid-cols-[1fr_340px] lg:items-start'
-              : // Cuando hay plan pendiente de pago renderizamos resumen full-width
-                // + tabla de cobertura debajo: el bloque ocupa todo el contenedor
-                // para que la tabla respire. En el resto de casos (EmptyState)
-                // mantenemos la medida angosta para que el aviso no quede flotando.
-                faltaTerminarCompra && (planElegido || productoElegido)
-                ? undefined
-                : 'lg:max-w-[720px]',
+              : // Resto de casos (plan pendiente de pago + EmptyState sin plan):
+                // full-width. En declientado el banner "Elegí un plan" tiene que
+                // ocupar el ancho del main para funcionar como hero del home.
+                undefined,
         )}
       >
         {plan && vencimiento ? (
@@ -385,7 +385,7 @@ export function Inicio() {
       <section aria-label="Accesos rápidos" className="border-t border-ink-200 pt-8">
         <h2 className="mb-3 text-lg text-ink-950">Accesos rápidos</h2>
         <div className="grid gap-3 sm:grid-cols-3">
-          {ACCESOS.map((acceso) =>
+          {buildAccesos(plan !== undefined).map((acceso) =>
             acceso.disabled ? (
               <span
                 key={acceso.to}
