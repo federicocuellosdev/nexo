@@ -6,6 +6,7 @@ import { Field } from '@/ui/Field';
 import { Input } from '@/ui/Input';
 import { Button } from '@/ui/Button';
 import { Money } from '@/ui/Money';
+import { cn } from '@/lib/cn';
 import { guardarHandoff } from '@/lib/handoff';
 import { crearLead, ApiError } from '@/lib/api';
 import {
@@ -230,30 +231,47 @@ export function AltaDialog({ abierto, onCambio, item }: AltaDialogProps) {
     </Field>
   );
 
-  // Indicador de progreso pill con dos pasos. Mas claro que el "Paso 1 de 2 ·
-  // Tus datos" como texto suelto: el bar visual anuncia de entrada que son
-  // dos pantallas, no cuatro, y el usuario no se sorprende en el submit. En
-  // modo login no se muestra (es un solo paso).
+  // Indicador de progreso con el MISMO patron que el PerfilWizard del portal:
+  // una fila con "Paso X de 2" + titulo del paso arriba, y debajo los dots
+  // (size-2, marca-600 cuando ya pasaron, ink-200 cuando faltan). Mantener
+  // la misma gramatica visual entre landing y portal hace que el usuario no
+  // se desoriente cuando salta de una app a la otra.
+  const tituloPaso = paso === 1 ? 'Tus datos' : 'Documento';
   const indicadorPaso = (
-    <div className="flex items-center gap-2" aria-label={`Paso ${paso} de 2`}>
-      <span
-        className={`h-1.5 flex-1 rounded-pill transition-colors duration-200 ${
-          paso >= 1 ? 'bg-marca-500' : 'bg-ink-100'
-        }`}
-      />
-      <span
-        className={`h-1.5 flex-1 rounded-pill transition-colors duration-200 ${
-          paso >= 2 ? 'bg-marca-500' : 'bg-ink-100'
-        }`}
-      />
-      <span className="ml-2 text-[11px] font-medium uppercase tracking-wide text-ink-500">
-        {paso === 1 ? 'Tus datos' : 'Documento'}
-      </span>
+    <div>
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-sm font-medium text-ink-500">{`Paso ${paso} de 2`}</span>
+        <span className="text-sm text-ink-600">{tituloPaso}</span>
+      </div>
+      <div
+        role="progressbar"
+        aria-valuenow={paso}
+        aria-valuemin={1}
+        aria-valuemax={2}
+        aria-label="Progreso del alta"
+        className="mt-3 flex items-center gap-2"
+      >
+        {[1, 2].map((n) => (
+          <span
+            key={n}
+            aria-hidden="true"
+            className={cn(
+              'size-2 rounded-pill transition-colors duration-200',
+              n <= paso ? 'bg-marca-600' : 'bg-ink-200',
+            )}
+          />
+        ))}
+      </div>
     </div>
   );
 
   return (
     <Sheet abierto={abierto} onCambio={onCambio} titulo={`Contratar ${item.nombre}`}>
+      {/* Indicador de progreso arriba de todo: lo primero que el usuario ve es
+          en qué paso está parado. En modo login (un solo campo) no tiene
+          sentido mostrarlo. */}
+      {modo === 'alta' ? <div className="mb-4">{indicadorPaso}</div> : null}
+
       {/* Resumen visible de lo que se contrata: el usuario tiene que ver qué
           está por pagar sin volver atrás. Línea tenue abajo marca el cierre
           del "qué estás contratando" y el arranque del "quién sos". */}
@@ -272,7 +290,6 @@ export function AltaDialog({ abierto, onCambio, item }: AltaDialogProps) {
         {modo === 'alta' ? (
           paso === 1 ? (
             <>
-              {indicadorPaso}
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Nombre" htmlFor={idDelCampo('nombre')} error={errores.nombre} requerido>
                   <Input
