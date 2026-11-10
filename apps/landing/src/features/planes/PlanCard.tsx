@@ -17,6 +17,9 @@ export interface PlanCardProps {
   /** Si se pasa, el CTA es un <button> y gana sobre hrefDetalle. */
   onCta?: (plan: Plan) => void;
   etiquetaCta?: string;
+  /** Clases extra sobre la Card raíz. Útil para pisar el fondo lavanda que
+   *  aplica `destacada` cuando el catálogo quiere mostrar la card en blanco. */
+  className?: string;
 }
 
 /**
@@ -44,9 +47,14 @@ export function PlanCard({
   hrefDetalle,
   onCta,
   etiquetaCta = 'Ver plan',
+  className,
 }: PlanCardProps) {
   return (
-    <Card as="article" destacada={destacado || activo} className="flex h-full flex-col gap-5">
+    <Card
+      as="article"
+      destacada={destacado || activo}
+      className={`flex h-full flex-col gap-5${className ? ` ${className}` : ''}`}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="font-display text-xl text-ink-950">{plan.nombre}</h3>
