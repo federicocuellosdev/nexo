@@ -186,17 +186,22 @@ export function PortalLayout() {
     };
   }, [emailUsuario, debeConsultar, tieneEstadoContratacion]);
 
-  // Si el usuario no tiene un plan vigente (post-declientado o alta nueva
-  // sin pagar todavia), desactivamos lo que depende de tener una cobertura
-  // activa: Coberturas y Familiares. Inicio, Planes y Movimientos quedan
-  // habilitados: Inicio es la base y pinta el EmptyState "Elegí un plan";
-  // Planes es por donde el usuario arranca una contratacion nueva;
-  // Movimientos mantiene visibles pagos y devoluciones historicos.
+  // Reglas de habilitacion del menu segun estado de la sesion:
+  //   - Inicio y Planes: siempre. Base + camino de contratacion nueva.
+  //   - Coberturas y Familiares: solo con plan vigente. Sin plan, las
+  //     pantallas quedan vacias y el item grisado comunica el por que.
+  //   - Movimientos: solo si hay al menos una orden (pagada, pendiente o
+  //     devuelta). Sin historial no hay a donde ir — grisarlo evita el
+  //     click a un EmptyState generico.
   const tienePlanVigente = sesion.ordenes.some((o) => o.tipo === 'plan' && o.estado === 'pagada');
-  const habilitadosSinPlan = new Set(['/inicio', '/planes', '/movimientos']);
+  const tieneMovimientos = sesion.ordenes.length > 0;
   const items: NavItem[] = ITEMS_PORTAL_BASE.map((item) => {
-    if (tienePlanVigente) return item;
-    return habilitadosSinPlan.has(item.to) ? item : { ...item, disabled: true };
+    if (item.to === '/inicio' || item.to === '/planes') return item;
+    if (item.to === '/movimientos') {
+      return tieneMovimientos ? item : { ...item, disabled: true };
+    }
+    // Coberturas y Familiares.
+    return tienePlanVigente ? item : { ...item, disabled: true };
   });
 
   if (enfocado) {

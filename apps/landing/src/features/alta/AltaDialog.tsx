@@ -272,9 +272,11 @@ export function AltaDialog({ abierto, onCambio, item }: AltaDialogProps) {
           sentido mostrarlo. */}
       {modo === 'alta' ? <div className="mb-4">{indicadorPaso}</div> : null}
 
-      {/* Resumen visible de lo que se contrata: el usuario tiene que ver qué
-          está por pagar sin volver atrás. Línea tenue abajo marca el cierre
-          del "qué estás contratando" y el arranque del "quién sos". */}
+      {/* El bloque "qué estás contratando" queda enmarcado entre dos líneas
+          tenues: la de arriba lo separa del indicador de pasos y la de abajo
+          cierra contra el form. Delimitar por arriba y abajo lo hace leer
+          como una sección aparte, no como la cabecera genérica del dialog. */}
+      <div className="my-5 border-t border-ink-100" aria-hidden="true" />
       <div className="rounded-campo bg-ink-50 px-4 py-3">
         <div className="flex items-center justify-between gap-3">
           <span className="text-sm font-medium text-ink-800">{item.nombre}</span>
@@ -326,7 +328,6 @@ export function AltaDialog({ abierto, onCambio, item }: AltaDialogProps) {
                   type="tel"
                   inputMode="tel"
                   autoComplete="tel"
-                  placeholder="3415551234"
                   value={datos.telefono}
                   onChange={(evento) => actualizar('telefono', evento.target.value.replace(/[^\d+]/g, ''))}
                 />
@@ -334,7 +335,9 @@ export function AltaDialog({ abierto, onCambio, item }: AltaDialogProps) {
             </>
           ) : (
             <>
-              {indicadorPaso}
+              {/* Sin segundo render del indicador: ya esta arriba del bloque
+                  del plan (fuera del form). Repetirlo acá generaba dos
+                  stepping boards en la misma pantalla. */}
               {/* DNI: SF lo usa como clave de reconocimiento del Prospecto
                   (documentType=DNI + documentNumber). Sin esto el envío a
                   /leads rebota 400. Lo pedimos en paso aparte para que el
@@ -353,7 +356,6 @@ export function AltaDialog({ abierto, onCambio, item }: AltaDialogProps) {
                   inputMode="numeric"
                   maxLength={8}
                   autoComplete="off"
-                  placeholder="34567890"
                   value={datos.dni}
                   onChange={(evento) => actualizar('dni', evento.target.value.replace(/\D/g, ''))}
                 />
