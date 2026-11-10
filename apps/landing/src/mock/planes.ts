@@ -56,8 +56,8 @@ export const PLANES: Plan[] = [
     bajada: 'Cobertura completa: emergencias, odontología, farmacia y teleconsultas DOC24.',
     recomendado: true,
     prestaciones: [
-      { label: 'Doc24 · Clínica', estado: 'coseguro', detalle: '1° Consulta sin cargo' },
-      { label: 'Doc24 · Psicología', estado: 'coseguro', detalle: '1° Sesión a $15.000' },
+      { label: 'Médico Clínico', estado: 'coseguro', detalle: '1° Consulta sin cargo' },
+      { label: 'Psicología', estado: 'coseguro', detalle: '1° Sesión a $15.000' },
       { label: 'Emergencias médicas', estado: 'incluido' },
       { label: 'Guardia odontológica', estado: 'incluido' },
       { label: 'Descuentos en farmacias', estado: 'incluido', detalle: 'Hasta 50% off en farmacias adheridas' },
