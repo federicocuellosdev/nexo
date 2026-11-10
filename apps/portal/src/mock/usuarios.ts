@@ -28,7 +28,4 @@ export const PERFIL_DEMO: PerfilPrevinca = {
     cp: '2000',
     pais: 'Argentina',
   },
-  tieneObraSocial: true,
-  obraSocial: 'OSDE',
-  tipoContratacion: 'tomador-beneficiario',
 };

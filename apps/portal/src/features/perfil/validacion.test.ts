@@ -26,23 +26,17 @@ const COMPLETO: BorradorPerfil = {
   provincia: 'Santa Fe',
   cp: '2000',
   pais: 'Argentina',
-  tieneObraSocial: 'si',
-  obraSocial: 'OSDE',
-  tipoContratacion: 'tomador-beneficiario',
   beneficiarios: [],
 };
 
-test('el borrador inicial no pasa los pasos 1 a 3; el 4 ya no bloquea', () => {
+test('el borrador inicial no pasa los 3 pasos del titular', () => {
   expect(validarPaso(1, BORRADOR_INICIAL, HOY).numeroDocumento).toBe('Ingresá tu número de documento');
   expect(validarPaso(2, BORRADOR_INICIAL, HOY).sexo).toBe('Elegí una opción');
   expect(validarPaso(3, BORRADOR_INICIAL, HOY).calle).toBe('Ingresá la calle');
-  // El paso 4 dejó de pedir tipo de contratación: hoy queda fijado en
-  // "tomador-beneficiario" y la obra social sigue en debate. No bloquea nada.
-  expect(validarPaso(4, BORRADOR_INICIAL, HOY)).toEqual({});
 });
 
-test('el borrador completo pasa los cuatro pasos', () => {
-  for (const paso of [1, 2, 3, 4] as const) {
+test('el borrador completo pasa los 3 pasos del titular', () => {
+  for (const paso of [1, 2, 3] as const) {
     expect(validarPaso(paso, COMPLETO, HOY)).toEqual({});
   }
 });
@@ -113,10 +107,6 @@ test('aPerfil omite departamento y torre vacíos en vez de guardar cadenas vací
   expect(perfil.domicilio.torre).toBeUndefined();
 });
 
-test('la obra social no bloquea el avance: está en debate', () => {
-  expect(validarPaso(4, { ...COMPLETO, tieneObraSocial: '', obraSocial: '' }, HOY)).toEqual({});
-});
-
 test('aPerfil arma el perfil del spec §5', () => {
   expect(aPerfil(COMPLETO)).toEqual(PERFIL_DEMO);
 });
@@ -124,12 +114,6 @@ test('aPerfil arma el perfil del spec §5', () => {
 test('aPerfil omite el piso vacío en vez de guardar una cadena vacía', () => {
   const perfil = aPerfil({ ...COMPLETO, piso: '  ' });
   expect(perfil.domicilio.piso).toBeUndefined();
-});
-
-test('aPerfil sin obra social no guarda el nombre de la obra social', () => {
-  const perfil = aPerfil({ ...COMPLETO, tieneObraSocial: 'no', obraSocial: 'OSDE' });
-  expect(perfil.tieneObraSocial).toBe(false);
-  expect(perfil.obraSocial).toBeUndefined();
 });
 
 test('aPerfil falla ruidosamente con un borrador incompleto', () => {

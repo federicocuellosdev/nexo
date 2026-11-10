@@ -3,17 +3,20 @@ import type {
   PerfilPrevinca,
   RelacionBeneficiario,
   Sexo,
-  TipoContratacion,
   TipoDocumento,
 } from '@/mock/session';
 
 /**
- * El wizard tiene 4 pasos fijos del titular + N pasos dinámicos para los
- * beneficiarios. Como el tipo final es número y no literal, lo dejamos en
- * `number` para no complicar los call sites.
+ * El wizard tiene 3 pasos fijos del titular (documento, datos personales,
+ * domicilio) + N pasos dinámicos para los beneficiarios. Como el tipo final
+ * es número y no literal, lo dejamos en `number` para no complicar los call
+ * sites. Antes había un 4º paso de obra social + tipo de contratación, pero
+ * SF no consume ninguno de esos dos campos (ni en Lead-Intake ni en
+ * Sale-Intake del contrato de Nespon), así que se quitaron para no pedirle
+ * al usuario datos que no sirven a nadie.
  */
 export type PasoPerfil = number;
-export const TOTAL_PASOS_TITULAR = 4;
+export const TOTAL_PASOS_TITULAR = 3;
 
 /**
  * Borrador plano (sin `domicilio` anidado) porque un formulario controlado es
@@ -69,9 +72,6 @@ export interface BorradorPerfil {
   provincia: string;
   cp: string;
   pais: string;
-  tieneObraSocial: 'si' | 'no' | '';
-  obraSocial: string;
-  tipoContratacion: TipoContratacion | '';
   /** Uno por familiar adherente. Se precarga con N `BORRADOR_BENEFICIARIO`
    *  vacíos al abrir el wizard, según `sesion.familiares`. */
   beneficiarios: BorradorBeneficiario[];
@@ -113,14 +113,6 @@ export const BORRADOR_INICIAL: BorradorPerfil = {
   provincia: PROVINCIA_POR_DEFECTO,
   cp: '',
   pais: 'Argentina',
-  tieneObraSocial: '',
-  obraSocial: '',
-  // El wizard ya no lo pregunta: quien completa el perfil desde el portal
-  // siempre se da de alta como tomador y beneficiario de su propia cuota.
-  // Si en el futuro vuelve a haber alta de "solo tomador" o "solo
-  // beneficiario", el campo sigue en el borrador para no romper los
-  // consumidores (aPerfil, desdePerfil, SF intake) — hoy queda fijado.
-  tipoContratacion: 'tomador-beneficiario',
   beneficiarios: [],
 };
 
@@ -148,15 +140,12 @@ export const BORRADOR_DEMO: BorradorPerfil = {
   localidad: 'Rosario',
   provincia: PROVINCIA_POR_DEFECTO,
   cp: '2000',
-  tieneObraSocial: 'si',
-  obraSocial: 'OSDE',
 };
 
 export const PASOS_TITULAR: readonly { numero: PasoPerfil; titulo: string }[] = [
   { numero: 1, titulo: 'Documento' },
   { numero: 2, titulo: 'Datos personales' },
   { numero: 3, titulo: 'Domicilio' },
-  { numero: 4, titulo: 'Cobertura y contratación' },
 ];
 
 /** Alias legacy: `PASOS` sigue exportado para no romper call sites que lo usen
@@ -166,7 +155,7 @@ export const PASOS = PASOS_TITULAR;
 
 /**
  * Lista completa de pasos para un wizard con `cantFamiliares` beneficiarios.
- * Devuelve los 4 pasos del titular + 1 paso por familiar titulado
+ * Devuelve los 3 pasos del titular + 1 paso por familiar titulado
  * "Familiar 1", "Familiar 2", etc.
  */
 export function pasosDelWizard(
@@ -238,14 +227,7 @@ export function validarPaso(paso: PasoPerfil, borrador: BorradorPerfil, hoy: Dat
     return errores;
   }
 
-  if (paso === 4) {
-    // Ni la obra social ni el tipo de contratación bloquean: la primera por
-    // obligatoriedad en debate; el segundo porque el wizard ya no lo pregunta
-    // (ver `BORRADOR_INICIAL.tipoContratacion`).
-    return errores;
-  }
-
-  // Paso >= 5: beneficiario. Index 0 = paso 5, index 1 = paso 6, etc.
+  // Paso >= 4: beneficiario. Index 0 = paso 4, index 1 = paso 5, etc.
   const idx = paso - TOTAL_PASOS_TITULAR - 1;
   const b = borrador.beneficiarios[idx];
   if (!b) return errores;
@@ -295,11 +277,9 @@ export function validarBeneficiario(b: BorradorBeneficiario, hoy: Date = new Dat
 }
 
 export function aPerfil(borrador: BorradorPerfil): PerfilPrevinca {
-  if (borrador.sexo === '' || borrador.tipoContratacion === '') {
+  if (borrador.sexo === '') {
     throw new Error('El borrador del perfil está incompleto');
   }
-  // `tipoContratacion` nunca llega vacío desde el wizard (ver
-  // `BORRADOR_INICIAL`), pero el check se mantiene por si entra por otra vía.
 
   const piso = borrador.piso.trim();
   const departamento = borrador.departamento.trim();
@@ -321,11 +301,6 @@ export function aPerfil(borrador: BorradorPerfil): PerfilPrevinca {
       cp: borrador.cp.trim(),
       pais: borrador.pais.trim(),
     },
-    tieneObraSocial: borrador.tieneObraSocial === 'si',
-    ...(borrador.tieneObraSocial === 'si' && borrador.obraSocial.trim() !== ''
-      ? { obraSocial: borrador.obraSocial.trim() }
-      : {}),
-    tipoContratacion: borrador.tipoContratacion,
     ...(borrador.beneficiarios.length > 0
       ? { beneficiarios: borrador.beneficiarios.map(toBeneficiario) }
       : {}),
@@ -385,9 +360,6 @@ export function desdePerfil(
     provincia: perfil.domicilio.provincia,
     cp: perfil.domicilio.cp,
     pais: perfil.domicilio.pais,
-    tieneObraSocial: perfil.tieneObraSocial ? 'si' : 'no',
-    obraSocial: perfil.obraSocial ?? '',
-    tipoContratacion: perfil.tipoContratacion,
     beneficiarios: (perfil.beneficiarios ?? []).map((b) => ({
       nombre: b.nombre,
       apellido: b.apellido,

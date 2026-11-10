@@ -348,20 +348,10 @@ export function Cuenta() {
             </dl>
           </Seccion>
 
-          {perfil ? (
-            <Seccion titulo="Otros datos" onEditar={() => setPasoEditado(4)}>
-              {/* Mismo tratamiento de líneas que 'Datos de facturación':
-                  border-y arriba y abajo del único dato, full width. */}
-              <dl className="grid grid-cols-1 gap-x-6 text-sm sm:grid-cols-2">
-                <div className="flex justify-between gap-4 border-y border-ink-100 py-3 sm:col-span-2">
-                  <dt className="text-ink-500">Obra social</dt>
-                  <dd className="text-right text-ink-900">
-                    {perfil.tieneObraSocial ? (perfil.obraSocial ?? 'sin especificar') : 'No tiene'}
-                  </dd>
-                </div>
-              </dl>
-            </Seccion>
-          ) : null}
+          {/* "Otros datos" (obra social) removido: SF no consume ese dato
+              y el wizard dejó de pedirlo. Si se necesita volver a pedirlo
+              a futuro, agregar un paso al PerfilWizard y restaurar esta
+              Seccion acá. */}
         </div>
       </div>
 

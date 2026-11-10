@@ -165,9 +165,6 @@ export interface PayloadPerfilBackend {
       cp: string;
       pais: string;
     };
-    tieneObraSocial: boolean;
-    obraSocial?: string;
-    tipoContratacion: 'beneficiario' | 'tomador' | 'tomador-beneficiario';
   };
   beneficiarios: Array<{
     nombre: string;
@@ -244,9 +241,6 @@ export interface PerfilParcialBackend {
     cp?: string;
     pais?: string;
   };
-  tieneObraSocial?: boolean;
-  obraSocial?: string;
-  tipoContratacion?: 'beneficiario' | 'tomador' | 'tomador-beneficiario';
 }
 
 export async function enviarPerfilParcial(leadId: string, parcial: PerfilParcialBackend): Promise<void> {

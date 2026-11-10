@@ -51,7 +51,7 @@ async function completarPaso3(usuario: ReturnType<typeof userEvent.setup>) {
 
 test('arranca en el paso 1 de 4', () => {
   render(<PerfilWizard onGuardar={vi.fn()} />);
-  expect(screen.getByText('Paso 1 de 4')).toBeInTheDocument();
+  expect(screen.getByText('Paso 1 de 3')).toBeInTheDocument();
   expect(screen.getByLabelText(/^Número de documento/)).toBeInTheDocument();
 });
 
@@ -59,7 +59,7 @@ test('la barra de progreso informa el avance', () => {
   render(<PerfilWizard onGuardar={vi.fn()} />);
   const barra = screen.getByRole('progressbar');
   expect(barra).toHaveAttribute('aria-valuenow', '1');
-  expect(barra).toHaveAttribute('aria-valuemax', '4');
+  expect(barra).toHaveAttribute('aria-valuemax', '3');
 });
 
 test('no deja avanzar con el paso incompleto', async () => {
@@ -67,14 +67,14 @@ test('no deja avanzar con el paso incompleto', async () => {
   render(<PerfilWizard onGuardar={vi.fn()} />);
   await usuario.click(screen.getByRole('button', { name: 'Continuar' }));
   expect(screen.getByRole('alert')).toHaveTextContent('Ingresá tu número de documento');
-  expect(screen.getByText('Paso 1 de 4')).toBeInTheDocument();
+  expect(screen.getByText('Paso 1 de 3')).toBeInTheDocument();
 });
 
 test('avanza cuando el paso es válido', async () => {
   const usuario = userEvent.setup();
   render(<PerfilWizard onGuardar={vi.fn()} />);
   await completarPaso1(usuario);
-  expect(screen.getByText('Paso 2 de 4')).toBeInTheDocument();
+  expect(screen.getByText('Paso 2 de 3')).toBeInTheDocument();
   expect(screen.getByLabelText(/^Sexo/)).toBeInTheDocument();
 });
 
@@ -91,27 +91,7 @@ test('el paso 1 no ofrece volver porque no hay a dónde', () => {
   expect(screen.queryByRole('button', { name: 'Volver' })).not.toBeInTheDocument();
 });
 
-test('el paso 4 no bloquea: ni obra social ni tipo de contratación son requeridos', async () => {
-  // La obra social sigue en debate (opcional) y el tipo de contratación
-  // dejó de preguntarse (queda fijo en "tomador-beneficiario" en el
-  // borrador inicial). El wizard puede guardarse sin tocar nada del paso 4.
-  const usuario = userEvent.setup();
-  const alGuardar = vi.fn();
-  render(
-    <PerfilWizard
-      borradorInicial={{ ...BORRADOR_INICIAL, nombre: 'Camila', apellido: 'Pérez' }}
-      onGuardar={alGuardar}
-    />,
-  );
-  await completarPaso1(usuario);
-  await completarPaso2(usuario);
-  await completarPaso3(usuario);
-  expect(screen.queryByLabelText(/^Tipo de contratación/)).not.toBeInTheDocument();
-  await usuario.click(screen.getByRole('button', { name: 'Guardar y activar' }));
-  expect(alGuardar).toHaveBeenCalled();
-});
-
-test('guardar entrega el perfil armado', async () => {
+test('guardar entrega el perfil armado al terminar el paso 3', async () => {
   const usuario = userEvent.setup();
   const alGuardar = vi.fn();
   // Nombre/apellido se precargan desde el borrador porque /perfil/completar
@@ -125,12 +105,8 @@ test('guardar entrega el perfil armado', async () => {
 
   await completarPaso1(usuario);
   await completarPaso2(usuario);
+  // Paso 3 es el último del titular. "Continuar" ahora dice "Guardar y activar".
   await completarPaso3(usuario);
-  // Paso 4: sólo obra social sigue en el formulario (el tipo de contratación
-  // ya no se pregunta y viaja fijo en el borrador).
-  await elegirDelSelect(usuario, '¿Tenés obra social o prepaga?', 'Sí');
-  await usuario.type(screen.getByLabelText('¿Cuál?'), 'OSDE');
-  await usuario.click(screen.getByRole('button', { name: 'Guardar y activar' }));
 
   // Dos destinos separados: `perfil` va a sesion.perfil e `identidad` a
   // sesion.usuario. Nombre y apellido NO viajan dentro del perfil.
@@ -142,7 +118,7 @@ test('guardar entrega el perfil armado', async () => {
 
 test('puede abrir en un paso puntual con el borrador ya cargado', () => {
   render(<PerfilWizard pasoInicial={3} borradorInicial={desdePerfil(PERFIL_DEMO)} onGuardar={vi.fn()} />);
-  expect(screen.getByText('Paso 3 de 4')).toBeInTheDocument();
+  expect(screen.getByText('Paso 3 de 3')).toBeInTheDocument();
   // Localidad es un combobox custom (no un `<select>`): no tiene `.value`,
   // el valor elegido se muestra como texto dentro del botón.
   expect(screen.getByLabelText(/^Localidad/)).toHaveTextContent('Rosario');

@@ -89,10 +89,6 @@ const OPCIONES_SEXO = [
   { value: 'X', label: 'X' },
 ];
 
-const OPCIONES_OBRA_SOCIAL = [
-  { value: 'si', label: 'Sí' },
-  { value: 'no', label: 'No' },
-];
 
 const OPCIONES_RELACION = [
   { value: 'conyuge', label: 'Cónyuge' },
@@ -373,29 +369,8 @@ export function PerfilWizard({
           </>
         ) : null}
 
-        {paso === 4 ? (
-          <>
-            <Field label="¿Tenés obra social o prepaga?" htmlFor="perfil-tiene-os">
-              <Select
-                id="perfil-tiene-os"
-                opciones={OPCIONES_OBRA_SOCIAL}
-                placeholder="Elegí una opción"
-                value={borrador.tieneObraSocial}
-                onChange={(valor) => actualizar('tieneObraSocial', valor as BorradorPerfil['tieneObraSocial'])}
-              />
-            </Field>
-
-            {borrador.tieneObraSocial === 'si' ? (
-              <Field label="¿Cuál?" htmlFor="perfil-os">
-                <Input
-                  id="perfil-os"
-                  value={borrador.obraSocial}
-                  onChange={(evento) => actualizar('obraSocial', evento.target.value)}
-                />
-              </Field>
-            ) : null}
-          </>
-        ) : null}
+        {/* Paso 4 (obra social + tipo de contratación) removido: SF no
+            consume esos campos en Lead-Intake ni Sale-Intake. */}
 
         {esPasoFamiliar && familiarActual ? (
           <>

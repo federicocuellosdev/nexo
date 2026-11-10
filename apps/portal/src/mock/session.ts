@@ -24,6 +24,9 @@ export interface Domicilio {
 
 export type TipoDocumento = 'DNI' | 'Pasaporte';
 export type Sexo = 'F' | 'M' | 'X';
+/** Legacy: ya no se usa (el wizard no pregunta tipo de contratación porque
+ *  SF no lo contempla). Se exporta vacío por si algún archivo importado
+ *  todavía referencia el símbolo durante una transición. */
 export type TipoContratacion = 'beneficiario' | 'tomador' | 'tomador-beneficiario';
 
 export type RelacionBeneficiario = 'conyuge' | 'hijo' | 'padre' | 'madre' | 'otro';
@@ -46,10 +49,6 @@ export interface PerfilPrevinca {
   sexo: Sexo;
   fechaNacimiento: string;
   domicilio: Domicilio;
-  /** En debate: se pide, pero no bloquea el alta. */
-  tieneObraSocial: boolean;
-  obraSocial?: string;
-  tipoContratacion: TipoContratacion;
   /** Beneficiarios adicionales. Largo = sesion.familiares; se completan en el
    *  wizard junto con los datos del titular y forman parte del payload /sales
    *  que mandamos a SF. */
