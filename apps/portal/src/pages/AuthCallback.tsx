@@ -41,22 +41,43 @@ export function AuthCallback() {
           planTipoRaw === 'plan' || planTipoRaw === 'producto' ? planTipoRaw : undefined;
         const leadId = parametros.get('leadId') ?? undefined;
         const email = data.session.user.email ?? '';
+        const meta = data.session.user.user_metadata ?? {};
+        const nombreMeta = typeof meta.nombre === 'string' ? meta.nombre : '';
+        const apellidoMeta = typeof meta.apellido === 'string' ? meta.apellido : '';
+        const dniMeta = typeof meta.dni === 'string' ? meta.dni : undefined;
 
+        // Reglas de merge del usuario:
+        //   - Si no hay previo o cambio el email → armamos uno desde cero con
+        //     lo que venga en user_metadata.
+        //   - Si hay previo mismo email → lo conservamos pero "upgradeamos"
+        //     nombre/apellido cuando el previo los tiene vacios y el metadata
+        //     los trae con valor. Esto cierra el caso de la sesion vieja sin
+        //     nombre que no se hidrataba porque el `previo` ganaba por default.
         const previo = getSession().usuario;
-        const usuario =
-          previo !== undefined && previo.email === email
-            ? previo
-            : {
-                nombre: data.session.user.user_metadata?.nombre ?? '',
-                apellido: data.session.user.user_metadata?.apellido ?? '',
-                email,
-                telefono: '',
-              };
+        let usuario: ReturnType<typeof getSession>['usuario'];
+        if (previo !== undefined && previo.email === email) {
+          const nombreVacio = (previo.nombre ?? '').trim() === '';
+          const apellidoVacio = (previo.apellido ?? '').trim() === '';
+          usuario = {
+            ...previo,
+            ...(nombreVacio && nombreMeta ? { nombre: nombreMeta } : {}),
+            ...(apellidoVacio && apellidoMeta ? { apellido: apellidoMeta } : {}),
+          };
+        } else {
+          usuario = {
+            nombre: nombreMeta,
+            apellido: apellidoMeta,
+            email,
+            telefono: '',
+          };
+        }
 
+        const dniPrevio = getSession().dniLead;
         setSession({
           usuario,
           ...(planId && planTipo ? { intent: { tipo: planTipo, id: planId } } : {}),
           ...(leadId ? { leadId } : {}),
+          ...(dniPrevio === undefined && dniMeta ? { dniLead: dniMeta } : {}),
         });
         // Entrada por magic link: va a `/inicio` (home del portal), no a
         // `/bienvenida`. `/bienvenida` es el paso previo al checkout de MP
