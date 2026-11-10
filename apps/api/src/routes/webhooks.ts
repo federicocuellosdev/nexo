@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { config } from '../config.js';
 import { supabaseAdmin } from '../lib/supabase.js';
-import { maybeDispararSaleIntake } from '../sf/saleIntakeTrigger.js';
+import { dispararAltaDeBeneficiario, maybeDispararSaleIntake } from '../sf/saleIntakeTrigger.js';
 
 export const webhooksRouter = Router();
 
@@ -228,7 +228,42 @@ webhooksRouter.post('/webhooks/mercadopago', async (req, res) => {
       raw: body,
     });
 
-    if (leadRef) {
+    // Dos caminos:
+    //   (A) Tanda de beneficiarios: /beneficiarios setea `mp_preapproval_id`
+    //       en N filas con `es_beneficiario=true` ANTES de que llegue este
+    //       webhook. Si hay matches, actualizamos todas y disparamos el
+    //       alta-de-beneficiario por cada una.
+    //   (B) Primer pago del titular: todavía no hay filas con esa preapproval
+    //       en `v3.leads`. El `external_reference` trae el leadId del titular
+    //       → updateamos esa fila con el `mp_preapproval_id` y disparamos el
+    //       sale_intake clásico.
+    const { data: rowsExistentes } = await supabaseAdmin
+      .schema('v3')
+      .from('leads')
+      .select('id, es_beneficiario')
+      .eq('mp_preapproval_id', pa.id);
+
+    if (rowsExistentes && rowsExistentes.length > 0) {
+      // (A) Tanda ya registrada. Update masivo del status + sale por fila.
+      await supabaseAdmin
+        .schema('v3')
+        .from('leads')
+        .update({
+          mp_status: pa.status,
+          mp_updated_at: new Date().toISOString(),
+        })
+        .eq('mp_preapproval_id', pa.id);
+      if (pa.status === 'authorized') {
+        for (const r of rowsExistentes as Array<{ id: string; es_beneficiario: boolean }>) {
+          if (r.es_beneficiario) {
+            await dispararAltaDeBeneficiario(r.id);
+          } else {
+            await maybeDispararSaleIntake(r.id);
+          }
+        }
+      }
+    } else if (leadRef) {
+      // (B) Primer pago del titular. Set preapproval + status y disparar.
       const { error } = await supabaseAdmin
         .schema('v3')
         .from('leads')
@@ -239,10 +274,6 @@ webhooksRouter.post('/webhooks/mercadopago', async (req, res) => {
         })
         .eq('id', leadRef);
       if (error) console.warn('[mp-webhook] no se pudo actualizar v3.leads', error);
-
-      // Pago autorizado + perfil completo → disparar sale_intake.
-      // La guarda `sale_sent_at is null` previene re-disparar en cada
-      // webhook subsiguiente (MP reenvía "updated" para la misma preapproval).
       if (pa.status === 'authorized') {
         await maybeDispararSaleIntake(leadRef);
       }

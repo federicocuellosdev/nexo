@@ -210,3 +210,187 @@ export async function maybeDispararSaleIntake(leadId: string): Promise<void> {
       .eq('id', leadId);
   }
 }
+
+/**
+ * Dispara sale_intake para un BENEFICIARIO (adherente agregado desde
+ * /familiares después del alta del titular). Hoy el contrato de SF no expone
+ * "alta de Beneficiario" (I-6 pendiente de Nespon), así que el workaround
+ * viable con los YAMLs entregados es tratar a cada adherente como SU PROPIA
+ * Account: policyholder = beneficiario, beneficiaries=[], own Lead + own Sale.
+ * La relación familiar vive solo en nuestra `v3.leads.titular_lead_id`.
+ *
+ * Idempotente por `sale_sent_at` del propio beneficiario (no del titular).
+ * Hereda address + telefono del titular porque no los pedimos en el wizard
+ * del adherente; email también usa el del titular (es el único que tenemos).
+ */
+interface BeneficiarioRowConPerfil {
+  id: string;
+  nombre: string;
+  apellido: string;
+  email: string;
+  dni: string;
+  mp_preapproval_id?: string | null;
+  mp_status?: string | null;
+  sf_lead_id?: string | null;
+  sale_sent_at?: string | null;
+  titular_lead_id?: string | null;
+  perfil?: {
+    tipoDocumento?: 'DNI' | 'Pasaporte';
+    numeroDocumento?: string;
+    sexo?: 'F' | 'M' | 'X';
+    fechaNacimiento?: string;
+    relacion?: 'conyuge' | 'hijo' | 'padre' | 'madre' | 'otro';
+  } | null;
+}
+
+interface TitularPerfilRow {
+  telefono?: string | null;
+  perfil?: {
+    domicilio?: {
+      calle?: string;
+      numero?: string;
+      piso?: string;
+      departamento?: string;
+      torre?: string;
+      localidad?: string;
+      provincia?: string;
+      cp?: string;
+      pais?: string;
+    };
+  } | null;
+}
+
+export async function dispararAltaDeBeneficiario(beneficiarioLeadId: string): Promise<void> {
+  const { data, error } = await supabaseAdmin
+    .schema('v3')
+    .from('leads')
+    .select(
+      'id, nombre, apellido, email, dni, mp_preapproval_id, mp_status, sf_lead_id, sale_sent_at, titular_lead_id, perfil',
+    )
+    .eq('id', beneficiarioLeadId)
+    .eq('es_beneficiario', true)
+    .maybeSingle();
+
+  if (error || !data) {
+    console.warn('[alta-beneficiario] row no encontrada', beneficiarioLeadId, error);
+    return;
+  }
+  const row = data as unknown as BeneficiarioRowConPerfil;
+
+  if (row.sale_sent_at) {
+    console.log('[alta-beneficiario] ya disparado antes, skip', { id: beneficiarioLeadId });
+    return;
+  }
+  if (row.mp_status !== 'authorized') {
+    console.log('[alta-beneficiario] mp_status != authorized, se dispara cuando pague', {
+      id: beneficiarioLeadId,
+    });
+    return;
+  }
+  const perfilBen = row.perfil;
+  if (!perfilBen || !perfilBen.sexo || !perfilBen.fechaNacimiento || !perfilBen.tipoDocumento) {
+    console.warn('[alta-beneficiario] perfil del beneficiario incompleto', beneficiarioLeadId);
+    return;
+  }
+  if (!row.titular_lead_id) {
+    console.warn('[alta-beneficiario] beneficiario sin titular_lead_id', beneficiarioLeadId);
+    return;
+  }
+
+  // Heredamos address + telefono del titular (al beneficiario nunca se los
+  // preguntamos en el wizard). Si el titular todavía no completó su perfil,
+  // no podemos seguir: el schema Sale-Intake exige address en el policyholder.
+  const { data: titRow } = await supabaseAdmin
+    .schema('v3')
+    .from('leads')
+    .select('telefono, perfil')
+    .eq('id', row.titular_lead_id)
+    .maybeSingle();
+  const titular = (titRow ?? {}) as TitularPerfilRow;
+  const dom = titular.perfil?.domicilio;
+  if (!dom?.calle || !dom.numero || !dom.localidad || !dom.cp) {
+    console.warn('[alta-beneficiario] titular sin domicilio completo, skip', {
+      beneficiarioLeadId,
+      titularId: row.titular_lead_id,
+    });
+    return;
+  }
+
+  // paymentReference: primer pago approved de la preapproval del beneficiario.
+  let paymentReference: string | null = null;
+  if (row.mp_preapproval_id) {
+    const { data: pagoRows } = await supabaseAdmin
+      .schema('v3')
+      .from('pagos')
+      .select('mp_payment_id, status, created_at')
+      .eq('mp_preapproval_id', row.mp_preapproval_id)
+      .not('mp_payment_id', 'is', null)
+      .in('status', ['approved', 'authorized'])
+      .order('created_at', { ascending: false })
+      .limit(1);
+    const first = pagoRows?.[0] as { mp_payment_id?: string | null } | undefined;
+    if (first?.mp_payment_id) paymentReference = String(first.mp_payment_id);
+  }
+
+  const street = `${dom.calle} ${dom.numero}`.trim();
+  const piso = dom.piso?.trim() ?? '';
+  const depto = dom.departamento?.trim() ?? '';
+  const torre = dom.torre?.trim() ?? '';
+
+  // offerCode: para alta de adherentes usamos el mismo XTEFO que el titular
+  // (monto $15.000 c/u). Si en el futuro hay un offerCode específico para
+  // adherente, agregarlo al mapping.
+  const sale: SaleParaSf = {
+    leadId: row.id,
+    sfLeadId: row.sf_lead_id ?? null,
+    policyholder: {
+      firstName: row.nombre,
+      lastName: row.apellido,
+      email: row.email, // email del titular (único que tenemos)
+      documentType: perfilBen.tipoDocumento,
+      documentNumber: perfilBen.numeroDocumento ?? row.dni,
+      sex: perfilBen.sexo,
+      birthdate: perfilBen.fechaNacimiento,
+      mobilePhone: titular.telefono ?? undefined,
+      address: {
+        street,
+        ...(piso ? { floor: piso } : {}),
+        ...(depto ? { apartment: depto } : {}),
+        ...(torre ? { tower: torre } : {}),
+        city: dom.localidad,
+        state: dom.provincia ?? 'Santa Fe',
+        postalCode: dom.cp,
+        country: dom.pais ?? 'Argentina',
+      },
+    },
+    beneficiaries: [],
+    offerCode: resolveOfferCode('nexo-2'),
+    paymentReference,
+  };
+
+  const result = await sendSaleIntake(sale);
+
+  await registrarSaleIntake({
+    leadId: beneficiarioLeadId,
+    messageId: result.messageId,
+    payload: result.payload,
+    httpStatus: result.status,
+    status: result.ok ? 'success' : 'failed',
+    response: result.response,
+    errorCode: result.errorCode ?? null,
+    sfAccountId: result.response?.accountId ?? null,
+    sfOrderId: result.response?.orderId ?? null,
+  });
+
+  if (result.ok) {
+    await supabaseAdmin
+      .schema('v3')
+      .from('leads')
+      .update({
+        sale_sent_at: new Date().toISOString(),
+        sf_account_id: result.response?.accountId ?? null,
+        sf_order_id: result.response?.orderId ?? null,
+      })
+      .eq('id', beneficiarioLeadId);
+  }
+}

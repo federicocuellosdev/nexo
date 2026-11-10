@@ -541,16 +541,61 @@ leadsRouter.post('/leads/:id/beneficiarios', async (req, res) => {
     .schema('v3')
     .from('leads')
     .insert(filas)
-    .select('id');
+    .select('id, nombre, apellido, dni');
 
   if (errorInsert || !insertados) {
     console.error('[POST /leads/:id/beneficiarios] db insert error', errorInsert);
     return res.status(500).json({ ok: false, error: 'db_insert_error' });
   }
 
+  // Para CADA beneficiario: creamos su propio Prospecto en SF. SF no soporta
+  // "agregar beneficiario a una cuenta existente" en v1/v2 del contrato (I-6
+  // está sin entregar por Nespon), así que la vía viable con los contratos
+  // actuales es tratar a cada adherente como su propia Account. El Lead-Intake
+  // de este paso lo guarda; el /sales lo dispara después el webhook de MP
+  // cuando la preapproval queda `authorized`.
+  //
+  // Sin email ni teléfono en este POST: el schema Person no los requiere y
+  // los adherentes no tienen cuenta MP ni email propio en el modelo. Birthdate
+  // del wizard viaja para que SF pueda cargar la edad.
+  const beneficiariosConSf: Array<{ id: string; sfLeadId: string | null }> = [];
+  for (let i = 0; i < insertados.length; i++) {
+    const row = insertados[i];
+    const datos = beneficiarios[i];
+    if (!row || !datos) continue; // defensive: insertados.length === beneficiarios.length por invariante
+    const sfResult = await sendLeadIntake({
+      id: row.id,
+      firstName: row.nombre,
+      lastName: row.apellido,
+      email: titular.email, // email del titular — es el único que tenemos
+      documentNumber: row.dni,
+      birthdate: datos.fechaNacimiento,
+    });
+    await registrarSfSync({
+      leadId: row.id,
+      operation: 'lead_intake',
+      endpoint: '/leads',
+      messageId: sfResult.payload.messageId,
+      payload: sfResult.payload,
+      httpStatus: sfResult.status,
+      status: sfResult.ok ? 'success' : 'failed',
+      response: sfResult.response,
+      errorCode: sfResult.error ?? null,
+      sfLeadId: sfResult.sfLeadId,
+    });
+    if (sfResult.sfLeadId) {
+      await supabaseAdmin
+        .schema('v3')
+        .from('leads')
+        .update({ sf_lead_id: sfResult.sfLeadId, sf_sent_at: new Date().toISOString() })
+        .eq('id', row.id);
+    }
+    beneficiariosConSf.push({ id: row.id, sfLeadId: sfResult.sfLeadId });
+  }
+
   return res.status(201).json({
     ok: true,
     titularLeadId: titularId,
-    beneficiarios: insertados.map((r) => r.id),
+    beneficiarios: beneficiariosConSf,
   });
 });
