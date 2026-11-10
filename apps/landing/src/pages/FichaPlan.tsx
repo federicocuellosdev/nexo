@@ -1,8 +1,7 @@
 import { Link, useNavigate, useParams } from 'react-router';
 import { SearchX } from 'lucide-react';
-import { buscarPlan, PLANES } from '@/mock/planes';
+import { buscarPlan } from '@/mock/planes';
 import { PlanPrestaciones } from '@/features/planes/PlanPrestaciones';
-import { PlanComparador } from '@/features/planes/PlanComparador';
 import { Money } from '@/ui/Money';
 import { Button, clasesBoton } from '@/ui/Button';
 import { EmptyState } from '@/ui/EmptyState';
@@ -11,8 +10,6 @@ import { Revelar } from '@/ui/Revelar';
 import { EncabezadoSeccion } from '@/ui/EncabezadoSeccion';
 import type { PlanSlug } from '@/mock/planes';
 import heroNexo1 from '@/assets/hero-woman-3.webp';
-import heroNexo2 from '@/assets/hero-woman-2.webp';
-import heroNexo3 from '@/assets/banner-comunidad-2.webp';
 
 /**
  * Foto de portada por plan. Vive acá y NO en `mock/planes.ts` a propósito: ese
@@ -26,8 +23,6 @@ import heroNexo3 from '@/assets/banner-comunidad-2.webp';
  */
 const PORTADA: Record<PlanSlug, { src: string; alt: string }> = {
   'nexo-1': { src: heroNexo1, alt: 'Una pareja corriendo al aire libre entre jacarandás en flor' },
-  'nexo-2': { src: heroNexo2, alt: 'Un grupo de amigos sentados en el pasto de un parque, riéndose' },
-  'nexo-3': { src: heroNexo3, alt: 'Un grupo de amigos en un living, mirando juntos la pantalla de un celular' },
 };
 
 export function FichaPlan() {
@@ -52,7 +47,6 @@ export function FichaPlan() {
     );
   }
 
-  const otros = PLANES.filter((otro) => otro.slug !== plan.slug);
   const portada = PORTADA[plan.slug];
 
   return (
@@ -103,15 +97,6 @@ export function FichaPlan() {
           </Revelar>
           <Revelar className="mt-6 rounded-card bg-white px-4 shadow-card ring-1 ring-ink-100">
             <PlanPrestaciones prestaciones={plan.prestaciones} />
-          </Revelar>
-        </section>
-
-        <section aria-label="Comparación con los otros planes" className="mt-20">
-          <Revelar>
-            <EncabezadoSeccion titulo="Comparado con los otros planes" tamano="medio" />
-          </Revelar>
-          <Revelar className="mt-6">
-            <PlanComparador actual={plan} otros={otros} />
           </Revelar>
         </section>
 

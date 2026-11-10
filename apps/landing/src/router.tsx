@@ -5,7 +5,6 @@ import { Home } from '@/pages/Home';
 import { Catalogo } from '@/pages/Catalogo';
 import { Contratar } from '@/pages/Contratar';
 import { FichaPlan } from '@/pages/FichaPlan';
-import { FichaProducto } from '@/pages/FichaProducto';
 import { RevisaTuMail } from '@/pages/RevisaTuMail';
 import { Terminos } from '@/pages/Terminos';
 import { NoEncontrada } from '@/pages/NoEncontrada';
@@ -22,7 +21,6 @@ export const rutas: RouteObject[] = [
       { index: true, element: <Home /> },
       { path: 'catalogo', element: <Catalogo /> },
       { path: 'planes/:slug', element: <FichaPlan /> },
-      { path: 'productos/:id', element: <FichaProducto /> },
       { path: 'contratar/:tipo/:id', element: <Contratar /> },
       { path: 'revisa-tu-mail', element: <RevisaTuMail /> },
       { path: 'terminos', element: <Terminos /> },
