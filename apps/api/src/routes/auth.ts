@@ -83,7 +83,7 @@ authRouter.post('/auth/magic-link', async (req, res) => {
   const { data: leads, error: errorLeads } = await supabaseAdmin
     .schema('v3')
     .from('leads')
-    .select('id, item_tipo, item_id, nombre, apellido, dni')
+    .select('id, item_tipo, item_id, nombre, apellido, dni, telefono')
     .eq('email', email)
     .order('created_at', { ascending: false })
     .limit(1);
@@ -122,6 +122,7 @@ authRouter.post('/auth/magic-link', async (req, res) => {
               nombre: ultimoLead.nombre,
               apellido: ultimoLead.apellido,
               dni: ultimoLead.dni,
+              ...(ultimoLead.telefono ? { telefono: ultimoLead.telefono } : {}),
             },
           }
         : {}),
@@ -140,6 +141,25 @@ authRouter.post('/auth/magic-link', async (req, res) => {
   }
 
   const magicLink = linkData.properties.action_link;
+
+  // Upsert explicito del user_metadata para users existentes (ver comentario
+  // equivalente en /leads). generateLink({ data }) solo setea en users nuevos;
+  // updateUserById merge-ea sobre lo existente para que /auth/callback siempre
+  // reciba el metadata fresco.
+  const userIdAuth = linkData.user?.id;
+  if (userIdAuth && ultimoLead) {
+    const { error: errorMeta } = await supabaseAdmin.auth.admin.updateUserById(userIdAuth, {
+      user_metadata: {
+        nombre: ultimoLead.nombre,
+        apellido: ultimoLead.apellido,
+        dni: ultimoLead.dni,
+        ...(ultimoLead.telefono ? { telefono: ultimoLead.telefono } : {}),
+      },
+    });
+    if (errorMeta) {
+      console.warn('[POST /auth/magic-link] no se pudo upsertar user_metadata', errorMeta);
+    }
+  }
 
   try {
     await emailClient.enviar({

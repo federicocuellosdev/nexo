@@ -20,6 +20,11 @@ const PayloadLead = z.object({
   nombre: z.string().min(2),
   apellido: z.string().min(2),
   email: z.string().email(),
+  // Teléfono: 8-15 dígitos. Lo pedimos ya en el alta de la landing para
+  // propagarlo como user_metadata.telefono y tenerlo listo en el perfil
+  // sin pedírselo de nuevo. Opcional para no romper clientes viejos que
+  // no mandaban el campo — hasta que el frontend migre a v2 del payload.
+  telefono: z.string().regex(/^\d{8,15}$/).optional(),
   dni: z.string().regex(/^\d{7,8}$/),
 });
 
@@ -50,6 +55,7 @@ leadsRouter.post('/leads', async (req, res) => {
       apellido: datos.apellido,
       email: datos.email.toLowerCase(),
       dni: datos.dni,
+      ...(datos.telefono ? { telefono: datos.telefono } : {}),
     })
     .select('id')
     .single();
@@ -104,6 +110,7 @@ leadsRouter.post('/leads', async (req, res) => {
         nombre: datos.nombre,
         apellido: datos.apellido,
         dni: datos.dni,
+        ...(datos.telefono ? { telefono: datos.telefono } : {}),
       },
       // En staging/prod el portal vive como subpath `/app` del dominio único
       // nexo-front (landing + portal sirviéndose juntos). En dev local, el
@@ -134,6 +141,26 @@ leadsRouter.post('/leads', async (req, res) => {
   }
 
   const magicLink = linkData.properties.action_link;
+
+  // Upsert explicito del user_metadata: `generateLink({ data })` solo lo
+  // setea cuando crea un user nuevo. Para users existentes (re-altas, re-
+  // logins) el `data` se ignora. updateUserById merge-ea sobre lo que ya
+  // esta y asi el portal siempre lee nombre/apellido/dni/telefono frescos
+  // desde user_metadata post-login, sin consultar v3.leads.
+  const userId = linkData.user?.id;
+  if (userId) {
+    const { error: errorMeta } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+      user_metadata: {
+        nombre: datos.nombre,
+        apellido: datos.apellido,
+        dni: datos.dni,
+        ...(datos.telefono ? { telefono: datos.telefono } : {}),
+      },
+    });
+    if (errorMeta) {
+      console.warn('[POST /leads] no se pudo upsertar user_metadata', errorMeta);
+    }
+  }
 
   // 4. Mandamos el email con la plantilla propia (no el default de Supabase)
   //    para controlar branding + contenido.
