@@ -163,9 +163,10 @@ export function AdminNegocio() {
       ) : null}
 
       {/* Buscador + rango temporal en la misma fila. En viewport angosto
-          los filtros bajan a su propia línea con wrap. */}
+          los filtros bajan a su propia línea con wrap. El search tiene
+          max-width para no inflarse y empujar los filtros. */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="relative min-w-[240px] flex-1">
+        <div className="relative min-w-[240px] max-w-xs flex-1">
           <Search
             size={16}
             aria-hidden="true"
