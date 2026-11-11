@@ -67,9 +67,9 @@ export function PlanPrestaciones({ prestaciones, compacto = false }: PlanPrestac
           <div className="min-w-0 flex-1">
             <span
               className={cn(
-                'block',
+                'block font-semibold',
                 compacto ? 'text-sm' : 'text-base',
-                prestacion.estado === 'no-incluido' ? 'text-ink-400 line-through' : 'text-ink-900',
+                prestacion.estado === 'no-incluido' ? 'text-ink-400 line-through' : 'text-ink-800',
               )}
             >
               {prestacion.label}

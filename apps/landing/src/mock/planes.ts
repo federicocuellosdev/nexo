@@ -58,8 +58,16 @@ export const PLANES: Plan[] = [
     prestaciones: [
       { label: 'Médico Clínico', estado: 'coseguro', detalle: '1° Consulta sin cargo' },
       { label: 'Psicología', estado: 'coseguro', detalle: '1° Sesión a $15.000' },
-      { label: 'Emergencias médicas', estado: 'incluido' },
-      { label: 'Guardia odontológica', estado: 'incluido' },
+      {
+        label: 'Emergencias médicas',
+        estado: 'incluido',
+        detalle: 'Asistencia inmediata ante situaciones de emergencia',
+      },
+      {
+        label: 'Guardia odontológica',
+        estado: 'incluido',
+        detalle: 'Atención ante dolores agudos y urgencias',
+      },
       { label: 'Descuentos en farmacias', estado: 'incluido', detalle: 'Hasta 50% off en farmacias adheridas' },
     ],
   },
