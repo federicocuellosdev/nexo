@@ -485,6 +485,34 @@ export function esAfiliado(lead: LeadResumenAdmin): boolean {
 }
 
 /**
+ * Transacciones MP del titular. Las devuelve ordenadas desde la más reciente,
+ * leyendo v3.pagos vía backend admin.
+ */
+export interface PagoMp {
+  id: string;
+  mp_payment_id: string | null;
+  mp_preapproval_id: string | null;
+  payer_email: string | null;
+  monto: number | null;
+  moneda: string | null;
+  status: string | null;
+  external_reference: string | null;
+  received_at: string;
+}
+
+export async function obtenerPagosLead(accessToken: string, leadId: string): Promise<PagoMp[]> {
+  const respuesta = await fetch(`${API_URL}/api/admin/leads/${leadId}/pagos`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!respuesta.ok) {
+    const cuerpo = (await respuesta.json().catch(() => ({ ok: false, error: 'network' }))) as ErrorApi;
+    throw new ApiError(cuerpo, respuesta.status);
+  }
+  const data = (await respuesta.json()) as { ok: true; pagos: PagoMp[] };
+  return data.pagos;
+}
+
+/**
  * Setea el flag `cobertura_pausada` del titular. Hoy el backend sólo marca
  * la fila — no corta el cobro en MP ni avisa a SF. El switch de la ficha
  * usa esto como registro de intención del admin.

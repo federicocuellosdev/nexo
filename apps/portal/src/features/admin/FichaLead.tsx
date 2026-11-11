@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Receipt } from 'lucide-react';
 import { Chip } from '@/ui/Chip';
 import { Skeleton } from '@/ui/Skeleton';
 import { Button } from '@/ui/Button';
 import { Card } from '@/ui/Card';
+import { Dialog } from '@/ui/Dialog';
 import { supabase } from '@/lib/supabase';
-import { obtenerLeadDetalle, actualizarCoberturaPausada } from '@/lib/api';
+import { obtenerLeadDetalle, actualizarCoberturaPausada, obtenerPagosLead, type PagoMp } from '@/lib/api';
 
 /**
  * Mapeo slug local → offerCode SF. Hoy los tres slugs resuelven al mismo
@@ -104,7 +105,7 @@ export function FichaLead({ leadId, nombre, descripcion, onVolver }: FichaLeadPr
       ) : lead ? (
         <div className="grid gap-6 lg:grid-cols-[320px_1fr] lg:items-start">
           <TarjetaIdentidad lead={lead} fallbackNombre={nombre} fallbackEmail={descripcion} />
-          <ColumnaDatos lead={lead} beneficiarios={beneficiarios} vendedor={vendedor} />
+          <ColumnaDatos leadId={leadId} lead={lead} beneficiarios={beneficiarios} vendedor={vendedor} />
         </div>
       ) : null}
     </div>
@@ -224,12 +225,41 @@ function FilaResumen({ etiqueta, valor }: { etiqueta: string; valor: string }) {
 // ───────────────────────────── Columna derecha ─────────────────────────────
 
 interface ColumnaDatosProps {
+  leadId: string;
   lead: Record<string, unknown>;
   beneficiarios: Array<Record<string, unknown>>;
   vendedor: Record<string, unknown> | null;
 }
 
-function ColumnaDatos({ lead, beneficiarios, vendedor }: ColumnaDatosProps) {
+function ColumnaDatos({ leadId, lead, beneficiarios, vendedor }: ColumnaDatosProps) {
+  const [pagos, setPagos] = useState<PagoMp[] | null>(null);
+  const [cargandoPagos, setCargandoPagos] = useState(true);
+  const [verTransacciones, setVerTransacciones] = useState(false);
+
+  useEffect(() => {
+    let cancelado = false;
+    void (async () => {
+      try {
+        if (!supabase) return;
+        const { data } = await supabase.auth.getSession();
+        const token = data.session?.access_token;
+        if (!token) return;
+        const lista = await obtenerPagosLead(token, leadId);
+        if (!cancelado) setPagos(lista);
+      } catch (err) {
+        console.warn('[ColumnaDatos] pagos error', err);
+        if (!cancelado) setPagos([]);
+      } finally {
+        if (!cancelado) setCargandoPagos(false);
+      }
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, [leadId]);
+
+  const ultimaTx = pagos && pagos.length > 0 ? pagos[0] : null;
+  const primeraTx = pagos && pagos.length > 0 ? pagos[pagos.length - 1] : null;
   const perfil = lead.perfil && typeof lead.perfil === 'object' ? (lead.perfil as Record<string, unknown>) : null;
   const domicilio =
     perfil?.domicilio && typeof perfil.domicilio === 'object'
@@ -267,19 +297,39 @@ function ColumnaDatos({ lead, beneficiarios, vendedor }: ColumnaDatosProps) {
 
       <Seccion titulo="MercadoPago">
         <Dato
-          etiqueta="Estado"
-          valor={
-            <Chip tono={lead.mp_status === 'authorized' ? 'ok' : 'warn'}>
-              {formatearValor(lead.mp_status)}
-            </Chip>
-          }
+          etiqueta="Fecha de suscripción"
+          valor={cargandoPagos ? '…' : formatearFecha(primeraTx?.received_at)}
         />
-        <Dato etiqueta="Actualizado" valor={formatearFecha(lead.mp_updated_at)} />
+        <Dato
+          etiqueta="Última transacción"
+          valor={cargandoPagos ? '…' : formatearFecha(ultimaTx?.received_at)}
+        />
         <Dato
           etiqueta="ID de suscripción"
           valor={<span className="font-mono text-xs">{formatearValor(lead.mp_preapproval_id)}</span>}
           ancho="completo"
         />
+        <Dato
+          etiqueta="ID última transacción"
+          valor={
+            cargandoPagos ? (
+              '…'
+            ) : (
+              <span className="font-mono text-xs">{formatearValor(ultimaTx?.mp_payment_id ?? ultimaTx?.id)}</span>
+            )
+          }
+          ancho="completo"
+        />
+        <div className="pt-2 sm:col-span-2">
+          <button
+            type="button"
+            onClick={() => setVerTransacciones(true)}
+            className="inline-flex cursor-pointer items-center gap-2 rounded-pill bg-marca-50 px-4 py-2 text-sm font-medium text-marca-700 transition-colors hover:bg-marca-100"
+          >
+            <Receipt size={14} aria-hidden="true" />
+            Ver transacciones {pagos ? `(${pagos.length})` : ''}
+          </button>
+        </div>
       </Seccion>
 
       {domicilio ? (
@@ -359,7 +409,83 @@ function ColumnaDatos({ lead, beneficiarios, vendedor }: ColumnaDatosProps) {
       </Seccion>
 
       {familiaresCount > 0 ? <SeccionFamiliares beneficiarios={beneficiarios} /> : null}
+
+      {verTransacciones ? (
+        <DialogoTransacciones
+          pagos={pagos ?? []}
+          cargando={cargandoPagos}
+          onCerrar={() => setVerTransacciones(false)}
+        />
+      ) : null}
     </div>
+  );
+}
+
+// ───────────────────────────── Dialog transacciones ─────────────────────────────
+
+function DialogoTransacciones({
+  pagos,
+  cargando,
+  onCerrar,
+}: {
+  pagos: PagoMp[];
+  cargando: boolean;
+  onCerrar: () => void;
+}) {
+  const totalMonto = pagos.reduce((acc, p) => acc + (p.monto ?? 0), 0);
+
+  return (
+    <Dialog
+      abierto
+      onCambio={(abierto) => {
+        if (!abierto) onCerrar();
+      }}
+      titulo="Transacciones MercadoPago"
+      descripcion={`${pagos.length} ${pagos.length === 1 ? 'pago registrado' : 'pagos registrados'} · Total ${totalMonto.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 })}`}
+    >
+      {cargando ? (
+        <p className="py-6 text-center text-sm text-ink-500">Cargando…</p>
+      ) : pagos.length === 0 ? (
+        <p className="py-6 text-center text-sm text-ink-500">Sin transacciones registradas.</p>
+      ) : (
+        <div className="-mx-6 max-h-[60vh] overflow-auto">
+          <table className="min-w-full text-left text-sm">
+            <thead className="sticky top-0 border-y border-ink-100 bg-white text-xs font-medium uppercase tracking-wide text-ink-500">
+              <tr>
+                <th className="px-6 py-2">Fecha</th>
+                <th className="px-6 py-2">ID pago</th>
+                <th className="px-6 py-2">Monto</th>
+                <th className="px-6 py-2">Estado</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-ink-100">
+              {pagos.map((p) => (
+                <tr key={p.id}>
+                  <td className="whitespace-nowrap px-6 py-3 text-ink-800">{formatearFecha(p.received_at)}</td>
+                  <td className="px-6 py-3 font-mono text-xs text-ink-700">
+                    {p.mp_payment_id ?? <span className="text-ink-400">— {p.id.slice(0, 8)}</span>}
+                  </td>
+                  <td className="whitespace-nowrap px-6 py-3 text-ink-900">
+                    {p.monto !== null
+                      ? (p.monto).toLocaleString('es-AR', {
+                          style: 'currency',
+                          currency: p.moneda ?? 'ARS',
+                          maximumFractionDigits: 0,
+                        })
+                      : '—'}
+                  </td>
+                  <td className="whitespace-nowrap px-6 py-3">
+                    <Chip tono={p.status === 'authorized' || p.status === 'approved' ? 'ok' : 'warn'}>
+                      {p.status ?? '—'}
+                    </Chip>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Dialog>
   );
 }
 
