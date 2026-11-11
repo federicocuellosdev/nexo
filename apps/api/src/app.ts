@@ -6,6 +6,7 @@ import { authRouter } from './routes/auth.js';
 import { subscriptionsRouter } from './routes/subscriptions.js';
 import { webhooksRouter } from './routes/webhooks.js';
 import { referidosRouter } from './routes/referidos.js';
+import { adminRouter } from './routes/admin.js';
 
 /**
  * Crea la app Express. Se extrajo de `index.ts` para que la misma app sea
@@ -40,6 +41,7 @@ export function crearApp(): Express {
   app.use('/api', subscriptionsRouter);
   app.use('/api', webhooksRouter);
   app.use('/api', referidosRouter);
+  app.use('/api', adminRouter);
 
   return app;
 }
