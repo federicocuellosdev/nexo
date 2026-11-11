@@ -87,9 +87,8 @@ export function AdminVendedores() {
             Partners del programa de ventas. Cada uno tiene una URL para atribuirse las ventas que genere.
           </p>
         </div>
-        <Button onClick={() => setAgregando(true)}>
-          <Plus size={16} aria-hidden="true" />
-          Agregar
+        <Button onClick={() => setAgregando(true)} aria-label="Agregar vendedor" className="!px-3">
+          <Plus size={18} aria-hidden="true" />
         </Button>
       </div>
 
