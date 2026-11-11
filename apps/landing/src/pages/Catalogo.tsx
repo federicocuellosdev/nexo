@@ -24,6 +24,11 @@ export function Catalogo() {
         </p>
       </Revelar>
 
+      {/* Divisor tenue que cierra el bloque de encabezado y separa la
+          introducción de la card del plan. Alcanza el ancho completo del
+          contenedor para que haga de "fin del header". */}
+      <hr className="mt-10 border-0 border-t border-ink-200" aria-hidden="true" />
+
       {/* Card única: cap en 520px para que no se estire al ancho del main
           cuando hay un solo plan. Centrada con mx-auto. */}
       <div className="mt-12 flex justify-center">
