@@ -1,35 +1,49 @@
 import { useNavigate } from 'react-router';
-import { ShieldCheck, LayoutDashboard } from 'lucide-react';
-import { useSession } from '@/mock/session';
+import { ShieldCheck, LayoutDashboard, Home } from 'lucide-react';
 import { LogoNexo, ETIQUETA_MARCA } from '@/ui/LogoNexo';
+import { clasesBoton } from '@/ui/Button';
 
 /**
  * Selector de vista cliente/admin. Solo entra acá quien en /me/roles vino
- * con `['cliente', 'admin']`. Si tenía un solo rol, AuthCallback lo mandó
- * directo. La elección NO se persiste: el admin puede volver a esta pantalla
- * en cualquier momento con /elegir-vista para cambiar de modo.
+ * con `['cliente', 'admin']`. La elección NO se persiste: el admin puede
+ * volver a esta pantalla desde el sidebar admin con "Cambiar de vista".
+ *
+ * Header propio con logo + CTA a /inicio: /elegir-vista vive FUERA de
+ * PortalLayout, así que no hereda la sidebar. El CTA a Inicio da salida
+ * rápida sin forzar elegir una vista si alguien entró de curioso.
  */
 export function ElegirVista() {
   const navegar = useNavigate();
-  const sesion = useSession();
-  const nombre = sesion.usuario?.nombre?.trim() ?? '';
 
   return (
     <div data-entrada className="flex min-h-dvh flex-col bg-app">
       <header className="border-b border-ink-200 bg-white">
         <div className="mx-auto flex h-14 max-w-[1200px] items-center justify-between gap-3 px-4 lg:h-16 lg:px-8">
-          <span aria-label={ETIQUETA_MARCA} className="inline-flex items-center">
+          <button
+            type="button"
+            onClick={() => navegar('/inicio')}
+            aria-label={ETIQUETA_MARCA}
+            className="inline-flex items-center"
+          >
             <LogoNexo alto={22} etiqueta={null} />
-          </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => navegar('/inicio')}
+            className={clasesBoton({ variante: 'secundario', tamano: 'sm' })}
+          >
+            <Home size={16} aria-hidden="true" />
+            Ir a inicio
+          </button>
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-[960px] px-4 py-16 lg:px-8 lg:py-24">
+      <main className="mx-auto w-full max-w-[960px] flex-1 px-4 py-16 lg:px-8 lg:py-24">
         <div className="text-center">
-          <h1 className="font-display text-3xl text-ink-950 italic lg:text-4xl">
-            {nombre ? `Hola, ${nombre}` : 'Hola'}
-          </h1>
-          <p className="mt-3 text-base text-ink-600">Elegí con qué vista querés entrar.</p>
+          <h1 className="font-display text-3xl text-ink-950 italic lg:text-4xl">¿Qué vista?</h1>
+          <p className="mt-3 text-base text-ink-600">
+            Seleccioná la vista con la que querés entrar al portal.
+          </p>
         </div>
 
         <div className="mt-12 grid gap-4 sm:grid-cols-2">
