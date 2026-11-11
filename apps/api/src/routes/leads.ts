@@ -37,6 +37,19 @@ const PayloadLead = z.object({
   // opcionales — se persisten como-son en v3.leads para la ficha admin.
   canal: z.string().min(1).optional(),
   vendedorId: z.string().uuid().optional(),
+  // Marketing attribution. Se capturan del URL de la landing (utm_*) y del
+  // referrer del browser. Son `.optional()` para no romper callers que no los
+  // mandan (ej. /onboarding manual). Cada campo es libre porque los valores
+  // vienen del ad platform — no hay enum chico que valide.
+  utmSource: z.string().max(200).optional(),
+  utmMedium: z.string().max(200).optional(),
+  utmCampaign: z.string().max(200).optional(),
+  utmTerm: z.string().max(200).optional(),
+  utmContent: z.string().max(200).optional(),
+  fbclid: z.string().max(500).optional(),
+  gclid: z.string().max(500).optional(),
+  referer: z.string().max(500).optional(),
+  landingUrl: z.string().max(500).optional(),
 });
 
 type PayloadLead = z.infer<typeof PayloadLead>;
@@ -74,6 +87,18 @@ leadsRouter.post('/leads', async (req, res) => {
       // Trazabilidad opcional.
       ...(datos.canal ? { canal: datos.canal } : {}),
       ...(datos.vendedorId ? { vendedor_id: datos.vendedorId } : {}),
+      // Marketing attribution. Guardo cada campo solo si vino, para que la
+      // columna siga en NULL en casos sin data (evitamos la ambigüedad entre
+      // "no se capturó" y "string vacío").
+      ...(datos.utmSource ? { utm_source: datos.utmSource } : {}),
+      ...(datos.utmMedium ? { utm_medium: datos.utmMedium } : {}),
+      ...(datos.utmCampaign ? { utm_campaign: datos.utmCampaign } : {}),
+      ...(datos.utmTerm ? { utm_term: datos.utmTerm } : {}),
+      ...(datos.utmContent ? { utm_content: datos.utmContent } : {}),
+      ...(datos.fbclid ? { fbclid: datos.fbclid } : {}),
+      ...(datos.gclid ? { gclid: datos.gclid } : {}),
+      ...(datos.referer ? { referer: datos.referer } : {}),
+      ...(datos.landingUrl ? { landing_url: datos.landingUrl } : {}),
     })
     .select('id')
     .single();
