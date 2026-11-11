@@ -41,7 +41,7 @@ export function Tabs<T extends string>({ valor, onCambio, items, etiqueta, child
             key={item.valor}
             value={item.valor}
             className={[
-              'rounded-pill px-4 py-2 text-sm font-medium text-ink-600',
+              'cursor-pointer rounded-pill px-4 py-2 text-sm font-medium text-ink-600',
               'transition-colors duration-200 ease-out-quart',
               'data-[state=active]:bg-white data-[state=active]:text-ink-950 data-[state=active]:shadow-suave',
               'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca-500',

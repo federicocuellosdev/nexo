@@ -3,7 +3,6 @@ import { Users, CreditCard, ShieldCheck, ChevronRight } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { obtenerMetricasAdmin, type MetricasAdmin } from '@/lib/api';
-import { Skeleton } from '@/ui/Skeleton';
 
 interface TarjetaMetricaProps {
   titulo: string;
@@ -19,11 +18,21 @@ function TarjetaMetrica({ titulo, valor, descripcion, icono: Glifo, cargando }: 
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm font-medium text-ink-600">{titulo}</p>
-          {cargando ? (
-            <Skeleton className="mt-2 h-10 w-24" />
-          ) : (
-            <p className="mt-2 font-display text-4xl text-ink-950">{valor?.toLocaleString('es-AR') ?? '—'}</p>
-          )}
+          {/* El <p> siempre se renderiza para fijar el line-height (text-4xl
+              + font-display). Adentro va el numero cuando hay valor, o un
+              bloque skeleton con altura 1em (relativa al font-size del
+              parent) mientras carga — asi la card no se desplaza cuando
+              llega el dato. */}
+          <p className="mt-2 font-display text-4xl text-ink-950">
+            {cargando ? (
+              <span
+                aria-hidden="true"
+                className="inline-block h-[1em] w-24 animate-pulse rounded-campo bg-ink-100 align-middle"
+              />
+            ) : (
+              (valor?.toLocaleString('es-AR') ?? '—')
+            )}
+          </p>
         </div>
         <span
           aria-hidden="true"
