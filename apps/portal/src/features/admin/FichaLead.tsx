@@ -251,7 +251,7 @@ function ColumnaDatos({ lead, beneficiarios, vendedor }: ColumnaDatosProps) {
         <Dato etiqueta="Plan" valor={formatearValor(lead.item_nombre)} />
         <Dato etiqueta="Familiares declarados" valor={formatearValor(lead.familiares_count)} />
         <Dato
-          etiqueta="Offer code SF"
+          etiqueta="Código SF"
           valor={
             <span className="font-mono text-xs">
               {typeof lead.item_id === 'string' ? (SLUG_A_OFFER_CODE[lead.item_id] ?? '—') : '—'}
