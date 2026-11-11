@@ -501,12 +501,7 @@ function SwitchCobertura({ leadId, pausadaInicial, onCambio }: SwitchCoberturaPr
 
   return (
     <div className="flex items-center gap-3 rounded-pill bg-white px-3 py-1.5 shadow-card ring-1 ring-ink-200">
-      <div className="flex flex-col items-end leading-tight">
-        <span className="text-sm font-medium text-ink-900">Cobertura activa</span>
-        <span className={activa ? 'text-xs text-ok-700' : 'text-xs text-warn-700'}>
-          {activa ? 'Activa' : 'Pausada'}
-        </span>
-      </div>
+      <span className="text-sm font-medium text-ink-900">Cobertura</span>
       <button
         type="button"
         role="switch"
