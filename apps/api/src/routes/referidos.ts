@@ -70,11 +70,10 @@ referidosRouter.post('/referidos/invitar', async (req, res) => {
   }
   const referidoRowId = upserted?.id ?? null;
 
-  // El link del email va al catálogo público de la landing. Derivamos la
-  // base de landing recortando el subpath `/app` del portalUrl (en el deploy
-  // unificado nexo-front, portal vive en /app y landing en /). En dev local
-  // portalUrl ya es la raíz así que el replace es no-op.
-  const landingBase = config.portalUrl.replace(/\/app\/?$/, '').replace(/\/+$/, '');
+  // El link del email va al catálogo público de la landing. config.landingUrl
+  // es env explícita (LANDING_URL) — así un deploy split con landing y portal
+  // en dominios distintos funciona sin tocar código.
+  const landingBase = config.landingUrl.replace(/\/+$/, '');
   const catalogoUrl = `${landingBase}/catalogo`;
 
   try {

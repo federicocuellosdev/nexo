@@ -25,10 +25,22 @@ export const config = {
   supabaseServiceRoleKey: requerido('SUPABASE_SERVICE_ROLE_KEY'),
   resendApiKey: process.env.RESEND_API_KEY ?? '',
   resendFrom: opcional('RESEND_FROM', 'Previnca Nexo <onboarding@resend.dev>'),
+  // URL del portal privado (donde vive /inicio, /cuenta, /admin/*).
+  //  - dev local standalone: http://localhost:5174
+  //  - deploy unificado (landing+portal en un dominio): https://<host>/app
+  //  - deploy split: https://<portal-host>
   portalUrl: opcional('PORTAL_URL', 'http://localhost:5174'),
+  // URL del landing público (donde vive /catalogo, /contratar/*).
+  //  - dev local standalone: http://localhost:5173
+  //  - deploy unificado: https://<host>  (mismo origen que portalUrl sin /app)
+  //  - deploy split: https://<landing-host>
+  // Antes se derivaba del portalUrl recortando /app — ahora es explícito para
+  // que un deploy split (portal y landing en dominios distintos) no requiera
+  // tocar código.
+  landingUrl: opcional('LANDING_URL', 'http://localhost:5173'),
   // URL pública del PNG del logo que aparece en el banner del email. Gmail
   // bloquea data URIs por privacidad: se hospeda en el front y se linkea
-  // por URL. Cambiar si el dominio del front cambia.
+  // por URL. Por defecto apunta al landing local.
   emailLogoUrl: opcional('EMAIL_LOGO_URL', 'http://localhost:5173/logo-nexo-email.png'),
   // Salesforce: todo el flujo /leads se arma igual que en prod, pero el POST
   // real está detrás del flag. Mientras esté en `false` devuelve un sfLeadId
