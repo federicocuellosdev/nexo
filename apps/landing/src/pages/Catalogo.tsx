@@ -39,7 +39,7 @@ export function Catalogo() {
                 plan={plan}
                 destacado={plan.recomendado === true}
                 onCta={(p) => navegar(`/contratar/plan/${p.slug}`)}
-                etiquetaCta={`Contratar ${plan.nombre}`}
+                etiquetaCta="Contratar"
                 className="!bg-white"
               />
             </Revelar>
