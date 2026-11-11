@@ -236,8 +236,12 @@ function ColumnaDatos({ lead, beneficiarios, vendedor }: ColumnaDatosProps) {
             </Chip>
           }
         />
-        <Dato etiqueta="Preapproval ID" valor={formatearValor(lead.mp_preapproval_id)} />
         <Dato etiqueta="Actualizado" valor={formatearFecha(lead.mp_updated_at)} />
+        <Dato
+          etiqueta="ID de suscripción"
+          valor={<span className="font-mono text-xs">{formatearValor(lead.mp_preapproval_id)}</span>}
+          ancho="completo"
+        />
       </Seccion>
 
       {domicilio ? (
@@ -312,13 +316,32 @@ function Seccion({ titulo, children }: { titulo: string; children: ReactNode }) 
 /**
  * Fila etiqueta/valor con border-t tope y border-b en las últimas dos filas
  * para cerrar el bloque (grid 2-col). Mismo patrón que Cuenta.tsx.
+ *
+ * `ancho="completo"` fuerza col-span-2 — útil para valores largos (hashes,
+ * IDs externos) que se cortarían con truncate en una columna sola. Como
+ * atraviesa todo el ancho, no truncamos: dejamos que el valor rompa línea
+ * con break-all para mantenerlo legible.
  */
-function Dato({ etiqueta, valor }: { etiqueta: string; valor: ReactNode }) {
+function Dato({
+  etiqueta,
+  valor,
+  ancho = 'medio',
+}: {
+  etiqueta: string;
+  valor: ReactNode;
+  ancho?: 'medio' | 'completo';
+}) {
+  const completo = ancho === 'completo';
   return (
-    <div className="flex justify-between gap-4 border-t border-ink-100 py-3 [&:nth-last-child(-n+2)]:border-b">
+    <div
+      className={[
+        'flex justify-between gap-4 border-t border-ink-100 py-3',
+        completo ? 'sm:col-span-2 sm:border-b' : '[&:nth-last-child(-n+2)]:border-b',
+      ].join(' ')}
+    >
       <dt className="text-ink-500">{etiqueta}</dt>
       <dd className="min-w-0 text-right text-ink-900">
-        <span className="block truncate">{valor}</span>
+        <span className={completo ? 'block break-all' : 'block truncate'}>{valor}</span>
       </dd>
     </div>
   );
