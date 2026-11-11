@@ -126,52 +126,55 @@ adminRouter.get('/admin/metrics', requerirAdmin, async (_req, res) => {
 });
 
 /**
- * Lista de afiliados del programa de ventas (vendedores). Cada uno tiene un
- * id que viaja como `?ref=` en su URL personal y le atribuye las ventas
- * generadas por ese link. NO son clientes — los clientes viven en v3.leads.
+ * Lista de vendedores del programa de ventas. Cada uno tiene un id que viaja
+ * como `?ref=` en su URL personal y le atribuye las ventas generadas por ese
+ * link. NO son clientes — los clientes viven en v3.leads. `etiqueta` agrupa
+ * vendedores por categoría ("PREVINCA", "Externos", etc).
  *
  * MVP sin paginación: devolvemos los últimos 200.
  */
-adminRouter.get('/admin/afiliados', requerirAdmin, async (_req, res) => {
+adminRouter.get('/admin/vendedores', requerirAdmin, async (_req, res) => {
   const { data, error } = await supabaseAdmin
     .schema('v3')
-    .from('afiliados')
-    .select('id, nombre, apellido, email, dni, telefono, created_at')
+    .from('vendedores')
+    .select('id, nombre, apellido, email, dni, telefono, etiqueta, created_at')
     .order('created_at', { ascending: false })
     .limit(200);
 
   if (error) {
-    console.error('[GET /admin/afiliados] db error', error);
+    console.error('[GET /admin/vendedores] db error', error);
     return res.status(500).json({ ok: false, error: 'db_error' });
   }
 
-  const afiliados = (data ?? []).map((row) => ({
+  const vendedores = (data ?? []).map((row) => ({
     id: row.id,
     nombre: row.nombre,
     apellido: row.apellido,
     email: row.email,
     dni: row.dni,
     telefono: row.telefono,
+    etiqueta: row.etiqueta,
     fechaAlta: row.created_at,
   }));
 
-  return res.status(200).json({ ok: true, afiliados });
+  return res.status(200).json({ ok: true, vendedores });
 });
 
 /**
- * Actualiza datos del afiliado (nombre, apellido, dni, telefono). Email no
- * se puede editar — es la clave única humana; si hay que cambiarlo, se
- * borra y se crea de nuevo.
+ * Actualiza datos del vendedor (nombre, apellido, dni, telefono, etiqueta).
+ * Email no se puede editar — es la clave única humana; si hay que cambiarlo,
+ * se borra y se crea de nuevo.
  */
-const EdicionAfiliado = z.object({
+const EdicionVendedor = z.object({
   nombre: z.string().trim().min(1).optional(),
   apellido: z.string().trim().min(1).optional(),
   dni: z.string().trim().optional(),
   telefono: z.string().trim().optional(),
+  etiqueta: z.string().trim().optional(),
 });
 
-adminRouter.patch('/admin/afiliados/:id', requerirAdmin, async (req, res) => {
-  const parsed = EdicionAfiliado.safeParse(req.body);
+adminRouter.patch('/admin/vendedores/:id', requerirAdmin, async (req, res) => {
+  const parsed = EdicionVendedor.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({
       ok: false,
@@ -185,6 +188,7 @@ adminRouter.patch('/admin/afiliados/:id', requerirAdmin, async (req, res) => {
   if (parsed.data.apellido !== undefined) patch.apellido = parsed.data.apellido;
   if (parsed.data.dni !== undefined) patch.dni = parsed.data.dni === '' ? null : parsed.data.dni;
   if (parsed.data.telefono !== undefined) patch.telefono = parsed.data.telefono === '' ? null : parsed.data.telefono;
+  if (parsed.data.etiqueta !== undefined) patch.etiqueta = parsed.data.etiqueta === '' ? null : parsed.data.etiqueta;
 
   if (Object.keys(patch).length === 0) {
     return res.status(400).json({ ok: false, error: 'sin_cambios' });
@@ -192,12 +196,12 @@ adminRouter.patch('/admin/afiliados/:id', requerirAdmin, async (req, res) => {
 
   const { error } = await supabaseAdmin
     .schema('v3')
-    .from('afiliados')
+    .from('vendedores')
     .update({ ...patch, updated_at: new Date().toISOString() })
     .eq('id', req.params.id);
 
   if (error) {
-    console.error('[PATCH /admin/afiliados/:id] db error', error);
+    console.error('[PATCH /admin/vendedores/:id] db error', error);
     return res.status(500).json({ ok: false, error: 'db_error' });
   }
 
@@ -205,20 +209,21 @@ adminRouter.patch('/admin/afiliados/:id', requerirAdmin, async (req, res) => {
 });
 
 /**
- * Crea un afiliado (vendedor) desde el admin. Nombre + apellido + email son
- * obligatorios; DNI y teléfono opcionales. 409 si ya existe un afiliado con
- * ese email (unique sobre lower(email) en la tabla).
+ * Crea un vendedor desde el admin. Nombre + apellido + email son obligatorios;
+ * DNI, teléfono y etiqueta opcionales. 409 si ya existe un vendedor con ese
+ * email (unique sobre lower(email) en la tabla).
  */
-const AltaAfiliado = z.object({
+const AltaVendedor = z.object({
   nombre: z.string().trim().min(1),
   apellido: z.string().trim().min(1),
   email: z.string().email(),
   dni: z.string().trim().optional(),
   telefono: z.string().trim().optional(),
+  etiqueta: z.string().trim().optional(),
 });
 
-adminRouter.post('/admin/afiliados', requerirAdmin, async (req, res) => {
-  const parsed = AltaAfiliado.safeParse(req.body);
+adminRouter.post('/admin/vendedores', requerirAdmin, async (req, res) => {
+  const parsed = AltaVendedor.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({
       ok: false,
@@ -231,7 +236,7 @@ adminRouter.post('/admin/afiliados', requerirAdmin, async (req, res) => {
 
   const { data: existente } = await supabaseAdmin
     .schema('v3')
-    .from('afiliados')
+    .from('vendedores')
     .select('id')
     .ilike('email', emailNormalizado)
     .maybeSingle();
@@ -242,19 +247,20 @@ adminRouter.post('/admin/afiliados', requerirAdmin, async (req, res) => {
 
   const { data: nuevo, error } = await supabaseAdmin
     .schema('v3')
-    .from('afiliados')
+    .from('vendedores')
     .insert({
       nombre: parsed.data.nombre,
       apellido: parsed.data.apellido,
       email: emailNormalizado,
       dni: parsed.data.dni ?? null,
       telefono: parsed.data.telefono ?? null,
+      etiqueta: parsed.data.etiqueta ?? null,
     })
     .select('id')
     .single();
 
   if (error || !nuevo) {
-    console.error('[POST /admin/afiliados] db error', error);
+    console.error('[POST /admin/vendedores] db error', error);
     return res.status(500).json({ ok: false, error: 'db_error' });
   }
 
