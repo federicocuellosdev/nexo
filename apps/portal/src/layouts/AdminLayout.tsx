@@ -129,17 +129,7 @@ export function AdminLayout() {
     <div className="min-h-dvh bg-app">
       <Sidebar marca={<Marca />} items={ITEMS_ADMIN} identidad={identidad} pie={pie} />
       <div className="flex min-h-dvh flex-col lg:ml-64">
-        <TopBar
-          marca={null}
-          acciones={
-            <span
-              aria-hidden="true"
-              className="inline-flex size-9 shrink-0 items-center justify-center rounded-pill bg-marca-600 text-xs font-semibold text-white"
-            >
-              {iniciales(usuario)}
-            </span>
-          }
-        />
+        <TopBar marca={null} />
         <main className="mx-auto w-full max-w-[1200px] flex-1 px-4 pt-6 pb-24 lg:px-8 lg:pt-10 lg:pb-16">
           <Outlet />
         </main>
