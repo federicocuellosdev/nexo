@@ -391,3 +391,39 @@ adminRouter.get('/admin/leads/:id', requerirAdmin, async (req, res) => {
     vendedor,
   });
 });
+
+/**
+ * Toggle de "cobertura pausada". Hoy sólo marca la fila — todavía no corta
+ * el cobro en MercadoPago ni avisa a SF. Sirve como registro de intención
+ * del admin: si en el futuro se agrega la integración real, este flag es
+ * el pivot que dispara el workflow de pausa/reactivación.
+ */
+adminRouter.patch('/admin/leads/:id/cobertura', requerirAdmin, async (req, res) => {
+  const id = req.params.id ?? '';
+  if (!/^[0-9a-f-]{36}$/i.test(id)) {
+    return res.status(400).json({ ok: false, error: 'id_invalido' });
+  }
+  const pausada = req.body?.pausada;
+  if (typeof pausada !== 'boolean') {
+    return res.status(400).json({ ok: false, error: 'payload_invalido' });
+  }
+
+  const { data, error } = await supabaseAdmin
+    .schema('v3')
+    .from('leads')
+    .update({
+      cobertura_pausada: pausada,
+      cobertura_pausada_at: pausada ? new Date().toISOString() : null,
+    })
+    .eq('id', id)
+    .eq('es_beneficiario', false)
+    .select('id, cobertura_pausada, cobertura_pausada_at')
+    .maybeSingle();
+
+  if (error || !data) {
+    console.error('[PATCH /admin/leads/:id/cobertura] error', error);
+    return res.status(500).json({ ok: false, error: 'db_update_error' });
+  }
+
+  return res.status(200).json({ ok: true, lead: data });
+});
