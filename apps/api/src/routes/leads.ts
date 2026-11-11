@@ -185,7 +185,7 @@ leadsRouter.post('/leads', async (req, res) => {
   try {
     await emailClient.enviar({
       to: datos.email,
-      subject: asuntoBienvenida(),
+      subject: asuntoBienvenida(datos.itemNombre),
       html: htmlBienvenida({
         nombre: datos.nombre,
         magicLink,
