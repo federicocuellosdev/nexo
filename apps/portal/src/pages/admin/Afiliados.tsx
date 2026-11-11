@@ -1,40 +1,23 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Copy, Pencil, Plus, Check } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { obtenerAfiliadosAdmin, type AfiliadoAdmin, type EstadoAfiliado } from '@/lib/api';
+import { obtenerAfiliadosAdmin, type AfiliadoAdmin } from '@/lib/api';
 import { landingUrl } from '@/lib/urls';
 import { Skeleton } from '@/ui/Skeleton';
-import { Chip } from '@/ui/Chip';
 import { Button } from '@/ui/Button';
 import { EditarAfiliadoDialog } from '@/features/admin/EditarAfiliadoDialog';
 import { AgregarAfiliadoDialog } from '@/features/admin/AgregarAfiliadoDialog';
 
-function formatearFecha(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  } catch {
-    return iso.slice(0, 10);
-  }
-}
-
 function nombreCompleto(a: AfiliadoAdmin): string {
-  return `${a.nombre ?? ''} ${a.apellido ?? ''}`.trim() || a.email;
+  return `${a.nombre} ${a.apellido}`.trim();
 }
 
-/** URL de atribución: si alguien hace alta entrando por ella, el nuevo lead
- *  queda referenciado al afiliado. Usamos el id del lead como código — es
- *  único y ya lo tenemos. */
+/** URL de atribución: si alguien hace alta entrando por ella, la venta
+ *  queda referenciada a este afiliado (vendedor). */
 function urlAtribucion(afiliado: AfiliadoAdmin): string {
   return `${landingUrl()}/catalogo?ref=${afiliado.id}`;
 }
 
-const CHIP_POR_ESTADO: Record<EstadoAfiliado, { texto: string; tono: 'ok' | 'warn' | 'neutro' }> = {
-  'con-cobertura': { texto: 'Con cobertura', tono: 'ok' },
-  pagado: { texto: 'Falta perfil', tono: 'warn' },
-  'sin-pagar': { texto: 'Sin pagar', tono: 'neutro' },
-};
-
-/** Botón para copiar al portapapeles con feedback visual de 1.5s. */
 function BotonCopiar({ valor, etiqueta }: { valor: string; etiqueta: string }) {
   const [copiado, setCopiado] = useState(false);
 
@@ -61,10 +44,9 @@ function BotonCopiar({ valor, etiqueta }: { valor: string; etiqueta: string }) {
 }
 
 /**
- * Tabla de afiliados (todos los titulares, pagados o no). Cada fila expone:
- * nombre/apellido, DNI, email, plan, estado, URL de atribución (con copy) y
- * botón Editar que abre un dialog. Arriba a la derecha un botón "+" para
- * crear un afiliado nuevo.
+ * Tabla de afiliados (vendedores del programa). Cada fila es una línea sola
+ * sin sub-textos: nombre completo, DNI, email, teléfono, URL de atribución y
+ * acciones. Arriba a la derecha el botón '+' para agregar uno nuevo.
  */
 export function AdminAfiliados() {
   const [afiliados, setAfiliados] = useState<AfiliadoAdmin[]>([]);
@@ -100,7 +82,9 @@ export function AdminAfiliados() {
       <div className="flex items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl text-ink-950">Afiliados</h1>
-          <p className="mt-1 text-sm text-ink-600">Últimos 200 titulares, del más reciente al más viejo.</p>
+          <p className="mt-1 text-sm text-ink-600">
+            Vendedores del programa. Cada uno tiene una URL para atribuirse las ventas que genere.
+          </p>
         </div>
         <Button onClick={() => setAgregando(true)}>
           <Plus size={16} aria-hidden="true" />
@@ -117,7 +101,7 @@ export function AdminAfiliados() {
       {cargando ? (
         <div className="flex flex-col gap-2">
           {[0, 1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-14 w-full" />
+            <Skeleton key={i} className="h-12 w-full" />
           ))}
         </div>
       ) : afiliados.length === 0 ? (
@@ -131,19 +115,19 @@ export function AdminAfiliados() {
               <thead className="bg-ink-50 text-xs font-medium uppercase tracking-wide text-ink-500">
                 <tr>
                   <th scope="col" className="px-4 py-3">
-                    Afiliado
+                    Nombre
                   </th>
                   <th scope="col" className="px-4 py-3">
                     DNI
                   </th>
                   <th scope="col" className="px-4 py-3">
-                    Contacto
+                    Email
+                  </th>
+                  <th scope="col" className="px-4 py-3">
+                    Teléfono
                   </th>
                   <th scope="col" className="px-4 py-3">
                     URL de afiliado
-                  </th>
-                  <th scope="col" className="px-4 py-3">
-                    Estado
                   </th>
                   <th scope="col" className="px-4 py-3 text-right">
                     Acciones
@@ -153,34 +137,29 @@ export function AdminAfiliados() {
               <tbody className="divide-y divide-ink-100">
                 {afiliados.map((a) => {
                   const url = urlAtribucion(a);
-                  const chip = CHIP_POR_ESTADO[a.estado];
+                  const nombre = nombreCompleto(a);
                   return (
                     <tr key={a.id} className="hover:bg-ink-50/60">
-                      <td className="px-4 py-3">
-                        <p className="font-medium text-ink-900">{nombreCompleto(a)}</p>
-                        <p className="text-xs text-ink-500">{formatearFecha(a.fechaAlta)}</p>
-                      </td>
-                      <td className="px-4 py-3 text-ink-700">{a.dni ?? '—'}</td>
-                      <td className="px-4 py-3 text-ink-600">
-                        <p className="truncate">{a.email}</p>
-                        {a.telefono ? <p className="text-xs text-ink-500">{a.telefono}</p> : null}
-                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 font-medium text-ink-900">{nombre}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-ink-700">{a.dni ?? '—'}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-ink-700">{a.email}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-ink-700">{a.telefono ?? '—'}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <code className="truncate text-xs text-ink-600" title={url}>
+                          <code
+                            className="max-w-[280px] truncate text-xs text-ink-600"
+                            title={url}
+                          >
                             {url.replace(/^https?:\/\//, '')}
                           </code>
-                          <BotonCopiar valor={url} etiqueta={`Copiar URL de ${nombreCompleto(a)}`} />
+                          <BotonCopiar valor={url} etiqueta={`Copiar URL de ${nombre}`} />
                         </div>
                       </td>
-                      <td className="px-4 py-3">
-                        <Chip tono={chip.tono}>{chip.texto}</Chip>
-                      </td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="whitespace-nowrap px-4 py-3 text-right">
                         <button
                           type="button"
                           onClick={() => setEditando(a)}
-                          aria-label={`Editar ${nombreCompleto(a)}`}
+                          aria-label={`Editar ${nombre}`}
                           className="inline-flex size-8 cursor-pointer items-center justify-center rounded-pill text-ink-500 transition-colors hover:bg-marca-50 hover:text-marca-700"
                         >
                           <Pencil size={16} />

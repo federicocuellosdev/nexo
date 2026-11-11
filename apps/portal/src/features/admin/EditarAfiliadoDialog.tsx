@@ -20,8 +20,8 @@ export interface EditarAfiliadoDialogProps {
  * cambiarlo rompe la correlación con la sesión.
  */
 export function EditarAfiliadoDialog({ afiliado, onCerrar, onGuardado }: EditarAfiliadoDialogProps) {
-  const [nombre, setNombre] = useState(afiliado.nombre ?? '');
-  const [apellido, setApellido] = useState(afiliado.apellido ?? '');
+  const [nombre, setNombre] = useState(afiliado.nombre);
+  const [apellido, setApellido] = useState(afiliado.apellido);
   const [dni, setDni] = useState(afiliado.dni ?? '');
   const [telefono, setTelefono] = useState(afiliado.telefono ?? '');
   const [guardando, setGuardando] = useState(false);

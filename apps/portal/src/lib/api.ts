@@ -353,18 +353,14 @@ export async function obtenerMetricasAdmin(accessToken: string): Promise<Metrica
   return data.metricas;
 }
 
-export type EstadoAfiliado = 'con-cobertura' | 'pagado' | 'sin-pagar';
-
 export interface AfiliadoAdmin {
   id: string;
+  nombre: string;
+  apellido: string;
   email: string;
-  nombre: string | null;
-  apellido: string | null;
-  telefono: string | null;
   dni: string | null;
-  plan: string | null;
+  telefono: string | null;
   fechaAlta: string;
-  estado: EstadoAfiliado;
 }
 
 export async function obtenerAfiliadosAdmin(accessToken: string): Promise<AfiliadoAdmin[]> {
