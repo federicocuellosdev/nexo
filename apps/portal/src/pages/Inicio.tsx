@@ -26,7 +26,7 @@ import { CredencialCard } from '@/features/credencial/CredencialCard';
 import { credencialDeLaSesion } from '@/features/credencial/datos';
 import { useCredencialDownload } from '@/features/credencial/useCredencialDownload';
 import { planContratado, proximoVencimiento } from '@/features/cobertura/contrataciones';
-import { iconoDePrestacion } from '@/features/planes/iconoPrestacion';
+import { descripcionDePrestacion, iconoDePrestacion } from '@/features/planes/iconoPrestacion';
 import { Card } from '@/ui/Card';
 import { Icon } from '@/ui/Icon';
 import { Money } from '@/ui/Money';
@@ -405,31 +405,41 @@ export function Inicio() {
         const planBeneficios = plan ?? planElegido!;
         const beneficios = planBeneficios.prestaciones.filter((p) => p.estado !== 'no-incluido');
         return (
-          <section aria-label="Beneficios del plan" className="border-t border-ink-200 pt-8">
-            <div className="mb-5">
-              <h2 className="font-display text-xl text-ink-950">
+          // Bloque jerarquizado con el gradient de marca (mismo tratamiento
+          // que la banda "Completá tu perfil" en /cuenta y el EmptyState
+          // "Todavía no tenés un plan"). Las cards internas quedan
+          // vidriosas (bg-white/10 + ring white/20) para no competir con
+          // el fondo pero mantener la separación visual entre prestaciones.
+          <section
+            aria-label="Beneficios del plan"
+            className="rounded-card bg-brand-oscurecido p-6 shadow-elevada ring-1 ring-marca-300 lg:p-8"
+          >
+            <div className="mb-6">
+              <h2 className="font-display text-xl text-white">
                 Desbloqueá todos estos beneficios con {planBeneficios.nombre}
               </h2>
             </div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {beneficios.map((prestacion) => {
                 const Glifo = iconoDePrestacion(prestacion.label);
+                // Preferimos la descripción expandida de iconoPrestacion si
+                // hay mapeo para el label; si no, caemos al `detalle` corto
+                // del mock. Así labels nuevos no se quedan sin copia.
+                const descripcion = descripcionDePrestacion(prestacion.label) ?? prestacion.detalle;
                 return (
                   <div
                     key={prestacion.label}
-                    className="flex gap-3 rounded-card bg-white p-5 ring-1 ring-ink-100"
+                    className="flex gap-3 rounded-card bg-white/10 p-5 ring-1 ring-white/20 backdrop-blur-sm"
                   >
                     <span
                       aria-hidden="true"
-                      className="inline-flex size-10 shrink-0 items-center justify-center rounded-pill bg-marca-50 text-marca-700"
+                      className="inline-flex size-10 shrink-0 items-center justify-center rounded-pill bg-white/15 text-white ring-1 ring-white/30"
                     >
                       <Glifo size={20} strokeWidth={1.75} />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-ink-800">{prestacion.label}</p>
-                      {prestacion.detalle ? (
-                        <p className="mt-1 text-sm text-ink-600">{prestacion.detalle}</p>
-                      ) : null}
+                      <p className="text-sm font-semibold text-white">{prestacion.label}</p>
+                      {descripcion ? <p className="mt-1 text-sm text-white/80">{descripcion}</p> : null}
                     </div>
                   </div>
                 );
