@@ -393,6 +393,33 @@ adminRouter.get('/admin/leads/:id', requerirAdmin, async (req, res) => {
 });
 
 /**
+ * Transacciones MercadoPago del titular. Lee v3.pagos por lead_id y
+ * devuelve todo ordenado desde la más reciente. La ficha admin la usa
+ * para mostrar el "último pago" (summary) y el popup con el historial
+ * completo.
+ */
+adminRouter.get('/admin/leads/:id/pagos', requerirAdmin, async (req, res) => {
+  const id = req.params.id ?? '';
+  if (!/^[0-9a-f-]{36}$/i.test(id)) {
+    return res.status(400).json({ ok: false, error: 'id_invalido' });
+  }
+
+  const { data, error } = await supabaseAdmin
+    .schema('v3')
+    .from('pagos')
+    .select('id, mp_payment_id, mp_preapproval_id, payer_email, monto, moneda, status, external_reference, received_at')
+    .eq('lead_id', id)
+    .order('received_at', { ascending: false });
+
+  if (error) {
+    console.error('[GET /admin/leads/:id/pagos] db error', error);
+    return res.status(500).json({ ok: false, error: 'db_error' });
+  }
+
+  return res.status(200).json({ ok: true, pagos: data ?? [] });
+});
+
+/**
  * Toggle de "cobertura pausada". Hoy sólo marca la fila — todavía no corta
  * el cobro en MercadoPago ni avisa a SF. Sirve como registro de intención
  * del admin: si en el futuro se agrega la integración real, este flag es
