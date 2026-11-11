@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Search, X } from 'lucide-react';
+import { Calendar, Search, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { supabase } from '@/lib/supabase';
 import { obtenerLeadsAdmin, esAfiliado, type LeadResumenAdmin } from '@/lib/api';
 import { Skeleton } from '@/ui/Skeleton';
 import { Chip } from '@/ui/Chip';
 import { Input } from '@/ui/Input';
-import { Field } from '@/ui/Field';
 import { Tabs, TabPanel, type ItemTab } from '@/ui/Tabs';
 import { FichaLead } from '@/features/admin/FichaLead';
 
@@ -162,72 +161,106 @@ export function AdminNegocio() {
         </p>
       ) : null}
 
-      {/* Buscador + rango temporal en la misma fila. En viewport angosto
-          los filtros bajan a su propia línea con wrap. El search tiene
-          max-width para no inflarse y empujar los filtros. Debajo, una
-          línea tenue separa este bloque de las pestañas. */}
-      <div className="flex flex-wrap items-center gap-3 border-b border-ink-100 pb-5">
-        <div className="relative min-w-[240px] max-w-xs flex-1">
-          <Search
-            size={16}
-            aria-hidden="true"
-            className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-500"
-          />
-          <Input
-            id="neg-buscar"
-            type="search"
-            placeholder="Buscar por nombre, email o DNI…"
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            className="pl-10"
-            style={{ borderRadius: 100 }}
-          />
-          {busqueda ? (
-            <button
-              type="button"
-              onClick={() => setBusqueda('')}
-              aria-label="Limpiar búsqueda"
-              className="absolute right-2 top-1/2 inline-flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-pill text-ink-500 hover:bg-ink-100 hover:text-ink-800"
-            >
-              <X size={14} />
-            </button>
-          ) : null}
-        </div>
-
-        <div role="group" aria-label="Rango temporal" className="flex flex-wrap gap-2">
-          {OPCIONES_RANGO.map((opt) => {
-            const activo = rango === opt.valor;
-            return (
+      {/* Bloque de búsqueda + filtros. Ocupa todo el ancho del contenedor.
+          En una sola fila: buscador (flex-1), separador vertical sutil y
+          chips de rango temporal. Cuando "Personalizado" está activo,
+          abajo aparece un panel compacto con los dos date inputs
+          estilizados, integrados al mismo bloque. */}
+      <div className="flex w-full flex-col gap-4 border-b border-ink-100 pb-5">
+        <div className="flex w-full flex-wrap items-center gap-3">
+          <div className="relative min-w-[240px] flex-1">
+            <Search
+              size={16}
+              aria-hidden="true"
+              className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-500"
+            />
+            <Input
+              id="neg-buscar"
+              type="search"
+              placeholder="Buscar por nombre, email o DNI…"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              className="pl-10"
+              style={{ borderRadius: 100 }}
+            />
+            {busqueda ? (
               <button
-                key={opt.valor}
                 type="button"
-                onClick={() => setRango(opt.valor)}
-                aria-pressed={activo}
-                className={cn(
-                  'inline-flex h-11 shrink-0 cursor-pointer items-center whitespace-nowrap rounded-pill px-4 text-sm font-medium transition-colors duration-200',
-                  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca-500',
-                  activo
-                    ? 'bg-marca-600 text-white shadow-suave'
-                    : 'bg-white text-ink-700 ring-1 ring-ink-200 hover:bg-ink-50',
-                )}
+                onClick={() => setBusqueda('')}
+                aria-label="Limpiar búsqueda"
+                className="absolute right-2 top-1/2 inline-flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-pill text-ink-500 hover:bg-ink-100 hover:text-ink-800"
               >
-                {opt.label}
+                <X size={14} />
               </button>
-            );
-          })}
-        </div>
-      </div>
+            ) : null}
+          </div>
 
-      {rango === 'personalizado' ? (
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Desde" htmlFor="neg-desde">
-            <Input id="neg-desde" type="date" value={desdeCustom} onChange={(e) => setDesdeCustom(e.target.value)} />
-          </Field>
-          <Field label="Hasta" htmlFor="neg-hasta">
-            <Input id="neg-hasta" type="date" value={hastaCustom} onChange={(e) => setHastaCustom(e.target.value)} />
-          </Field>
+          <div role="group" aria-label="Rango temporal" className="flex flex-wrap gap-2">
+            {OPCIONES_RANGO.map((opt) => {
+              const activo = rango === opt.valor;
+              return (
+                <button
+                  key={opt.valor}
+                  type="button"
+                  onClick={() => setRango(opt.valor)}
+                  aria-pressed={activo}
+                  className={cn(
+                    'inline-flex h-11 shrink-0 cursor-pointer items-center whitespace-nowrap rounded-pill px-4 text-sm font-medium transition-colors duration-200',
+                    'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca-500',
+                    activo
+                      ? 'bg-marca-600 text-white shadow-suave'
+                      : 'bg-white text-ink-700 ring-1 ring-ink-200 hover:bg-ink-50',
+                  )}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      ) : null}
+
+        {rango === 'personalizado' ? (
+          <div
+            data-entrada
+            className="flex flex-wrap items-center gap-3 rounded-card bg-marca-50/50 px-4 py-3 ring-1 ring-marca-100"
+          >
+            <span className="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-marca-700">
+              <Calendar size={14} aria-hidden="true" />
+              Rango personalizado
+            </span>
+            <div className="flex flex-1 flex-wrap items-center gap-2">
+              <PickerFecha
+                id="neg-desde"
+                etiqueta="Desde"
+                valor={desdeCustom}
+                onChange={setDesdeCustom}
+                max={hastaCustom || undefined}
+              />
+              <span aria-hidden="true" className="text-ink-400">—</span>
+              <PickerFecha
+                id="neg-hasta"
+                etiqueta="Hasta"
+                valor={hastaCustom}
+                onChange={setHastaCustom}
+                min={desdeCustom || undefined}
+              />
+              {(desdeCustom || hastaCustom) ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDesdeCustom('');
+                    setHastaCustom('');
+                  }}
+                  className="inline-flex h-9 cursor-pointer items-center gap-1 rounded-pill px-3 text-xs font-medium text-ink-600 hover:bg-white hover:text-ink-900"
+                >
+                  <X size={12} />
+                  Limpiar
+                </button>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+      </div>
 
       <Tabs valor={pestana} onCambio={setPestana} items={ITEMS} etiqueta="Negocio">
         <TabPanel<Pestana> valor="afiliados">
@@ -320,6 +353,43 @@ function Tabla({ lista, vacio, modo, onAbrir }: TablaProps) {
         </table>
       </div>
     </div>
+  );
+}
+
+/**
+ * Date picker compacto pill-style. Envuelve un <input type="date"> nativo
+ * (para heredar el calendar popover del navegador) con una etiqueta a la
+ * izquierda y bordes redondeados — se integra al bloque de filtros.
+ */
+interface PickerFechaProps {
+  id: string;
+  etiqueta: string;
+  valor: string;
+  onChange: (v: string) => void;
+  min?: string;
+  max?: string;
+}
+
+function PickerFecha({ id, etiqueta, valor, onChange, min, max }: PickerFechaProps) {
+  return (
+    <label
+      htmlFor={id}
+      className={cn(
+        'group inline-flex h-10 cursor-pointer items-center gap-2 rounded-pill bg-white px-3 ring-1 transition-colors',
+        valor ? 'ring-marca-300' : 'ring-ink-200 hover:ring-ink-300',
+      )}
+    >
+      <span className="text-xs font-medium uppercase tracking-wide text-ink-500">{etiqueta}</span>
+      <input
+        id={id}
+        type="date"
+        value={valor}
+        min={min}
+        max={max}
+        onChange={(e) => onChange(e.target.value)}
+        className="cursor-pointer border-0 bg-transparent text-sm text-ink-900 focus:outline-none"
+      />
+    </label>
   );
 }
 
