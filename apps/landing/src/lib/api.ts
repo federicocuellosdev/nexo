@@ -66,6 +66,16 @@ export async function crearLead(payload: PayloadCrearLead): Promise<RespuestaCre
 //   3. POST /api/subscriptions       → crea preapproval en MP, devuelve init_point
 // El vendedor muestra el init_point al cliente (QR o link) para que pague.
 
+export interface BeneficiarioOnboarding {
+  nombre: string;
+  apellido: string;
+  tipoDocumento: 'DNI' | 'Pasaporte';
+  numeroDocumento: string;
+  sexo: 'F' | 'M' | 'X';
+  fechaNacimiento: string;
+  relacion: 'conyuge' | 'hijo' | 'padre' | 'madre' | 'otro';
+}
+
 export interface PayloadPerfilOnboarding {
   perfil: {
     tipoDocumento: 'DNI' | 'Pasaporte';
@@ -84,7 +94,7 @@ export interface PayloadPerfilOnboarding {
       pais: string;
     };
   };
-  beneficiarios: [];
+  beneficiarios: BeneficiarioOnboarding[];
   familiaresCount: number;
 }
 
