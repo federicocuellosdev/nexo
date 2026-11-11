@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { ArrowLeft, User, CreditCard, MapPin, Puzzle, Users, Compass } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { Chip } from '@/ui/Chip';
 import { Skeleton } from '@/ui/Skeleton';
 import { Button } from '@/ui/Button';
+import { Card } from '@/ui/Card';
 import { supabase } from '@/lib/supabase';
 import { obtenerLeadDetalle } from '@/lib/api';
 
@@ -17,10 +17,10 @@ export interface FichaLeadProps {
 }
 
 /**
- * Vista full-section de la ficha de un lead. Cada sección es una Card propia
- * (Contacto, Plan, MercadoPago, Domicilio, Trazabilidad, Integraciones,
- * Familiares) siguiendo el patrón de producción que separa "bloques"
- * visualmente. Los familiares se muestran como cards en vez de lista plana.
+ * Vista full-section de la ficha de un lead. Layout de dos columnas estilo
+ * Cuenta.tsx: tarjeta de identidad sticky a la izquierda con avatar + estado
+ * de cobertura, y a la derecha secciones apiladas (Contacto, Plan, MP,
+ * Domicilio, Trazabilidad, Integraciones, Familiares).
  */
 export function FichaLead({ leadId, nombre, descripcion, onVolver }: FichaLeadProps) {
   const [cargando, setCargando] = useState(true);
@@ -55,40 +55,45 @@ export function FichaLead({ leadId, nombre, descripcion, onVolver }: FichaLeadPr
   }, [leadId]);
 
   return (
-    <div data-entrada className="flex flex-col gap-5">
+    <div data-entrada className="flex flex-col gap-6">
       <Button type="button" variante="secundario" tamano="sm" className="self-start" onClick={onVolver}>
         <ArrowLeft size={16} aria-hidden="true" />
         Volver
       </Button>
-
-      <div>
-        <h2 className="font-display text-2xl text-ink-950">{nombre}</h2>
-        {descripcion ? <p className="mt-1 text-sm text-ink-600">{descripcion}</p> : null}
-      </div>
 
       {error ? (
         <p role="alert" className="rounded-card bg-danger-50 px-4 py-3 text-sm text-danger-700 ring-1 ring-danger-500/30">
           {error}
         </p>
       ) : cargando ? (
-        <div className="flex flex-col gap-3">
-          {[0, 1, 2].map((i) => (
-            <Skeleton key={i} className="h-32 w-full" />
-          ))}
+        <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
+          <Skeleton className="h-80 w-full" />
+          <div className="flex flex-col gap-4">
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-32 w-full" />
+            ))}
+          </div>
         </div>
       ) : lead ? (
-        <Bloques lead={lead} beneficiarios={beneficiarios} vendedor={vendedor} />
+        <div className="grid gap-6 lg:grid-cols-[320px_1fr] lg:items-start">
+          <TarjetaIdentidad lead={lead} fallbackNombre={nombre} fallbackEmail={descripcion} />
+          <ColumnaDatos lead={lead} beneficiarios={beneficiarios} vendedor={vendedor} />
+        </div>
       ) : null}
     </div>
   );
 }
 
-// ───────────────────────────── Helpers de formato ─────────────────────────────
+// ───────────────────────────── Helpers ─────────────────────────────
+
+function str(valor: unknown): string | undefined {
+  return typeof valor === 'string' && valor.length > 0 ? valor : undefined;
+}
 
 function formatearValor(valor: unknown): string {
   if (valor === null || valor === undefined || valor === '') return '—';
   if (typeof valor === 'boolean') return valor ? 'Sí' : 'No';
-  if (typeof valor === 'object') return JSON.stringify(valor, null, 2);
+  if (typeof valor === 'object') return JSON.stringify(valor);
   return String(valor);
 }
 
@@ -106,155 +111,229 @@ function formatearFecha(iso: unknown, incluirHora = true): string {
   }
 }
 
-// ───────────────────────────── Bloques ─────────────────────────────
+function inicialesDe(nombre: string, apellido: string, email?: string): string {
+  const n = nombre.trim();
+  const a = apellido.trim();
+  const partes = `${n.charAt(0)}${a.charAt(0)}`.trim();
+  if (partes) return partes.toUpperCase();
+  const local = (email ?? '').split('@')[0] ?? '';
+  return (local.charAt(0) || '—').toUpperCase();
+}
 
-interface BloquesProps {
+// ───────────────────────────── Columna izquierda ─────────────────────────────
+
+interface TarjetaIdentidadProps {
+  lead: Record<string, unknown>;
+  fallbackNombre: string;
+  fallbackEmail?: string;
+}
+
+/**
+ * Card sticky a la izquierda con la identidad del lead: avatar con iniciales,
+ * nombre, email y chip de estado de cobertura. Es la "info principal" que
+ * siempre está a la vista mientras se scrollea el resto.
+ */
+function TarjetaIdentidad({ lead, fallbackNombre, fallbackEmail }: TarjetaIdentidadProps) {
+  const nombre = str(lead.nombre) ?? '';
+  const apellido = str(lead.apellido) ?? '';
+  const email = str(lead.email) ?? fallbackEmail ?? '';
+  const nombreCompleto = `${nombre} ${apellido}`.trim() || fallbackNombre;
+  const tieneDni = Boolean(str(lead.dni));
+  const tieneFechaNac = Boolean(str(lead.fecha_nacimiento));
+  const perfilCompleto = tieneDni && tieneFechaNac;
+  const estadoMp = str(lead.mp_status);
+  const conCobertura = estadoMp === 'authorized' && perfilCompleto;
+
+  const chip = conCobertura
+    ? { tono: 'ok' as const, texto: 'Con cobertura' }
+    : estadoMp === 'authorized'
+      ? { tono: 'warn' as const, texto: 'Pagó · falta perfil' }
+      : estadoMp
+        ? { tono: 'neutro' as const, texto: estadoMp }
+        : { tono: 'neutro' as const, texto: 'Sin pagar' };
+
+  return (
+    <section aria-label="Identidad" className="lg:sticky lg:top-6 lg:self-start">
+      <Card className="flex flex-col items-center gap-4 text-center">
+        <span
+          aria-hidden="true"
+          className="inline-flex size-24 items-center justify-center rounded-pill bg-marca-600 text-2xl font-semibold text-white shadow-suave"
+        >
+          {inicialesDe(nombre, apellido, email)}
+        </span>
+        <div className="flex flex-col gap-1">
+          <p className="font-display text-xl leading-tight text-ink-950">{nombreCompleto}</p>
+          {email ? <p className="text-xs text-ink-500">{email}</p> : null}
+        </div>
+
+        <Chip tono={chip.tono}>{chip.texto}</Chip>
+
+        <div className="mt-2 flex w-full flex-col gap-3 border-t border-ink-100 pt-4 text-left text-sm">
+          <FilaResumen etiqueta="Plan" valor={str(lead.item_nombre) ?? '—'} />
+          <FilaResumen etiqueta="DNI" valor={str(lead.dni) ?? '—'} />
+          <FilaResumen etiqueta="Teléfono" valor={str(lead.telefono) ?? '—'} />
+          <FilaResumen etiqueta="Alta" valor={formatearFecha(lead.created_at, false)} />
+        </div>
+      </Card>
+    </section>
+  );
+}
+
+function FilaResumen({ etiqueta, valor }: { etiqueta: string; valor: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-ink-500">{etiqueta}</span>
+      <span className="truncate text-right text-ink-900">{valor}</span>
+    </div>
+  );
+}
+
+// ───────────────────────────── Columna derecha ─────────────────────────────
+
+interface ColumnaDatosProps {
   lead: Record<string, unknown>;
   beneficiarios: Array<Record<string, unknown>>;
   vendedor: Record<string, unknown> | null;
 }
 
-function Bloques({ lead, beneficiarios, vendedor }: BloquesProps) {
+function ColumnaDatos({ lead, beneficiarios, vendedor }: ColumnaDatosProps) {
   const perfil = lead.perfil && typeof lead.perfil === 'object' ? (lead.perfil as Record<string, unknown>) : null;
   const domicilio =
     perfil?.domicilio && typeof perfil.domicilio === 'object'
       ? (perfil.domicilio as Record<string, unknown>)
       : null;
-  const canal = typeof lead.canal === 'string' && lead.canal ? lead.canal : null;
+  const canal = str(lead.canal) ?? 'landing';
+
+  const familiaresCount = useMemo(() => beneficiarios.length, [beneficiarios]);
 
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
-      <Bloque titulo="Contacto" icono={User}>
-        <Dato label="Nombre" valor={formatearValor(lead.nombre)} />
-        <Dato label="Apellido" valor={formatearValor(lead.apellido)} />
-        <Dato label="Email" valor={formatearValor(lead.email)} />
-        <Dato label="Teléfono" valor={formatearValor(lead.telefono)} />
-        <Dato label="DNI" valor={formatearValor(lead.dni)} />
-        <Dato label="Fecha de nacimiento" valor={formatearFecha(lead.fecha_nacimiento, false)} />
-      </Bloque>
+    <div className="flex flex-col gap-6">
+      <Seccion titulo="Contacto">
+        <Dato etiqueta="Nombre" valor={formatearValor(lead.nombre)} />
+        <Dato etiqueta="Apellido" valor={formatearValor(lead.apellido)} />
+        <Dato etiqueta="Email" valor={formatearValor(lead.email)} />
+        <Dato etiqueta="Teléfono" valor={formatearValor(lead.telefono)} />
+        <Dato etiqueta="DNI" valor={formatearValor(lead.dni)} />
+        <Dato etiqueta="Fecha de nacimiento" valor={formatearFecha(lead.fecha_nacimiento, false)} />
+      </Seccion>
 
-      <Bloque titulo="Plan" icono={Puzzle}>
-        <Dato label="Tipo" valor={formatearValor(lead.item_tipo)} />
-        <Dato label="Plan" valor={formatearValor(lead.item_nombre)} />
-        <Dato label="Slug" valor={formatearValor(lead.item_id)} />
-        <Dato label="Familiares" valor={formatearValor(lead.familiares_count)} />
-      </Bloque>
+      <Seccion titulo="Plan">
+        <Dato etiqueta="Tipo" valor={formatearValor(lead.item_tipo)} />
+        <Dato etiqueta="Plan" valor={formatearValor(lead.item_nombre)} />
+        <Dato etiqueta="Slug" valor={formatearValor(lead.item_id)} />
+        <Dato etiqueta="Familiares declarados" valor={formatearValor(lead.familiares_count)} />
+      </Seccion>
 
-      <Bloque titulo="MercadoPago" icono={CreditCard}>
+      <Seccion titulo="MercadoPago">
         <Dato
-          label="Estado"
+          etiqueta="Estado"
           valor={
             <Chip tono={lead.mp_status === 'authorized' ? 'ok' : 'warn'}>
               {formatearValor(lead.mp_status)}
             </Chip>
           }
         />
-        <Dato label="Preapproval ID" valor={formatearValor(lead.mp_preapproval_id)} />
-        <Dato label="Actualizado" valor={formatearFecha(lead.mp_updated_at)} />
-      </Bloque>
+        <Dato etiqueta="Preapproval ID" valor={formatearValor(lead.mp_preapproval_id)} />
+        <Dato etiqueta="Actualizado" valor={formatearFecha(lead.mp_updated_at)} />
+      </Seccion>
 
       {domicilio ? (
-        <Bloque titulo="Domicilio" icono={MapPin}>
-          <Dato label="Calle" valor={formatearValor(domicilio.calle)} />
-          <Dato label="Número" valor={formatearValor(domicilio.numero)} />
-          <Dato label="Piso" valor={formatearValor(domicilio.piso)} />
-          <Dato label="Departamento" valor={formatearValor(domicilio.departamento)} />
-          <Dato label="Torre" valor={formatearValor(domicilio.torre)} />
-          <Dato label="Localidad" valor={formatearValor(domicilio.localidad)} />
-          <Dato label="Provincia" valor={formatearValor(domicilio.provincia)} />
-          <Dato label="Código postal" valor={formatearValor(domicilio.cp)} />
-          <Dato label="País" valor={formatearValor(domicilio.pais)} />
-        </Bloque>
+        <Seccion titulo="Domicilio">
+          <Dato etiqueta="Calle" valor={formatearValor(domicilio.calle)} />
+          <Dato etiqueta="Número" valor={formatearValor(domicilio.numero)} />
+          <Dato etiqueta="Piso" valor={formatearValor(domicilio.piso)} />
+          <Dato etiqueta="Departamento" valor={formatearValor(domicilio.departamento)} />
+          <Dato etiqueta="Torre" valor={formatearValor(domicilio.torre)} />
+          <Dato etiqueta="Localidad" valor={formatearValor(domicilio.localidad)} />
+          <Dato etiqueta="Provincia" valor={formatearValor(domicilio.provincia)} />
+          <Dato etiqueta="Código postal" valor={formatearValor(domicilio.cp)} />
+          <Dato etiqueta="País" valor={formatearValor(domicilio.pais)} />
+        </Seccion>
       ) : null}
 
-      {/* Trazabilidad: canal + vendedor atribuido. Se muestra siempre; si
-          no hay vendedor dice "Directo", si no hay canal se asume landing. */}
-      <Bloque titulo="Trazabilidad" icono={Compass}>
-        <Dato label="Canal" valor={canal ?? 'landing'} />
-        <Dato label="Alta" valor={formatearFecha(lead.created_at)} />
+      <Seccion titulo="Trazabilidad">
+        <Dato etiqueta="Canal" valor={canal} />
+        <Dato etiqueta="Alta" valor={formatearFecha(lead.created_at)} />
         {vendedor ? (
           <>
-            <Dato label="Vendedor" valor={`${formatearValor(vendedor.nombre)} ${formatearValor(vendedor.apellido)}`.trim()} />
-            <Dato label="Email vendedor" valor={formatearValor(vendedor.email)} />
-            <Dato label="DNI vendedor" valor={formatearValor(vendedor.dni)} />
             <Dato
-              label="Etiqueta"
+              etiqueta="Vendedor"
+              valor={`${formatearValor(vendedor.nombre)} ${formatearValor(vendedor.apellido)}`.trim()}
+            />
+            <Dato etiqueta="Email vendedor" valor={formatearValor(vendedor.email)} />
+            <Dato etiqueta="DNI vendedor" valor={formatearValor(vendedor.dni)} />
+            <Dato
+              etiqueta="Etiqueta"
               valor={vendedor.etiqueta ? <Chip tono="marca">{String(vendedor.etiqueta)}</Chip> : '—'}
             />
           </>
         ) : (
-          <Dato label="Vendedor" valor={<span className="text-ink-500">Sin atribución (directo)</span>} />
+          <Dato etiqueta="Vendedor" valor={<span className="text-ink-500">Sin atribución (directo)</span>} />
         )}
-      </Bloque>
+      </Seccion>
 
-      <Bloque titulo="Integraciones" icono={Puzzle}>
-        <Dato label="SF Lead ID" valor={formatearValor(lead.sf_lead_id)} />
-        <Dato label="SF Account ID" valor={formatearValor(lead.sf_account_id)} />
-        <Dato label="SF Order ID" valor={formatearValor(lead.sf_order_id)} />
-        <Dato label="Magic link enviado" valor={formatearFecha(lead.magic_link_sent_at)} />
-        <Dato label="Sale sent" valor={formatearFecha(lead.sale_sent_at)} />
-        <Dato label="Skip SF" valor={formatearValor(lead.skip_sf)} />
-        <Dato label="Activado" valor={formatearFecha(lead.activated_at)} />
-      </Bloque>
+      <Seccion titulo="Integraciones">
+        <Dato etiqueta="SF Lead ID" valor={formatearValor(lead.sf_lead_id)} />
+        <Dato etiqueta="SF Account ID" valor={formatearValor(lead.sf_account_id)} />
+        <Dato etiqueta="SF Order ID" valor={formatearValor(lead.sf_order_id)} />
+        <Dato etiqueta="Magic link enviado" valor={formatearFecha(lead.magic_link_sent_at)} />
+        <Dato etiqueta="Sale sent" valor={formatearFecha(lead.sale_sent_at)} />
+        <Dato etiqueta="Skip SF" valor={formatearValor(lead.skip_sf)} />
+        <Dato etiqueta="Activado" valor={formatearFecha(lead.activated_at)} />
+      </Seccion>
 
-      {beneficiarios.length > 0 ? (
-        <div className="lg:col-span-2">
-          <BloqueFamiliares beneficiarios={beneficiarios} />
-        </div>
-      ) : null}
+      {familiaresCount > 0 ? <SeccionFamiliares beneficiarios={beneficiarios} /> : null}
     </div>
   );
 }
 
-// ───────────────────────────── Componentes de bloque ─────────────────────────────
+// ───────────────────────────── Primitivos Seccion / Dato ─────────────────────────────
 
-interface BloqueProps {
-  titulo: string;
-  icono: LucideIcon;
-  children: ReactNode;
-}
-
-function Bloque({ titulo, icono: Glifo, children }: BloqueProps) {
+/**
+ * Bloque titulado estilo Cuenta.tsx: título a la izquierda, fila de datos
+ * abajo con `<dl>` responsive a 2 columnas. Sin ícono porque el bloque ya
+ * se identifica por el título y la columna de identidad lleva la jerarquía
+ * visual.
+ */
+function Seccion({ titulo, children }: { titulo: string; children: ReactNode }) {
   return (
-    <section className="rounded-card bg-white p-5 shadow-card ring-1 ring-ink-100">
-      <header className="mb-4 flex items-center gap-2">
-        <span aria-hidden="true" className="inline-flex size-7 items-center justify-center rounded-pill bg-marca-50 text-marca-700">
-          <Glifo size={14} strokeWidth={1.75} />
-        </span>
-        <h3 className="text-sm font-medium uppercase tracking-wide text-ink-700">{titulo}</h3>
-      </header>
-      <dl className="grid gap-x-4 gap-y-3 sm:grid-cols-2">{children}</dl>
+    <section aria-label={titulo}>
+      <Card className="flex flex-col gap-3">
+        <h2 className="text-base font-medium text-ink-900">{titulo}</h2>
+        <dl className="grid grid-cols-1 gap-x-6 text-sm sm:grid-cols-2">{children}</dl>
+      </Card>
     </section>
   );
 }
 
-function Dato({ label, valor }: { label: string; valor: ReactNode }) {
+/**
+ * Fila etiqueta/valor con border-t tope y border-b en las últimas dos filas
+ * para cerrar el bloque (grid 2-col). Mismo patrón que Cuenta.tsx.
+ */
+function Dato({ etiqueta, valor }: { etiqueta: string; valor: ReactNode }) {
   return (
-    <div className="flex flex-col">
-      <dt className="text-xs text-ink-500">{label}</dt>
-      <dd className="truncate text-sm text-ink-800">{valor}</dd>
+    <div className="flex justify-between gap-4 border-t border-ink-100 py-3 [&:nth-last-child(-n+2)]:border-b">
+      <dt className="text-ink-500">{etiqueta}</dt>
+      <dd className="min-w-0 text-right text-ink-900">
+        <span className="block truncate">{valor}</span>
+      </dd>
     </div>
   );
 }
 
-// ───────────────────────────── Familiares (cards) ─────────────────────────────
+// ───────────────────────────── Familiares ─────────────────────────────
 
-function BloqueFamiliares({ beneficiarios }: { beneficiarios: Array<Record<string, unknown>> }) {
+function SeccionFamiliares({ beneficiarios }: { beneficiarios: Array<Record<string, unknown>> }) {
   return (
-    <section className="rounded-card bg-white p-5 shadow-card ring-1 ring-ink-100">
-      <header className="mb-4 flex items-center gap-2">
-        <span aria-hidden="true" className="inline-flex size-7 items-center justify-center rounded-pill bg-marca-50 text-marca-700">
-          <Users size={14} strokeWidth={1.75} />
-        </span>
-        <h3 className="text-sm font-medium uppercase tracking-wide text-ink-700">
-          Familiares ({beneficiarios.length})
-        </h3>
-      </header>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {beneficiarios.map((b, i) => (
-          <CardFamiliar key={String(b.id ?? i)} beneficiario={b} />
-        ))}
-      </div>
+    <section aria-label="Familiares">
+      <Card className="flex flex-col gap-3">
+        <h2 className="text-base font-medium text-ink-900">Familiares ({beneficiarios.length})</h2>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {beneficiarios.map((b, i) => (
+            <CardFamiliar key={String(b.id ?? i)} beneficiario={b} />
+          ))}
+        </div>
+      </Card>
     </section>
   );
 }
