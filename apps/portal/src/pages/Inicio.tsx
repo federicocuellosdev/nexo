@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
-import { ChevronDown, Download, LayoutGrid, Receipt, ShieldCheck, Sparkles, Users } from 'lucide-react';
+import { ArrowRight, ChevronDown, Download, LayoutGrid, Receipt, ShieldCheck, Sparkles, Users } from 'lucide-react';
 import { agregarOrden, getSession, setSession, useSession } from '@/mock/session';
 import { DialogoEmailMercadoPago } from '@/features/pago/DialogoEmailMercadoPago';
 import { cn } from '@/lib/cn';
@@ -411,9 +411,7 @@ export function Inicio() {
           // mantiene aire con el resto del dashboard.
           <section aria-label="Beneficios del plan" className="border-t border-ink-200 pt-8">
             <div className="mb-5">
-              <h2 className="font-display text-xl text-ink-950">
-                Desbloqueá todos estos beneficios con {planBeneficios.nombre}
-              </h2>
+              <h2 className="font-display text-xl text-ink-950">Desbloqueá todos estos beneficios</h2>
             </div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {beneficios.map((prestacion) => {
@@ -439,6 +437,28 @@ export function Inicio() {
                   </div>
                 );
               })}
+              {/* Card de CTA cuando queda pendiente el pago: inversa de las
+                  de beneficios (fondo blanco + ring marca + texto oscuro),
+                  para que se lea como "la acción que te desbloquea todo lo
+                  de arriba". Link full-card: toda la pastilla es clickeable. */}
+              {faltaTerminarCompra ? (
+                <Link
+                  to="/pago"
+                  data-elevar
+                  className="group flex items-center justify-between gap-3 rounded-card bg-white p-5 shadow-card ring-2 ring-marca-500 transition-colors hover:bg-marca-50"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-marca-700">Terminar de pagar</p>
+                    <p className="mt-1 truncate text-sm text-ink-600">Activá tu cobertura ahora.</p>
+                  </div>
+                  <span
+                    aria-hidden="true"
+                    className="inline-flex size-10 shrink-0 items-center justify-center rounded-pill bg-marca-600 text-white shadow-suave transition-transform group-hover:translate-x-0.5"
+                  >
+                    <ArrowRight size={20} strokeWidth={1.75} />
+                  </span>
+                </Link>
+              ) : null}
             </div>
           </section>
         );
@@ -511,6 +531,55 @@ export function Inicio() {
         <h2 className="mb-3 text-lg text-ink-950">Novedades</h2>
         <NovedadesCarousel novedades={NOVEDADES} onInvitar={() => setInvitandoAmigo(true)} />
       </section>
+
+      {/* CTA de cierre: banner con strip de iconos de los servicios +
+          mensaje de referidos. Reusa el DialogoInvitar que ya está en la
+          pantalla, así el usuario no cambia de contexto para invitar. */}
+      {(plan ?? planElegido) ? (() => {
+        const planCta = plan ?? planElegido!;
+        const serviciosCta = planCta.prestaciones.filter((p) => p.estado !== 'no-incluido');
+        return (
+          <section
+            aria-label="Invitá a un amigo"
+            className="flex flex-col items-center gap-5 rounded-card bg-brand-oscurecido px-6 py-10 text-center shadow-elevada ring-1 ring-marca-300 lg:px-8"
+          >
+            {/* Strip de iconos: resumen visual de lo que el amigo recibiría
+                al contratar. Horizontal con separadores en desktop, grilla
+                de 5 columnas apretadas en mobile. */}
+            <div
+              aria-hidden="true"
+              className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3"
+            >
+              {serviciosCta.map((prestacion) => {
+                const Glifo = iconoDePrestacion(prestacion.label);
+                return (
+                  <span
+                    key={prestacion.label}
+                    className="inline-flex size-10 items-center justify-center rounded-pill bg-white/15 text-white ring-1 ring-white/30"
+                  >
+                    <Glifo size={20} strokeWidth={1.75} />
+                  </span>
+                );
+              })}
+            </div>
+
+            <div className="flex max-w-md flex-col gap-2">
+              <h2 className="font-display text-xl text-white">Invitá a un amigo a Nexo</h2>
+              <p className="text-sm text-white/85">
+                Compartile {planCta.nombre} y sumá beneficios cada vez que alguien se activa por tu recomendación.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setInvitandoAmigo(true)}
+              className="inline-flex h-11 cursor-pointer items-center justify-center rounded-pill bg-white px-6 text-base font-medium text-marca-700 shadow-suave transition-colors duration-200 ease-out-expo hover:bg-ink-50 motion-safe:active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            >
+              Invitar amigo
+            </button>
+          </section>
+        );
+      })() : null}
 
       {invitandoAmigo && sesion.usuario ? (
         <DialogoInvitar
