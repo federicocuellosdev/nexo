@@ -301,17 +301,22 @@ adminRouter.post('/admin/vendedores', requerirAdmin, async (req, res) => {
 });
 
 /**
- * Lista todos los leads (titulares) — pagaron o no. Más amplio que afiliados:
- * sirve para ver el funnel de alta sin filtrar por estado. Mismo cap de 200.
+ * Lista todos los leads (titulares) — pagaron o no. El frontend lo splitea
+ * en dos tablas para la sección Negocio:
+ *  - Afiliados = con cobertura (mp_status='authorized' + dni y fecha_nac
+ *    cargados, proxy de 'perfil completo').
+ *  - Leads = el resto del funnel (incluye los sin pagar y los pagados sin
+ *    perfil completo).
+ * Devolvemos campos resumen para la tabla; la ficha full va por /admin/leads/:id.
  */
 adminRouter.get('/admin/leads', requerirAdmin, async (_req, res) => {
   const { data, error } = await supabaseAdmin
     .schema('v3')
     .from('leads')
-    .select('id, email, nombre, apellido, telefono, item_nombre, mp_status, created_at')
+    .select('id, email, nombre, apellido, telefono, dni, fecha_nacimiento, item_nombre, mp_status, created_at')
     .eq('es_beneficiario', false)
     .order('created_at', { ascending: false })
-    .limit(200);
+    .limit(500);
 
   if (error) {
     console.error('[GET /admin/leads] db error', error);
@@ -319,4 +324,50 @@ adminRouter.get('/admin/leads', requerirAdmin, async (_req, res) => {
   }
 
   return res.status(200).json({ ok: true, leads: data ?? [] });
+});
+
+/**
+ * Ficha detallada de un lead: todos los campos de v3.leads + beneficiarios
+ * asociados (filas con titular_lead_id = este id). La UI muestra esto en
+ * un dialog cuando el admin clickea una fila de la tabla Negocio.
+ */
+adminRouter.get('/admin/leads/:id', requerirAdmin, async (req, res) => {
+  const id = req.params.id ?? '';
+  if (!/^[0-9a-f-]{36}$/i.test(id)) {
+    return res.status(400).json({ ok: false, error: 'id_invalido' });
+  }
+
+  const { data: titular, error: errorTitular } = await supabaseAdmin
+    .schema('v3')
+    .from('leads')
+    .select('*')
+    .eq('id', id)
+    .eq('es_beneficiario', false)
+    .maybeSingle();
+
+  if (errorTitular) {
+    console.error('[GET /admin/leads/:id] db error', errorTitular);
+    return res.status(500).json({ ok: false, error: 'db_error' });
+  }
+  if (!titular) {
+    return res.status(404).json({ ok: false, error: 'no_encontrado' });
+  }
+
+  const { data: beneficiarios, error: errorBens } = await supabaseAdmin
+    .schema('v3')
+    .from('leads')
+    .select('id, nombre, apellido, email, dni, telefono, fecha_nacimiento, perfil, created_at')
+    .eq('titular_lead_id', id)
+    .eq('es_beneficiario', true)
+    .order('created_at', { ascending: true });
+
+  if (errorBens) {
+    console.error('[GET /admin/leads/:id] bens error', errorBens);
+  }
+
+  return res.status(200).json({
+    ok: true,
+    lead: titular,
+    beneficiarios: beneficiarios ?? [],
+  });
 });
