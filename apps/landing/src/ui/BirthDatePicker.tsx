@@ -123,7 +123,7 @@ export function BirthDatePicker({
         value={dia === null ? '' : String(dia)}
         placeholder="Día"
         invalido={invalido}
-        onChange={(e) => emitir(parseInt(e.target.value, 10), mes, anio)}
+        onChange={(v) => emitir(parseInt(v, 10), mes, anio)}
       />
       <Select
         id={`${prefijo}-mes`}
@@ -132,7 +132,7 @@ export function BirthDatePicker({
         value={mes === null ? '' : String(mes)}
         placeholder="Mes"
         invalido={invalido}
-        onChange={(e) => emitir(dia, parseInt(e.target.value, 10), anio)}
+        onChange={(v) => emitir(dia, parseInt(v, 10), anio)}
       />
       <Select
         id={`${prefijo}-anio`}
@@ -141,7 +141,7 @@ export function BirthDatePicker({
         value={anio === null ? '' : String(anio)}
         placeholder="Año"
         invalido={invalido}
-        onChange={(e) => emitir(dia, mes, parseInt(e.target.value, 10))}
+        onChange={(v) => emitir(dia, mes, parseInt(v, 10))}
       />
     </div>
   );

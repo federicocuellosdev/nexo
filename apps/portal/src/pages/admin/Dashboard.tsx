@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Users, CreditCard, ShieldCheck } from 'lucide-react';
+import { Users, CreditCard, ShieldCheck, ChevronRight } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { obtenerMetricasAdmin, type MetricasAdmin } from '@/lib/api';
@@ -93,28 +93,49 @@ export function AdminDashboard() {
         </p>
       ) : null}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <TarjetaMetrica
-          titulo="Leads generados"
-          valor={metricas?.leads}
-          descripcion="Titulares que arrancaron el alta."
-          icono={Users}
-          cargando={cargando}
+      {/* Funnel: card → chevron → card → chevron → card. En lg usamos flex
+          horizontal con cards que crecen y chevrones estaticos en el medio
+          (indican la direccion lead→pago→cobertura). En mobile cada card
+          va apilada y el chevron rota 90° abajo para seguir leyendose como
+          progresion. */}
+      <div className="flex flex-col items-stretch gap-3 lg:flex-row lg:items-center">
+        <div className="flex-1">
+          <TarjetaMetrica
+            titulo="Leads generados"
+            valor={metricas?.leads}
+            descripcion="Titulares que arrancaron el alta."
+            icono={Users}
+            cargando={cargando}
+          />
+        </div>
+        <ChevronRight
+          size={24}
+          aria-hidden="true"
+          className="mx-auto shrink-0 rotate-90 text-ink-300 lg:rotate-0"
         />
-        <TarjetaMetrica
-          titulo="Pagaron"
-          valor={metricas?.pagaron}
-          descripcion="Suscripciones MP autorizadas."
-          icono={CreditCard}
-          cargando={cargando}
+        <div className="flex-1">
+          <TarjetaMetrica
+            titulo="Pagaron"
+            valor={metricas?.pagaron}
+            descripcion="Suscripciones MP autorizadas."
+            icono={CreditCard}
+            cargando={cargando}
+          />
+        </div>
+        <ChevronRight
+          size={24}
+          aria-hidden="true"
+          className="mx-auto shrink-0 rotate-90 text-ink-300 lg:rotate-0"
         />
-        <TarjetaMetrica
-          titulo="Con cobertura"
-          valor={metricas?.conCobertura}
-          descripcion="Pagaron y completaron el perfil."
-          icono={ShieldCheck}
-          cargando={cargando}
-        />
+        <div className="flex-1">
+          <TarjetaMetrica
+            titulo="Con cobertura"
+            valor={metricas?.conCobertura}
+            descripcion="Pagaron y completaron el perfil."
+            icono={ShieldCheck}
+            cargando={cargando}
+          />
+        </div>
       </div>
     </div>
   );

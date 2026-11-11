@@ -126,6 +126,11 @@ export function Onboarding() {
 
   const total = PLAN.precio * (1 + beneficiarios.length);
 
+  // El boton Continuar queda disabled hasta que el paso valide. Usamos el
+  // mismo validar() de abajo para que la regla sea unica — si cambia
+  // una validacion, el boton se habilita/deshabilita automaticamente.
+  const pasoValido = validar(paso) === null;
+
   function validar(p: Paso): string | null {
     if (p === 1) {
       const c = contacto;
@@ -284,11 +289,11 @@ export function Onboarding() {
         <Indicador paso={paso} />
 
         {paso === 1 ? (
-          <FormContacto datos={contacto} onCambio={setContacto} onSubmit={avanzar} error={error} enviando={enviando} />
+          <FormContacto datos={contacto} onCambio={setContacto} onSubmit={avanzar} error={error} enviando={enviando} pasoValido={pasoValido} />
         ) : paso === 2 ? (
-          <FormDocumento datos={documento} onCambio={setDocumento} onAtras={volver} onSubmit={avanzar} error={error} enviando={enviando} />
+          <FormDocumento datos={documento} onCambio={setDocumento} onAtras={volver} onSubmit={avanzar} error={error} enviando={enviando} pasoValido={pasoValido} />
         ) : paso === 3 ? (
-          <FormDomicilio datos={domicilio} onCambio={setDomicilio} onAtras={volver} onSubmit={avanzar} error={error} enviando={enviando} />
+          <FormDomicilio datos={domicilio} onCambio={setDomicilio} onAtras={volver} onSubmit={avanzar} error={error} enviando={enviando} pasoValido={pasoValido} />
         ) : paso === 4 ? (
           <FormFamiliares
             beneficiarios={beneficiarios}
@@ -299,6 +304,7 @@ export function Onboarding() {
             onSubmit={avanzar}
             error={error}
             enviando={enviando}
+            pasoValido={pasoValido}
             total={total}
             familiaresCount={beneficiarios.length}
           />
@@ -345,9 +351,12 @@ interface PasoProps<T> {
   onAtras?: () => void;
   error: string | null;
   enviando: boolean;
+  /** Si el paso tiene sus requeridos completos. El boton Continuar queda
+   *  disabled mientras sea false. */
+  pasoValido: boolean;
 }
 
-function FormContacto({ datos, onCambio, onSubmit, error, enviando }: PasoProps<DatosContacto>) {
+function FormContacto({ datos, onCambio, onSubmit, error, enviando, pasoValido }: PasoProps<DatosContacto>) {
   useEffect(() => {
     document.getElementById('onb-nombre')?.focus();
   }, []);
@@ -371,14 +380,14 @@ function FormContacto({ datos, onCambio, onSubmit, error, enviando }: PasoProps<
         <Input id="onb-telefono" inputMode="tel" placeholder="+54 9 341 1234 5678" value={datos.telefono} onChange={(e) => onCambio({ ...datos, telefono: e.target.value })} />
       </Field>
       {error ? <p className="text-sm text-danger-700">{error}</p> : null}
-      <Button type="submit" ancho="full" tamano="lg" disabled={enviando}>
+      <Button type="submit" ancho="full" tamano="lg" disabled={enviando || !pasoValido}>
         Continuar
       </Button>
     </form>
   );
 }
 
-function FormDocumento({ datos, onCambio, onAtras, onSubmit, error, enviando }: PasoProps<DatosDocumento>) {
+function FormDocumento({ datos, onCambio, onAtras, onSubmit, error, enviando, pasoValido }: PasoProps<DatosDocumento>) {
   useEffect(() => {
     document.getElementById('onb-dni')?.focus();
   }, []);
@@ -398,7 +407,7 @@ function FormDocumento({ datos, onCambio, onAtras, onSubmit, error, enviando }: 
             opciones={OPCIONES_SEXO}
             placeholder="Elegí una opción"
             value={datos.sexo}
-            onChange={(e) => onCambio({ ...datos, sexo: e.target.value as DatosDocumento['sexo'] })}
+            onChange={(v) => onCambio({ ...datos, sexo: v as DatosDocumento['sexo'] })}
           />
         </Field>
       </div>
@@ -411,7 +420,7 @@ function FormDocumento({ datos, onCambio, onAtras, onSubmit, error, enviando }: 
       </Field>
       {error ? <p className="text-sm text-danger-700">{error}</p> : null}
       <div className="flex flex-col gap-3 sm:flex-row-reverse">
-        <Button type="submit" ancho="full" tamano="lg" className="sm:w-auto" disabled={enviando}>
+        <Button type="submit" ancho="full" tamano="lg" className="sm:w-auto" disabled={enviando || !pasoValido}>
           Continuar
         </Button>
         <Button type="button" variante="secundario" ancho="full" tamano="lg" className="sm:w-auto" onClick={onAtras} disabled={enviando}>
@@ -422,7 +431,7 @@ function FormDocumento({ datos, onCambio, onAtras, onSubmit, error, enviando }: 
   );
 }
 
-function FormDomicilio({ datos, onCambio, onAtras, onSubmit, error, enviando }: PasoProps<DatosDomicilio>) {
+function FormDomicilio({ datos, onCambio, onAtras, onSubmit, error, enviando, pasoValido }: PasoProps<DatosDomicilio>) {
   useEffect(() => {
     document.getElementById('onb-calle')?.focus();
   }, []);
@@ -484,7 +493,7 @@ function FormDomicilio({ datos, onCambio, onAtras, onSubmit, error, enviando }: 
             opciones={OPCIONES_LOCALIDAD}
             placeholder="Elegí tu localidad"
             value={datos.localidad}
-            onChange={(e) => onCambio({ ...datos, localidad: e.target.value })}
+            onChange={(v) => onCambio({ ...datos, localidad: v })}
           />
         </Field>
         <Field label="Código postal" htmlFor="onb-cp" requerido>
@@ -494,7 +503,7 @@ function FormDomicilio({ datos, onCambio, onAtras, onSubmit, error, enviando }: 
 
       {error ? <p className="text-sm text-danger-700">{error}</p> : null}
       <div className="flex flex-col gap-3 sm:flex-row-reverse">
-        <Button type="submit" ancho="full" tamano="lg" className="sm:w-auto" disabled={enviando}>
+        <Button type="submit" ancho="full" tamano="lg" className="sm:w-auto" disabled={enviando || !pasoValido}>
           Continuar
         </Button>
         <Button type="button" variante="secundario" ancho="full" tamano="lg" className="sm:w-auto" onClick={onAtras} disabled={enviando}>
@@ -514,6 +523,7 @@ interface FormFamiliaresProps {
   onSubmit: (e: FormEvent<HTMLFormElement>) => void;
   error: string | null;
   enviando: boolean;
+  pasoValido: boolean;
   total: number;
   familiaresCount: number;
 }
@@ -527,6 +537,7 @@ function FormFamiliares({
   onSubmit,
   error,
   enviando,
+  pasoValido,
   total,
   familiaresCount,
 }: FormFamiliaresProps) {
@@ -567,7 +578,7 @@ function FormFamiliares({
                 id={`fam-${idx}-sexo`}
                 opciones={OPCIONES_SEXO}
                 value={b.sexo}
-                onChange={(e) => onActualizar(idx, 'sexo', e.target.value)}
+                onChange={(v) => onActualizar(idx, 'sexo', v)}
               />
             </Field>
           </div>
@@ -585,7 +596,7 @@ function FormFamiliares({
                 id={`fam-${idx}-rel`}
                 opciones={OPCIONES_RELACION}
                 value={b.relacion}
-                onChange={(e) => onActualizar(idx, 'relacion', e.target.value)}
+                onChange={(v) => onActualizar(idx, 'relacion', v)}
               />
             </Field>
           </div>
@@ -614,7 +625,7 @@ function FormFamiliares({
       {error ? <p className="text-sm text-danger-700">{error}</p> : null}
 
       <div className="flex flex-col gap-3 sm:flex-row-reverse">
-        <Button type="submit" ancho="full" tamano="lg" className="sm:w-auto" disabled={enviando}>
+        <Button type="submit" ancho="full" tamano="lg" className="sm:w-auto" disabled={enviando || !pasoValido}>
           {enviando ? 'Creando…' : 'Confirmar alta'}
         </Button>
         <Button type="button" variante="secundario" ancho="full" tamano="lg" className="sm:w-auto" onClick={onAtras} disabled={enviando}>
