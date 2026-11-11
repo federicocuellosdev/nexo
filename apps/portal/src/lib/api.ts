@@ -483,3 +483,35 @@ export async function obtenerLeadDetalle(accessToken: string, id: string): Promi
 export function esAfiliado(lead: LeadResumenAdmin): boolean {
   return lead.mp_status === 'authorized' && lead.dni !== null && lead.fecha_nacimiento !== null;
 }
+
+/**
+ * Setea el flag `cobertura_pausada` del titular. Hoy el backend sólo marca
+ * la fila — no corta el cobro en MP ni avisa a SF. El switch de la ficha
+ * usa esto como registro de intención del admin.
+ */
+export async function actualizarCoberturaPausada(
+  accessToken: string,
+  leadId: string,
+  pausada: boolean,
+): Promise<{ cobertura_pausada: boolean; cobertura_pausada_at: string | null }> {
+  const respuesta = await fetch(`${API_URL}/api/admin/leads/${leadId}/cobertura`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ pausada }),
+  });
+  if (!respuesta.ok) {
+    const cuerpo = (await respuesta.json().catch(() => ({ ok: false, error: 'network' }))) as ErrorApi;
+    throw new ApiError(cuerpo, respuesta.status);
+  }
+  const data = (await respuesta.json()) as {
+    ok: true;
+    lead: { id: string; cobertura_pausada: boolean; cobertura_pausada_at: string | null };
+  };
+  return {
+    cobertura_pausada: data.lead.cobertura_pausada,
+    cobertura_pausada_at: data.lead.cobertura_pausada_at,
+  };
+}

@@ -6,7 +6,7 @@ import { Skeleton } from '@/ui/Skeleton';
 import { Button } from '@/ui/Button';
 import { Card } from '@/ui/Card';
 import { supabase } from '@/lib/supabase';
-import { obtenerLeadDetalle } from '@/lib/api';
+import { obtenerLeadDetalle, actualizarCoberturaPausada } from '@/lib/api';
 
 /**
  * Mapeo slug local → offerCode SF. Hoy los tres slugs resuelven al mismo
@@ -66,12 +66,27 @@ export function FichaLead({ leadId, nombre, descripcion, onVolver }: FichaLeadPr
     };
   }, [leadId]);
 
+  const pausadaInicial = lead?.cobertura_pausada === true;
+
   return (
     <div data-entrada className="flex flex-col gap-6">
-      <Button type="button" variante="secundario" tamano="sm" className="self-start" onClick={onVolver}>
-        <ArrowLeft size={16} aria-hidden="true" />
-        Volver
-      </Button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Button type="button" variante="secundario" tamano="sm" onClick={onVolver}>
+          <ArrowLeft size={16} aria-hidden="true" />
+          Volver
+        </Button>
+        {lead ? (
+          <SwitchCobertura
+            leadId={leadId}
+            pausadaInicial={pausadaInicial}
+            onCambio={(pausada, at) => {
+              setLead((previo) =>
+                previo ? { ...previo, cobertura_pausada: pausada, cobertura_pausada_at: at } : previo,
+              );
+            }}
+          />
+        ) : null}
+      </div>
 
       {error ? (
         <p role="alert" className="rounded-card bg-danger-50 px-4 py-3 text-sm text-danger-700 ring-1 ring-danger-500/30">
@@ -434,6 +449,84 @@ function CardFamiliar({ beneficiario }: { beneficiario: Record<string, unknown> 
         <span>Nacimiento {formatearFecha(beneficiario.fecha_nacimiento, false)}</span>
         {beneficiario.email ? <span className="truncate">{formatearValor(beneficiario.email)}</span> : null}
       </div>
+    </div>
+  );
+}
+
+// ───────────────────────────── Switch cobertura ─────────────────────────────
+
+/**
+ * Toggle "cobertura activa / pausada". Hoy solo marca el flag en DB (admin
+ * intent); no interrumpe el cobro en MP ni avisa a SF. El admin lo ve por
+ * si decide aplicar la pausa manualmente desde el panel de MP mientras
+ * tanto. Optimistic update: cambia local primero, revierte si el PATCH
+ * falla.
+ */
+interface SwitchCoberturaProps {
+  leadId: string;
+  pausadaInicial: boolean;
+  onCambio: (pausada: boolean, at: string | null) => void;
+}
+
+function SwitchCobertura({ leadId, pausadaInicial, onCambio }: SwitchCoberturaProps) {
+  const [pausada, setPausada] = useState(pausadaInicial);
+  const [guardando, setGuardando] = useState(false);
+
+  useEffect(() => {
+    setPausada(pausadaInicial);
+  }, [pausadaInicial]);
+
+  async function alternar() {
+    if (guardando) return;
+    const siguiente = !pausada;
+    setPausada(siguiente);
+    setGuardando(true);
+    try {
+      if (!supabase) throw new Error('supabase no configurado');
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) throw new Error('sesión expirada');
+      const resultado = await actualizarCoberturaPausada(token, leadId, siguiente);
+      onCambio(resultado.cobertura_pausada, resultado.cobertura_pausada_at);
+    } catch (err) {
+      console.error('[SwitchCobertura] error', err);
+      setPausada(!siguiente);
+      alert('No pudimos actualizar el estado de la cobertura.');
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  const activa = !pausada;
+
+  return (
+    <div className="flex items-center gap-3 rounded-pill bg-white px-3 py-1.5 shadow-card ring-1 ring-ink-200">
+      <div className="flex flex-col items-end leading-tight">
+        <span className="text-sm font-medium text-ink-900">Cobertura activa</span>
+        <span className={activa ? 'text-xs text-ok-700' : 'text-xs text-warn-700'}>
+          {activa ? 'Activa' : 'Pausada'}
+        </span>
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={activa}
+        aria-label={activa ? 'Pausar cobertura' : 'Reactivar cobertura'}
+        disabled={guardando}
+        onClick={alternar}
+        className={[
+          'inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-pill p-0.5 transition-colors duration-200',
+          activa ? 'bg-marca-600' : 'bg-ink-300',
+          guardando ? 'opacity-70' : '',
+        ].join(' ')}
+      >
+        <span
+          className={[
+            'size-5 rounded-pill bg-white shadow-suave transition-transform duration-200 ease-out-quart',
+            activa ? 'translate-x-5' : 'translate-x-0',
+          ].join(' ')}
+        />
+      </button>
     </div>
   );
 }
