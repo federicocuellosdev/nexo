@@ -575,8 +575,8 @@ export function Inicio() {
               <h2 className="font-display text-xl text-white">Activá tu cobertura ahora</h2>
               <p className="text-sm text-white/85">
                 {tieneIntent
-                  ? `Terminá el pago de ${planCta.nombre} y todos los beneficios quedan disponibles al instante.`
-                  : `Contratá ${planCta.nombre} y empezá a usar todos los beneficios al instante.`}
+                  ? `Terminá el pago de ${planCta.nombre} para obtener todos los beneficios.`
+                  : `Contratá ${planCta.nombre} para obtener todos los beneficios.`}
               </p>
             </div>
 
