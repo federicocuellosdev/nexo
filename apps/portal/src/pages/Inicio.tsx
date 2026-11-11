@@ -401,8 +401,14 @@ export function Inicio() {
           mostró; después de activo, /coberturas tiene la vista completa.
           Omite 'no-incluido': acá se trata de "lo que ganás", no la lista
           completa con exclusiones. */}
-      {(plan ?? planElegido) ? (() => {
-        const planBeneficios = plan ?? planElegido!;
+      {/* Bloque de beneficios: SOLO en el estado 'conCuentaSinPago'
+          (usuario recién registrado o con plan elegido sin pagar). Una vez
+          que pagó/activó, deja de ser promo y la vista de /coberturas
+          cumple ese rol. Cuando no hay intent todavía, defaulteamos a
+          Previnca Nexo (el único plan hoy) como ejemplo de lo que se
+          desbloquearía al contratar. */}
+      {estado === 'conCuentaSinPago' ? (() => {
+        const planBeneficios = planElegido ?? buscarPlan('nexo-1')!;
         const beneficios = planBeneficios.prestaciones.filter((p) => p.estado !== 'no-incluido');
         return (
           // Bloque transparente (sin fondo propio): la jerarquía la aportan
@@ -532,15 +538,18 @@ export function Inicio() {
         <NovedadesCarousel novedades={NOVEDADES} onInvitar={() => setInvitandoAmigo(true)} />
       </section>
 
-      {/* CTA de cierre: banner que empuja a terminar la contratación. Solo
-          se muestra si el plan está elegido pero sin pagar — si ya está
-          activo, no hay nada que "avanzar". El strip de iconos funciona
-          como recordatorio visual de lo que se desbloquea al pagar. */}
-      {faltaTerminarCompra && planElegido ? (() => {
-        const serviciosCta = planElegido.prestaciones.filter((p) => p.estado !== 'no-incluido');
+      {/* CTA de cierre: banner que empuja a contratar / terminar el pago.
+          Misma condición que el bloque de beneficios de arriba — solo
+          mientras el usuario esté en 'conCuentaSinPago'. Si ya eligió plan
+          (planElegido), el botón lleva a /pago; si no, a /planes para que
+          primero haga la selección. */}
+      {estado === 'conCuentaSinPago' ? (() => {
+        const planCta = planElegido ?? buscarPlan('nexo-1')!;
+        const serviciosCta = planCta.prestaciones.filter((p) => p.estado !== 'no-incluido');
+        const tieneIntent = planElegido !== undefined;
         return (
           <section
-            aria-label="Terminar la contratación"
+            aria-label="Avanzar con la contratación"
             className="flex flex-col items-center gap-5 rounded-card bg-brand-oscurecido px-6 py-10 text-center shadow-elevada ring-1 ring-marca-300 lg:px-8"
           >
             {/* Strip de iconos: los 5 servicios que se desbloquean al pagar.
@@ -565,15 +574,17 @@ export function Inicio() {
             <div className="flex max-w-md flex-col gap-2">
               <h2 className="font-display text-xl text-white">Activá tu cobertura ahora</h2>
               <p className="text-sm text-white/85">
-                Terminá el pago de {planElegido.nombre} y todos los beneficios quedan disponibles al instante.
+                {tieneIntent
+                  ? `Terminá el pago de ${planCta.nombre} y todos los beneficios quedan disponibles al instante.`
+                  : `Contratá ${planCta.nombre} y empezá a usar todos los beneficios al instante.`}
               </p>
             </div>
 
             <Link
-              to="/pago"
+              to={tieneIntent ? '/pago' : '/planes'}
               className="inline-flex h-11 cursor-pointer items-center justify-center rounded-pill bg-white px-6 text-base font-medium text-marca-700 shadow-suave transition-colors duration-200 ease-out-expo hover:bg-ink-50 motion-safe:active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
             >
-              Terminar de pagar
+              {tieneIntent ? 'Terminar de pagar' : 'Contratar ahora'}
             </Link>
           </section>
         );
