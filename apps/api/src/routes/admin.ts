@@ -365,9 +365,29 @@ adminRouter.get('/admin/leads/:id', requerirAdmin, async (req, res) => {
     console.error('[GET /admin/leads/:id] bens error', errorBens);
   }
 
+  // Vendedor atribuido (trazabilidad): si vendedor_id esta seteado, traemos
+  // el row completo de v3.vendedores para mostrarlo en la ficha. Query
+  // separada en lugar de join para tener control fino del select.
+  let vendedor: Record<string, unknown> | null = null;
+  const vendedorIdDelLead = (titular as Record<string, unknown>).vendedor_id;
+  if (typeof vendedorIdDelLead === 'string' && vendedorIdDelLead) {
+    const { data: vendedorRow, error: errorVendedor } = await supabaseAdmin
+      .schema('v3')
+      .from('vendedores')
+      .select('id, nombre, apellido, email, dni, telefono, etiqueta, created_at')
+      .eq('id', vendedorIdDelLead)
+      .maybeSingle();
+    if (errorVendedor) {
+      console.warn('[GET /admin/leads/:id] vendedor error', errorVendedor);
+    } else {
+      vendedor = vendedorRow;
+    }
+  }
+
   return res.status(200).json({
     ok: true,
     lead: titular,
     beneficiarios: beneficiarios ?? [],
+    vendedor,
   });
 });

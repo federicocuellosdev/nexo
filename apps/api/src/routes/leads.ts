@@ -32,6 +32,11 @@ const PayloadLead = z.object({
   // mientras la integracion esta en pruebas. Default false: canal landing
   // sigue mandando a SF como siempre.
   skipSf: z.boolean().optional(),
+  // Trazabilidad: canal de origen del lead ('landing' | 'onboarding' | …) y
+  // vendedor que atribuyó la venta (si vino con ?ref= en /onboarding). Ambos
+  // opcionales — se persisten como-son en v3.leads para la ficha admin.
+  canal: z.string().min(1).optional(),
+  vendedorId: z.string().uuid().optional(),
 });
 
 type PayloadLead = z.infer<typeof PayloadLead>;
@@ -66,6 +71,9 @@ leadsRouter.post('/leads', async (req, res) => {
       // de SF (sale_intake desde el webhook de pago, additional-sale desde
       // /familiares, etc.) también lo respete sin tener que pasarlo cada vez.
       skip_sf: datos.skipSf ?? false,
+      // Trazabilidad opcional.
+      ...(datos.canal ? { canal: datos.canal } : {}),
+      ...(datos.vendedorId ? { vendedor_id: datos.vendedorId } : {}),
     })
     .select('id')
     .single();
