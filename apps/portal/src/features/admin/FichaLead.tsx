@@ -7,7 +7,6 @@ import { Button } from '@/ui/Button';
 import { Card } from '@/ui/Card';
 import { supabase } from '@/lib/supabase';
 import { obtenerLeadDetalle } from '@/lib/api';
-import { buscarPlan } from '@/mock/planes';
 
 /**
  * Mapeo slug local → offerCode SF. Hoy los tres slugs resuelven al mismo
@@ -19,20 +18,6 @@ const SLUG_A_OFFER_CODE: Record<string, string> = {
   'nexo-1': 'XTEFO',
   'nexo-2': 'XTEFO',
   'nexo-3': 'XTEFO',
-};
-
-/**
- * Códigos técnicos de cada prestación. No vienen de SF (hoy SF no expone
- * IDs por cobertura individual al frontend); los armamos acá de forma
- * estable para que el admin tenga algo accionable al pedir soporte.
- * Formato: <SLUG_PLAN>-<CODIGO_PRESTACION>.
- */
-const CODIGO_PRESTACION: Record<string, string> = {
-  'Médico Clínico': 'MC',
-  'Psicología': 'PSI',
-  'Emergencias médicas': 'EMG',
-  'Guardia odontológica': 'ODT',
-  'Descuentos en farmacias': 'FAR',
 };
 
 export interface FichaLeadProps {
@@ -261,7 +246,6 @@ function ColumnaDatos({ lead, beneficiarios, vendedor }: ColumnaDatosProps) {
         />
       </Seccion>
 
-      <TablaCobertura slugPlan={typeof lead.item_id === 'string' ? lead.item_id : undefined} />
 
       <Seccion titulo="MercadoPago">
         <Dato
@@ -315,14 +299,22 @@ function ColumnaDatos({ lead, beneficiarios, vendedor }: ColumnaDatosProps) {
         )}
       </Seccion>
 
-      <Seccion titulo="Integraciones">
-        <Dato etiqueta="SF Lead ID" valor={formatearValor(lead.sf_lead_id)} />
-        <Dato etiqueta="SF Account ID" valor={formatearValor(lead.sf_account_id)} />
-        <Dato etiqueta="SF Order ID" valor={formatearValor(lead.sf_order_id)} />
-        <Dato etiqueta="Magic link enviado" valor={formatearFecha(lead.magic_link_sent_at)} />
-        <Dato etiqueta="Sale sent" valor={formatearFecha(lead.sale_sent_at)} />
-        <Dato etiqueta="Skip SF" valor={formatearValor(lead.skip_sf)} />
-        <Dato etiqueta="Activado" valor={formatearFecha(lead.activated_at)} />
+      <Seccion titulo="Salesforce">
+        <Dato
+          etiqueta="Lead ID"
+          valor={<span className="font-mono text-xs">{formatearValor(lead.sf_lead_id)}</span>}
+        />
+        <Dato etiqueta="Lead creado" valor={formatearFecha(lead.sf_sent_at)} />
+        <Dato
+          etiqueta="Account ID"
+          valor={<span className="font-mono text-xs">{formatearValor(lead.sf_account_id)}</span>}
+        />
+        <Dato etiqueta="Cuenta creada" valor={formatearFecha(lead.sale_sent_at)} />
+        <Dato
+          etiqueta="Order ID"
+          valor={<span className="font-mono text-xs">{formatearValor(lead.sf_order_id)}</span>}
+        />
+        <Dato etiqueta="Pedido creado" valor={formatearFecha(lead.sale_sent_at)} />
       </Seccion>
 
       {familiaresCount > 0 ? <SeccionFamiliares beneficiarios={beneficiarios} /> : null}
@@ -371,7 +363,7 @@ function Dato({
   return (
     <div
       className={[
-        'flex justify-between gap-4 border-t border-ink-100 py-3',
+        'flex items-center justify-between gap-4 border-t border-ink-100 py-3',
         completo ? 'sm:col-span-2 sm:border-b' : '[&:nth-last-child(-n+2)]:border-b',
       ].join(' ')}
     >
@@ -380,78 +372,6 @@ function Dato({
         <span className={completo ? 'block break-all' : 'block truncate'}>{valor}</span>
       </dd>
     </div>
-  );
-}
-
-// ───────────────────────────── Cobertura ─────────────────────────────
-
-/**
- * Tabla de prestaciones del plan. Lee el catálogo estático de `mock/planes.ts`
- * (la fuente comercial) y arma una fila por cada prestación con su código,
- * estado y detalle. Si el slug del lead no matchea ningún plan registrado,
- * renderiza una Card vacía con mensaje.
- */
-function TablaCobertura({ slugPlan }: { slugPlan: string | undefined }) {
-  const plan = slugPlan ? buscarPlan(slugPlan) : undefined;
-
-  return (
-    <section aria-label="Cobertura">
-      <Card className="flex flex-col gap-3">
-        <div className="flex items-baseline justify-between gap-3">
-          <h2 className="text-base font-medium text-ink-900">Cobertura</h2>
-          {plan ? (
-            <span className="text-xs text-ink-500">{plan.prestaciones.length} prestaciones</span>
-          ) : null}
-        </div>
-        {plan ? (
-          <div className="-mx-5 overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="border-y border-ink-100 text-xs font-medium uppercase tracking-wide text-ink-500">
-                <tr>
-                  <th scope="col" className="px-5 py-2">Código</th>
-                  <th scope="col" className="px-5 py-2">Prestación</th>
-                  <th scope="col" className="px-5 py-2">Estado</th>
-                  <th scope="col" className="px-5 py-2">Detalle</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-ink-100">
-                {plan.prestaciones.map((p) => {
-                  const codigoCorto = CODIGO_PRESTACION[p.label] ?? 'OTR';
-                  const codigo = `${plan.slug.toUpperCase().replace('-', '')}-${codigoCorto}`;
-                  const tonoChip =
-                    p.estado === 'incluido' ? 'ok' : p.estado === 'coseguro' ? 'warn' : 'neutro';
-                  const textoEstado =
-                    p.estado === 'incluido'
-                      ? 'Incluido'
-                      : p.estado === 'coseguro'
-                        ? 'Coseguro'
-                        : 'No incluido';
-                  return (
-                    <tr key={codigo}>
-                      <td className="whitespace-nowrap px-5 py-3 font-mono text-xs text-ink-700">{codigo}</td>
-                      <td className="px-5 py-3 text-ink-900">
-                        {p.label}
-                        {p.pendiente ? (
-                          <span className="ml-2 inline-flex items-center rounded-pill bg-warn-50 px-2 py-0.5 text-[10px] font-medium text-warn-700">
-                            a confirmar
-                          </span>
-                        ) : null}
-                      </td>
-                      <td className="whitespace-nowrap px-5 py-3">
-                        <Chip tono={tonoChip}>{textoEstado}</Chip>
-                      </td>
-                      <td className="px-5 py-3 text-ink-700">{p.detalle ?? '—'}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="text-sm text-ink-500">Sin catálogo para este plan.</p>
-        )}
-      </Card>
-    </section>
   );
 }
 
