@@ -14,6 +14,9 @@ export interface PayloadCrearLead {
   email: string;
   telefono: string;
   dni: string;
+  /** true = no mandar a Salesforce. Lo usa /onboarding mientras la
+   *  integración con SF esté en pruebas. */
+  skipSf?: boolean;
 }
 
 export interface RespuestaCrearLead {

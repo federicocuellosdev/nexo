@@ -6,6 +6,8 @@ import { Card } from '@/ui/Card';
 import { Field } from '@/ui/Field';
 import { Input } from '@/ui/Input';
 import { Button } from '@/ui/Button';
+import { Select } from '@/ui/Select';
+import { BirthDatePicker } from '@/ui/BirthDatePicker';
 import { Money } from '@/ui/Money';
 import { QR } from '@/ui/QR';
 import { cn } from '@/lib/cn';
@@ -32,6 +34,28 @@ import {
 const PLAN = PLANES[0];
 const MAX_FAMILIARES = 5;
 
+const OPCIONES_SEXO = [
+  { value: 'F', label: 'Femenino' },
+  { value: 'M', label: 'Masculino' },
+  { value: 'X', label: 'X' },
+];
+
+const OPCIONES_RELACION = [
+  { value: 'conyuge', label: 'Cónyuge' },
+  { value: 'hijo', label: 'Hijo/a' },
+  { value: 'padre', label: 'Padre' },
+  { value: 'madre', label: 'Madre' },
+  { value: 'otro', label: 'Otro' },
+];
+
+// Cobertura hoy solo en Rosario y alrededores — misma lista que usa el
+// portal en PerfilWizard.
+const OPCIONES_LOCALIDAD = [
+  { value: 'Rosario', label: 'Rosario' },
+  { value: 'Granadero Baigorria', label: 'Granadero Baigorria' },
+  { value: 'Villa Gobernador Gálvez', label: 'Villa Gobernador Gálvez' },
+];
+
 type Paso = 1 | 2 | 3 | 4 | 5;
 
 interface DatosContacto {
@@ -52,6 +76,7 @@ interface DatosDomicilio {
   numero: string;
   piso: string;
   departamento: string;
+  torre: string;
   localidad: string;
   provincia: string;
   cp: string;
@@ -66,7 +91,8 @@ const DOMICILIO_VACIO: DatosDomicilio = {
   numero: '',
   piso: '',
   departamento: '',
-  localidad: 'Rosario',
+  torre: '',
+  localidad: '',
   provincia: 'Santa Fe',
   cp: '',
 };
@@ -167,6 +193,9 @@ export function Onboarding() {
         email: contacto.email.trim(),
         telefono: contacto.telefono.trim(),
         dni: documento.dni.trim(),
+        // Onboarding de vendedores: NO mandar a SF mientras la integración
+        // está en pruebas (ver skipSf en back /leads).
+        skipSf: true,
       });
 
       await guardarPerfilOnboarding(resLead.leadId, {
@@ -180,6 +209,7 @@ export function Onboarding() {
             numero: domicilio.numero.trim(),
             piso: domicilio.piso.trim() || undefined,
             departamento: domicilio.departamento.trim() || undefined,
+            torre: domicilio.torre.trim() || undefined,
             localidad: domicilio.localidad.trim(),
             provincia: domicilio.provincia.trim(),
             cp: domicilio.cp.trim(),
@@ -328,17 +358,17 @@ function FormContacto({ datos, onCambio, onSubmit, error, enviando }: PasoProps<
           ocupando todo el input. */}
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Nombre" htmlFor="onb-nombre" requerido>
-          <Input id="onb-nombre" value={datos.nombre} onChange={(e) => onCambio({ ...datos, nombre: e.target.value })} />
+          <Input id="onb-nombre" placeholder="Juan" value={datos.nombre} onChange={(e) => onCambio({ ...datos, nombre: e.target.value })} />
         </Field>
         <Field label="Apellido" htmlFor="onb-apellido" requerido>
-          <Input id="onb-apellido" value={datos.apellido} onChange={(e) => onCambio({ ...datos, apellido: e.target.value })} />
+          <Input id="onb-apellido" placeholder="García" value={datos.apellido} onChange={(e) => onCambio({ ...datos, apellido: e.target.value })} />
         </Field>
       </div>
       <Field label="Email" htmlFor="onb-email" requerido>
-        <Input id="onb-email" type="email" inputMode="email" value={datos.email} onChange={(e) => onCambio({ ...datos, email: e.target.value })} />
+        <Input id="onb-email" type="email" inputMode="email" placeholder="tu@email.com" value={datos.email} onChange={(e) => onCambio({ ...datos, email: e.target.value })} />
       </Field>
       <Field label="Teléfono" htmlFor="onb-telefono" requerido>
-        <Input id="onb-telefono" inputMode="tel" value={datos.telefono} onChange={(e) => onCambio({ ...datos, telefono: e.target.value })} />
+        <Input id="onb-telefono" inputMode="tel" placeholder="+54 9 341 1234 5678" value={datos.telefono} onChange={(e) => onCambio({ ...datos, telefono: e.target.value })} />
       </Field>
       {error ? <p className="text-sm text-danger-700">{error}</p> : null}
       <Button type="submit" ancho="full" tamano="lg" disabled={enviando}>
@@ -352,29 +382,33 @@ function FormDocumento({ datos, onCambio, onAtras, onSubmit, error, enviando }: 
   useEffect(() => {
     document.getElementById('onb-dni')?.focus();
   }, []);
+  // Mismo partido que PerfilWizard del portal: DNI y Sexo en fila (anchos
+  // cortos van juntos); fecha de nacimiento abajo con el BirthDatePicker
+  // (3 combos Día/Mes/Año) en vez de <input type="date">, que obliga a
+  // navegar año a año desde el actual.
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Field label="DNI" htmlFor="onb-dni" requerido>
-          <Input id="onb-dni" inputMode="numeric" value={datos.dni} onChange={(e) => onCambio({ ...datos, dni: e.target.value })} />
-        </Field>
-        <Field label="Fecha de nacimiento" htmlFor="onb-fechanac" requerido>
-          <Input id="onb-fechanac" type="date" value={datos.fechaNacimiento} onChange={(e) => onCambio({ ...datos, fechaNacimiento: e.target.value })} />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="DNI" htmlFor="onb-dni" ayuda="Sin puntos ni espacios" requerido>
+          <Input id="onb-dni" inputMode="numeric" placeholder="40123456" value={datos.dni} onChange={(e) => onCambio({ ...datos, dni: e.target.value })} />
         </Field>
         <Field label="Sexo" htmlFor="onb-sexo" requerido>
-          <select
+          <Select
             id="onb-sexo"
+            opciones={OPCIONES_SEXO}
+            placeholder="Elegí una opción"
             value={datos.sexo}
             onChange={(e) => onCambio({ ...datos, sexo: e.target.value as DatosDocumento['sexo'] })}
-            className="h-11 w-full rounded-campo bg-white px-3 text-base text-ink-900 ring-1 ring-ink-200 focus:outline-none focus:ring-2 focus:ring-marca-500"
-          >
-            <option value="">—</option>
-            <option value="F">Femenino</option>
-            <option value="M">Masculino</option>
-            <option value="X">Otro</option>
-          </select>
+          />
         </Field>
       </div>
+      <Field label="Fecha de nacimiento" htmlFor="onb-fechanac" ayuda="Necesitamos verificar que sea mayor de edad" requerido>
+        <BirthDatePicker
+          id="onb-fechanac"
+          value={datos.fechaNacimiento}
+          onChange={(iso) => onCambio({ ...datos, fechaNacimiento: iso })}
+        />
+      </Field>
       {error ? <p className="text-sm text-danger-700">{error}</p> : null}
       <div className="flex flex-col gap-3 sm:flex-row-reverse">
         <Button type="submit" ancho="full" tamano="lg" className="sm:w-auto" disabled={enviando}>
@@ -392,31 +426,72 @@ function FormDomicilio({ datos, onCambio, onAtras, onSubmit, error, enviando }: 
   useEffect(() => {
     document.getElementById('onb-calle')?.focus();
   }, []);
+  // Layout 1:1 con PerfilWizard del portal:
+  //  - Calle (2fr) + Número (1fr)
+  //  - Piso + Depto + Torre en 3 columnas
+  //  - Localidad (Select) + CP en 2 columnas
+  //  - Provincia/País no se piden (Nexo factura solo en Santa Fe / AR).
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-[2fr_1fr]">
         <Field label="Calle" htmlFor="onb-calle" requerido>
-          <Input id="onb-calle" value={datos.calle} onChange={(e) => onCambio({ ...datos, calle: e.target.value })} />
+          <Input
+            id="onb-calle"
+            autoComplete="address-line1"
+            placeholder="Pellegrini"
+            value={datos.calle}
+            onChange={(e) => onCambio({ ...datos, calle: e.target.value })}
+          />
         </Field>
         <Field label="Número" htmlFor="onb-numero" requerido>
-          <Input id="onb-numero" inputMode="numeric" value={datos.numero} onChange={(e) => onCambio({ ...datos, numero: e.target.value })} />
-        </Field>
-        <Field label="Piso" htmlFor="onb-piso">
-          <Input id="onb-piso" value={datos.piso} onChange={(e) => onCambio({ ...datos, piso: e.target.value })} />
-        </Field>
-        <Field label="Depto" htmlFor="onb-depto">
-          <Input id="onb-depto" value={datos.departamento} onChange={(e) => onCambio({ ...datos, departamento: e.target.value })} />
-        </Field>
-        <Field label="Localidad" htmlFor="onb-loc" requerido>
-          <Input id="onb-loc" value={datos.localidad} onChange={(e) => onCambio({ ...datos, localidad: e.target.value })} />
-        </Field>
-        <Field label="Provincia" htmlFor="onb-prov" requerido>
-          <Input id="onb-prov" value={datos.provincia} onChange={(e) => onCambio({ ...datos, provincia: e.target.value })} />
-        </Field>
-        <Field label="Código postal" htmlFor="onb-cp" requerido>
-          <Input id="onb-cp" inputMode="numeric" value={datos.cp} onChange={(e) => onCambio({ ...datos, cp: e.target.value })} />
+          <Input id="onb-numero" inputMode="numeric" placeholder="1234" value={datos.numero} onChange={(e) => onCambio({ ...datos, numero: e.target.value })} />
         </Field>
       </div>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Field label="Piso" htmlFor="onb-piso">
+          <Input
+            id="onb-piso"
+            autoComplete="address-line2"
+            placeholder="3"
+            value={datos.piso}
+            onChange={(e) => onCambio({ ...datos, piso: e.target.value })}
+          />
+        </Field>
+        <Field label="Departamento" htmlFor="onb-depto">
+          <Input
+            id="onb-depto"
+            autoComplete="address-line3"
+            placeholder="B"
+            value={datos.departamento}
+            onChange={(e) => onCambio({ ...datos, departamento: e.target.value })}
+          />
+        </Field>
+        <Field label="Torre" htmlFor="onb-torre">
+          <Input
+            id="onb-torre"
+            placeholder="Norte"
+            value={datos.torre}
+            onChange={(e) => onCambio({ ...datos, torre: e.target.value })}
+          />
+        </Field>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Localidad" htmlFor="onb-loc" requerido>
+          <Select
+            id="onb-loc"
+            opciones={OPCIONES_LOCALIDAD}
+            placeholder="Elegí tu localidad"
+            value={datos.localidad}
+            onChange={(e) => onCambio({ ...datos, localidad: e.target.value })}
+          />
+        </Field>
+        <Field label="Código postal" htmlFor="onb-cp" requerido>
+          <Input id="onb-cp" inputMode="numeric" autoComplete="postal-code" placeholder="2000" value={datos.cp} onChange={(e) => onCambio({ ...datos, cp: e.target.value })} />
+        </Field>
+      </div>
+
       {error ? <p className="text-sm text-danger-700">{error}</p> : null}
       <div className="flex flex-col gap-3 sm:flex-row-reverse">
         <Button type="submit" ancho="full" tamano="lg" className="sm:w-auto" disabled={enviando}>
@@ -479,42 +554,39 @@ function FormFamiliares({
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Nombre" htmlFor={`fam-${idx}-nombre`} requerido>
-              <Input id={`fam-${idx}-nombre`} value={b.nombre} onChange={(e) => onActualizar(idx, 'nombre', e.target.value)} />
+              <Input id={`fam-${idx}-nombre`} placeholder="Juan" value={b.nombre} onChange={(e) => onActualizar(idx, 'nombre', e.target.value)} />
             </Field>
             <Field label="Apellido" htmlFor={`fam-${idx}-apellido`} requerido>
-              <Input id={`fam-${idx}-apellido`} value={b.apellido} onChange={(e) => onActualizar(idx, 'apellido', e.target.value)} />
+              <Input id={`fam-${idx}-apellido`} placeholder="García" value={b.apellido} onChange={(e) => onActualizar(idx, 'apellido', e.target.value)} />
             </Field>
-            <Field label="DNI" htmlFor={`fam-${idx}-dni`} requerido>
-              <Input id={`fam-${idx}-dni`} inputMode="numeric" value={b.numeroDocumento} onChange={(e) => onActualizar(idx, 'numeroDocumento', e.target.value)} />
-            </Field>
-            <Field label="Fecha de nacimiento" htmlFor={`fam-${idx}-fechanac`} requerido>
-              <Input id={`fam-${idx}-fechanac`} type="date" value={b.fechaNacimiento} onChange={(e) => onActualizar(idx, 'fechaNacimiento', e.target.value)} />
+            <Field label="DNI" htmlFor={`fam-${idx}-dni`} ayuda="Sin puntos ni espacios" requerido>
+              <Input id={`fam-${idx}-dni`} inputMode="numeric" placeholder="40123456" value={b.numeroDocumento} onChange={(e) => onActualizar(idx, 'numeroDocumento', e.target.value)} />
             </Field>
             <Field label="Sexo" htmlFor={`fam-${idx}-sexo`} requerido>
-              <select
+              <Select
                 id={`fam-${idx}-sexo`}
+                opciones={OPCIONES_SEXO}
                 value={b.sexo}
                 onChange={(e) => onActualizar(idx, 'sexo', e.target.value)}
-                className="h-11 w-full rounded-campo bg-white px-3 text-base text-ink-900 ring-1 ring-ink-200 focus:outline-none focus:ring-2 focus:ring-marca-500"
-              >
-                <option value="F">Femenino</option>
-                <option value="M">Masculino</option>
-                <option value="X">Otro</option>
-              </select>
+              />
+            </Field>
+          </div>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <Field label="Fecha de nacimiento" htmlFor={`fam-${idx}-fechanac`} requerido>
+              <BirthDatePicker
+                id={`fam-${idx}-fechanac`}
+                value={b.fechaNacimiento}
+                edadMinima={0}
+                onChange={(iso) => onActualizar(idx, 'fechaNacimiento', iso)}
+              />
             </Field>
             <Field label="Relación" htmlFor={`fam-${idx}-rel`} requerido>
-              <select
+              <Select
                 id={`fam-${idx}-rel`}
+                opciones={OPCIONES_RELACION}
                 value={b.relacion}
                 onChange={(e) => onActualizar(idx, 'relacion', e.target.value)}
-                className="h-11 w-full rounded-campo bg-white px-3 text-base text-ink-900 ring-1 ring-ink-200 focus:outline-none focus:ring-2 focus:ring-marca-500"
-              >
-                <option value="conyuge">Cónyuge</option>
-                <option value="hijo">Hijo/a</option>
-                <option value="padre">Padre</option>
-                <option value="madre">Madre</option>
-                <option value="otro">Otro</option>
-              </select>
+              />
             </Field>
           </div>
         </div>
