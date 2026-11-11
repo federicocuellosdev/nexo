@@ -177,7 +177,7 @@ export function AdminNegocio() {
           placeholder="Buscar por nombre, email o DNI…"
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
-          className="pl-9"
+          className="rounded-pill! pl-9"
         />
         {busqueda ? (
           <button
@@ -193,7 +193,7 @@ export function AdminNegocio() {
 
       {/* Rango temporal como grupo de botones (toggle). El activo lleva
           bg-marca-600 + texto blanco; el resto queda neutro con hover. */}
-      <div role="group" aria-label="Rango temporal" className="flex flex-wrap gap-2">
+      <div role="group" aria-label="Rango temporal" className="flex flex-nowrap gap-2 overflow-x-auto pb-1">
         {OPCIONES_RANGO.map((opt) => {
           const activo = rango === opt.valor;
           return (
@@ -203,7 +203,7 @@ export function AdminNegocio() {
               onClick={() => setRango(opt.valor)}
               aria-pressed={activo}
               className={cn(
-                'cursor-pointer rounded-pill px-4 py-2 text-sm font-medium transition-colors duration-200',
+                'shrink-0 cursor-pointer whitespace-nowrap rounded-pill px-4 py-2 text-sm font-medium transition-colors duration-200',
                 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca-500',
                 activo
                   ? 'bg-marca-600 text-white shadow-suave'
