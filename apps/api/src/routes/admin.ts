@@ -13,9 +13,23 @@ export const adminRouter = Router();
 async function emailDelToken(req: Request): Promise<string | null> {
   const auth = req.header('authorization') ?? '';
   const token = auth.replace(/^Bearer\s+/i, '').trim();
-  if (token === '') return null;
+  if (token === '') {
+    console.warn('[auth lookup] no bearer token en header');
+    return null;
+  }
   const { data, error } = await supabaseAdmin.auth.getUser(token);
-  if (error || !data.user?.email) return null;
+  if (error) {
+    console.warn('[auth lookup] getUser error', {
+      name: error.name,
+      message: error.message,
+      status: error.status,
+    });
+    return null;
+  }
+  if (!data.user?.email) {
+    console.warn('[auth lookup] user sin email', { userId: data.user?.id });
+    return null;
+  }
   return data.user.email.toLowerCase();
 }
 
