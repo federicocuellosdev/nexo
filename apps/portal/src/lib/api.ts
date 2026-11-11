@@ -353,15 +353,18 @@ export async function obtenerMetricasAdmin(accessToken: string): Promise<Metrica
   return data.metricas;
 }
 
+export type EstadoAfiliado = 'con-cobertura' | 'pagado' | 'sin-pagar';
+
 export interface AfiliadoAdmin {
   id: string;
   email: string;
   nombre: string | null;
   apellido: string | null;
   telefono: string | null;
+  dni: string | null;
   plan: string | null;
   fechaAlta: string;
-  conCobertura: boolean;
+  estado: EstadoAfiliado;
 }
 
 export async function obtenerAfiliadosAdmin(accessToken: string): Promise<AfiliadoAdmin[]> {
@@ -374,4 +377,49 @@ export async function obtenerAfiliadosAdmin(accessToken: string): Promise<Afilia
   }
   const data = (await respuesta.json()) as { ok: true; afiliados: AfiliadoAdmin[] };
   return data.afiliados;
+}
+
+export interface EdicionAfiliado {
+  nombre?: string;
+  apellido?: string;
+  dni?: string;
+  telefono?: string;
+}
+
+export async function editarAfiliadoAdmin(
+  accessToken: string,
+  id: string,
+  patch: EdicionAfiliado,
+): Promise<void> {
+  const respuesta = await fetch(`${API_URL}/api/admin/afiliados/${id}`, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  });
+  if (!respuesta.ok) {
+    const cuerpo = (await respuesta.json().catch(() => ({ ok: false, error: 'network' }))) as ErrorApi;
+    throw new ApiError(cuerpo, respuesta.status);
+  }
+}
+
+export interface AltaAfiliado {
+  nombre: string;
+  apellido: string;
+  email: string;
+  dni?: string;
+  telefono?: string;
+}
+
+export async function crearAfiliadoAdmin(accessToken: string, payload: AltaAfiliado): Promise<string> {
+  const respuesta = await fetch(`${API_URL}/api/admin/afiliados`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!respuesta.ok) {
+    const cuerpo = (await respuesta.json().catch(() => ({ ok: false, error: 'network' }))) as ErrorApi;
+    throw new ApiError(cuerpo, respuesta.status);
+  }
+  const data = (await respuesta.json()) as { ok: true; id: string };
+  return data.id;
 }
