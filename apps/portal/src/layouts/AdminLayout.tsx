@@ -130,7 +130,7 @@ export function AdminLayout() {
       <Sidebar marca={<Marca />} items={ITEMS_ADMIN} identidad={identidad} pie={pie} />
       <div className="flex min-h-dvh flex-col lg:ml-64">
         <TopBar
-          marca={<Marca />}
+          marca={null}
           acciones={
             <span
               aria-hidden="true"

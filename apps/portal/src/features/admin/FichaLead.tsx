@@ -153,7 +153,10 @@ function TarjetaIdentidad({ lead, fallbackNombre, fallbackEmail }: TarjetaIdenti
         : { tono: 'neutro' as const, texto: 'Sin pagar' };
 
   return (
-    <section aria-label="Identidad" className="lg:sticky lg:top-6 lg:self-start">
+    <section
+      aria-label="Identidad"
+      className="lg:sticky lg:top-6 lg:max-h-[calc(100dvh-3rem)] lg:self-start lg:overflow-y-auto"
+    >
       <Card className="flex flex-col items-center gap-4 text-center">
         <span
           aria-hidden="true"
