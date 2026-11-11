@@ -26,6 +26,7 @@ import { CredencialCard } from '@/features/credencial/CredencialCard';
 import { credencialDeLaSesion } from '@/features/credencial/datos';
 import { useCredencialDownload } from '@/features/credencial/useCredencialDownload';
 import { planContratado, proximoVencimiento } from '@/features/cobertura/contrataciones';
+import { iconoDePrestacion } from '@/features/planes/iconoPrestacion';
 import { Card } from '@/ui/Card';
 import { Icon } from '@/ui/Icon';
 import { Money } from '@/ui/Money';
@@ -393,6 +394,50 @@ export function Inicio() {
           </div>
         ) : null}
       </section>
+
+      {/* Beneficios del plan. Se muestran si el usuario tiene UN plan en
+          sesión (contratado o en proceso de pago): es el momento en que la
+          grilla desglosada ayuda — antes de que decida, el /catalogo ya la
+          mostró; después de activo, /coberturas tiene la vista completa.
+          Omite 'no-incluido': acá se trata de "lo que ganás", no la lista
+          completa con exclusiones. */}
+      {(plan ?? planElegido) ? (() => {
+        const planBeneficios = plan ?? planElegido!;
+        const beneficios = planBeneficios.prestaciones.filter((p) => p.estado !== 'no-incluido');
+        return (
+          <section aria-label="Beneficios del plan" className="border-t border-ink-200 pt-8">
+            <div className="mb-5">
+              <h2 className="font-display text-xl text-ink-950">
+                Desbloqueá todos estos beneficios con {planBeneficios.nombre}
+              </h2>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {beneficios.map((prestacion) => {
+                const Glifo = iconoDePrestacion(prestacion.label);
+                return (
+                  <div
+                    key={prestacion.label}
+                    className="flex gap-3 rounded-card bg-white p-5 ring-1 ring-ink-100"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="inline-flex size-10 shrink-0 items-center justify-center rounded-pill bg-marca-50 text-marca-700"
+                    >
+                      <Glifo size={20} strokeWidth={1.75} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-ink-800">{prestacion.label}</p>
+                      {prestacion.detalle ? (
+                        <p className="mt-1 text-sm text-ink-600">{prestacion.detalle}</p>
+                      ) : null}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })() : null}
 
       {/* Accesos rápidos: superficie plana con borde (no sombra) para que no
           compitan en peso con la tarjeta del plan. Los deshabilitados se
