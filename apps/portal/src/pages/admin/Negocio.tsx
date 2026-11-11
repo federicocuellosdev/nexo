@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Calendar, Search, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { supabase } from '@/lib/supabase';
-import { obtenerLeadsAdmin, esAfiliado, type LeadResumenAdmin } from '@/lib/api';
+import { obtenerLeadsAdmin, esAfiliado, calcularCompletitud, type LeadResumenAdmin } from '@/lib/api';
 import { Skeleton } from '@/ui/Skeleton';
 import { Chip } from '@/ui/Chip';
 import { Input } from '@/ui/Input';
@@ -308,6 +308,9 @@ function Tabla({ lista, vacio, modo, onAbrir }: TablaProps) {
               <th scope="col" className="px-4 py-3">DNI</th>
               <th scope="col" className="px-4 py-3">Email</th>
               <th scope="col" className="px-4 py-3">Plan</th>
+              {modo === 'lead' ? (
+                <th scope="col" className="px-4 py-3">Completitud</th>
+              ) : null}
               <th scope="col" className="px-4 py-3">{modo === 'afiliado' ? 'Alta' : 'Estado'}</th>
               <th scope="col" className="px-4 py-3 text-right">Ficha</th>
             </tr>
@@ -325,6 +328,11 @@ function Tabla({ lista, vacio, modo, onAbrir }: TablaProps) {
                   <td className="whitespace-nowrap px-4 py-3 text-ink-700">{l.dni ?? '—'}</td>
                   <td className="whitespace-nowrap px-4 py-3 text-ink-700">{l.email}</td>
                   <td className="whitespace-nowrap px-4 py-3 text-ink-700">{l.item_nombre ?? '—'}</td>
+                  {modo === 'lead' ? (
+                    <td className="whitespace-nowrap px-4 py-3">
+                      <BarraCompletitud porcentaje={calcularCompletitud(l)} />
+                    </td>
+                  ) : null}
                   <td className="whitespace-nowrap px-4 py-3">
                     {modo === 'afiliado' ? (
                       <span className="text-ink-700">{formatearFecha(l.created_at)}</span>
@@ -352,6 +360,25 @@ function Tabla({ lista, vacio, modo, onAbrir }: TablaProps) {
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Barra de completitud del perfil. Pinta ok / warn / danger según el
+ * porcentaje y agrega el número a la derecha. La métrica se calcula con
+ * `calcularCompletitud` desde lib/api — mide solo los datos que el usuario
+ * carga (ignora sf_*, mp_*, utm_*, familiares).
+ */
+function BarraCompletitud({ porcentaje }: { porcentaje: number }) {
+  const tono =
+    porcentaje >= 80 ? 'bg-ok-500' : porcentaje >= 40 ? 'bg-warn-500' : 'bg-danger-500';
+  return (
+    <div className="flex min-w-[140px] items-center gap-2">
+      <div className="h-1.5 flex-1 overflow-hidden rounded-pill bg-ink-100">
+        <div className={cn('h-full rounded-pill transition-all', tono)} style={{ width: `${porcentaje}%` }} />
+      </div>
+      <span className="tabular-nums text-xs font-medium text-ink-700">{porcentaje}%</span>
     </div>
   );
 }

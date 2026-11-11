@@ -436,6 +436,48 @@ export interface LeadResumenAdmin {
   item_nombre: string | null;
   mp_status: string | null;
   created_at: string;
+  /** JSON del perfil wizard (sexo, tipoDocumento, numeroDocumento,
+   *  fechaNacimiento, domicilio). Lo usa `calcularCompletitud` para el
+   *  porcentaje que ve el admin en la tabla de Leads. */
+  perfil: Record<string, unknown> | null;
+}
+
+/**
+ * Porcentaje 0–100 de perfil del titular. Mide SOLO los datos que el usuario
+ * carga (nombre/apellido/email/telefono/dni + perfil + domicilio), ignorando
+ * los campos transaccionales que se completan solos (sf_*, mp_*, utm_*).
+ * No considera familiares — el titular es el único que accede a cobertura.
+ *
+ * Campos obligatorios (12):
+ *   - Contacto: nombre, apellido, email, telefono, dni
+ *   - Identidad: sexo, fechaNacimiento
+ *   - Domicilio: calle, numero, localidad, provincia, cp, pais
+ *     (piso / depto / torre se excluyen: no aplican a todos los domicilios)
+ */
+export function calcularCompletitud(lead: LeadResumenAdmin): number {
+  const perfil = lead.perfil ?? {};
+  const dom =
+    perfil && typeof (perfil as Record<string, unknown>).domicilio === 'object'
+      ? ((perfil as Record<string, unknown>).domicilio as Record<string, unknown>)
+      : {};
+  const campos: Array<unknown> = [
+    lead.nombre,
+    lead.apellido,
+    lead.email,
+    lead.telefono,
+    lead.dni,
+    (perfil as Record<string, unknown>).sexo,
+    lead.fecha_nacimiento ?? (perfil as Record<string, unknown>).fechaNacimiento,
+    dom.calle,
+    dom.numero,
+    dom.localidad,
+    dom.provincia,
+    dom.cp,
+    dom.pais,
+  ];
+  // Total = 13 campos. Un string vacío o null no cuenta.
+  const completados = campos.filter((v) => typeof v === 'string' && v.trim().length > 0).length;
+  return Math.round((completados / campos.length) * 100);
 }
 
 export async function obtenerLeadsAdmin(accessToken: string): Promise<LeadResumenAdmin[]> {
