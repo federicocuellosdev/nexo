@@ -126,6 +126,39 @@ adminRouter.get('/admin/metrics', requerirAdmin, async (_req, res) => {
 });
 
 /**
+ * Lista de etiquetas (categorías / grupos) usadas por los vendedores. Se
+ * deriva con DISTINCT sobre v3.vendedores.etiqueta — no mantenemos tabla
+ * propia para no tener que sincronizar los dos lados. El frontend muestra
+ * estos valores como lista + botón 'Crear etiqueta' para agregar uno nuevo
+ * (que al guardar queda como string en la fila del vendedor).
+ */
+adminRouter.get('/admin/etiquetas', requerirAdmin, async (_req, res) => {
+  const { data, error } = await supabaseAdmin
+    .schema('v3')
+    .from('vendedores')
+    .select('etiqueta')
+    .not('etiqueta', 'is', null)
+    .order('etiqueta', { ascending: true });
+
+  if (error) {
+    console.error('[GET /admin/etiquetas] db error', error);
+    return res.status(500).json({ ok: false, error: 'db_error' });
+  }
+
+  const vistas = new Set<string>();
+  const etiquetas: string[] = [];
+  for (const row of data ?? []) {
+    const et = typeof row.etiqueta === 'string' ? row.etiqueta.trim() : '';
+    if (et !== '' && !vistas.has(et)) {
+      vistas.add(et);
+      etiquetas.push(et);
+    }
+  }
+
+  return res.status(200).json({ ok: true, etiquetas });
+});
+
+/**
  * Lista de vendedores del programa de ventas. Cada uno tiene un id que viaja
  * como `?ref=` en su URL personal y le atribuye las ventas generadas por ese
  * link. NO son clientes — los clientes viven en v3.leads. `etiqueta` agrupa
