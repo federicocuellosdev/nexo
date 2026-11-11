@@ -68,6 +68,15 @@ export function FichaLead({ leadId, nombre, descripcion, onVolver }: FichaLeadPr
   }, [leadId]);
 
   const pausadaInicial = lead?.cobertura_pausada === true;
+  // Afiliado = pagó + perfil completo. Solo para afiliados aplica el
+  // concepto de "cobertura" (activa/pausada); un lead a secas es nada más
+  // un usuario con datos y acceso a la app.
+  const tieneCobertura =
+    lead?.mp_status === 'authorized' &&
+    typeof lead?.dni === 'string' &&
+    lead.dni.length > 0 &&
+    typeof lead?.fecha_nacimiento === 'string' &&
+    lead.fecha_nacimiento.length > 0;
 
   return (
     <div data-entrada className="flex flex-col gap-6">
@@ -76,7 +85,7 @@ export function FichaLead({ leadId, nombre, descripcion, onVolver }: FichaLeadPr
           <ArrowLeft size={16} aria-hidden="true" />
           Volver
         </Button>
-        {lead ? (
+        {lead && tieneCobertura ? (
           <SwitchCobertura
             leadId={leadId}
             pausadaInicial={pausadaInicial}
@@ -173,15 +182,13 @@ function TarjetaIdentidad({ lead, fallbackNombre, fallbackEmail }: TarjetaIdenti
   const conCobertura = estadoMp === 'authorized' && perfilCompleto;
   const pausada = lead.cobertura_pausada === true;
 
-  const chip = pausada
-    ? { tono: 'neutro' as const, texto: 'Cobertura pausada' }
-    : conCobertura
-      ? { tono: 'ok' as const, texto: 'Con cobertura' }
-      : estadoMp === 'authorized'
-        ? { tono: 'warn' as const, texto: 'Pagó · falta perfil' }
-        : estadoMp
-          ? { tono: 'neutro' as const, texto: estadoMp }
-          : { tono: 'neutro' as const, texto: 'Sin pagar' };
+  // Solo los afiliados (pagaron + perfil completo) tienen "cobertura". El
+  // resto son leads: un usuario con datos y acceso a la app web, sin más.
+  const chip = conCobertura
+    ? pausada
+      ? { tono: 'neutro' as const, texto: 'Cobertura pausada' }
+      : { tono: 'ok' as const, texto: 'Con cobertura' }
+    : { tono: 'neutro' as const, texto: 'Acceso a la app web' };
 
   return (
     <section
