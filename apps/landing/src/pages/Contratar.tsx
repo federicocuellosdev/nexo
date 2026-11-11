@@ -10,6 +10,7 @@ import { cn } from '@/lib/cn';
 import { portalUrl } from '@/lib/urls';
 import { guardarHandoff } from '@/lib/handoff';
 import { crearLead, ApiError } from '@/lib/api';
+import { capturarTrazabilidad } from '@/lib/trazabilidad';
 import { buscarPlan, buscarProducto } from '@/mock/planes';
 import {
   DATOS_ALTA_VACIOS,
@@ -161,6 +162,8 @@ function AltaCard({ item }: AltaCardProps) {
         itemId: item.id,
         itemNombre: item.nombre,
         ...usuario,
+        canal: 'landing',
+        ...capturarTrazabilidad(),
       });
       guardarHandoff({ intent: 'alta', tipo: item.tipo, id: item.id, usuario });
       void navegar('/revisa-tu-mail');

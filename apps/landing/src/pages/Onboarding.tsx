@@ -19,6 +19,7 @@ import {
   ApiError,
   type BeneficiarioOnboarding,
 } from '@/lib/api';
+import { capturarTrazabilidad } from '@/lib/trazabilidad';
 
 /**
  * Onboarding público usado por vendedores en calle. 5 pasos que siguen el
@@ -210,6 +211,7 @@ export function Onboarding() {
         // Trazabilidad: marcamos canal + vendedor atribuido (si vino en ?ref=).
         canal: 'onboarding',
         ...(vendedorId ? { vendedorId } : {}),
+        ...capturarTrazabilidad(),
       });
 
       await guardarPerfilOnboarding(resLead.leadId, {

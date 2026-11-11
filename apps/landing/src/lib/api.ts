@@ -23,6 +23,18 @@ export interface PayloadCrearLead {
   /** UUID del vendedor que atribuyó esta venta (viene del ?ref= en
    *  /onboarding). Se persiste en v3.leads.vendedor_id. */
   vendedorId?: string;
+  // Marketing attribution (UTMs + click IDs + referrer + landing URL). Se
+  // capturan con `capturarTrazabilidad()` desde el browser al momento del
+  // alta. Cada campo es opcional porque muchos leads entran directo.
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
+  utmTerm?: string;
+  utmContent?: string;
+  fbclid?: string;
+  gclid?: string;
+  referer?: string;
+  landingUrl?: string;
 }
 
 export interface RespuestaCrearLead {

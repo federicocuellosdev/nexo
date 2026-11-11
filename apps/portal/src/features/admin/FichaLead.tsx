@@ -279,7 +279,7 @@ function ColumnaDatos({ lead, beneficiarios, vendedor }: ColumnaDatosProps) {
       ) : null}
 
       <Seccion titulo="Trazabilidad">
-        <Dato etiqueta="Canal" valor={canal} />
+        <Dato etiqueta="Canal" valor={<Chip tono="marca">{canal}</Chip>} />
         <Dato etiqueta="Alta" valor={formatearFecha(lead.created_at)} />
         {vendedor ? (
           <>
@@ -297,6 +297,29 @@ function ColumnaDatos({ lead, beneficiarios, vendedor }: ColumnaDatosProps) {
         ) : (
           <Dato etiqueta="Vendedor" valor={<span className="text-ink-500">Sin atribución (directo)</span>} />
         )}
+        <Dato etiqueta="Origen (utm_source)" valor={formatearValor(lead.utm_source)} />
+        <Dato etiqueta="Medio (utm_medium)" valor={formatearValor(lead.utm_medium)} />
+        <Dato etiqueta="Campaña (utm_campaign)" valor={formatearValor(lead.utm_campaign)} />
+        <Dato etiqueta="Término (utm_term)" valor={formatearValor(lead.utm_term)} />
+        <Dato etiqueta="Contenido (utm_content)" valor={formatearValor(lead.utm_content)} />
+        <Dato
+          etiqueta="Facebook click (fbclid)"
+          valor={<span className="font-mono text-xs">{formatearValor(lead.fbclid)}</span>}
+        />
+        <Dato
+          etiqueta="Google click (gclid)"
+          valor={<span className="font-mono text-xs">{formatearValor(lead.gclid)}</span>}
+        />
+        <Dato
+          etiqueta="Referer"
+          valor={<span className="font-mono text-xs break-all">{formatearValor(lead.referer)}</span>}
+          ancho="completo"
+        />
+        <Dato
+          etiqueta="Landing URL"
+          valor={<span className="font-mono text-xs break-all">{formatearValor(lead.landing_url)}</span>}
+          ancho="completo"
+        />
       </Seccion>
 
       <Seccion titulo="Salesforce">
