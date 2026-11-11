@@ -58,3 +58,69 @@ export async function crearLead(payload: PayloadCrearLead): Promise<RespuestaCre
 
   return data;
 }
+
+// ───────────────────── /onboarding (vendedores en calle) ─────────────────────
+// El wizard de /onboarding encadena 3 endpoints existentes:
+//   1. POST /api/leads               → crea lead + envía magic link al cliente
+//   2. POST /api/leads/:id/perfil    → persiste perfil completo
+//   3. POST /api/subscriptions       → crea preapproval en MP, devuelve init_point
+// El vendedor muestra el init_point al cliente (QR o link) para que pague.
+
+export interface PayloadPerfilOnboarding {
+  perfil: {
+    tipoDocumento: 'DNI' | 'Pasaporte';
+    numeroDocumento: string;
+    sexo: 'F' | 'M' | 'X';
+    fechaNacimiento: string; // YYYY-MM-DD
+    domicilio: {
+      calle: string;
+      numero: string;
+      piso?: string;
+      departamento?: string;
+      torre?: string;
+      localidad: string;
+      provincia: string;
+      cp: string;
+      pais: string;
+    };
+  };
+  beneficiarios: [];
+  familiaresCount: number;
+}
+
+export async function guardarPerfilOnboarding(leadId: string, payload: PayloadPerfilOnboarding): Promise<void> {
+  const res = await fetch(`${API_URL}/api/leads/${leadId}/perfil`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const cuerpo = (await res.json().catch(() => ({ ok: false, error: 'network' }))) as ErrorApi;
+    throw new ApiError(cuerpo, res.status);
+  }
+}
+
+export interface RespuestaSuscripcion {
+  preapprovalId: string;
+  initPoint: string;
+}
+
+export async function crearSuscripcionOnboarding(payload: {
+  planId: string;
+  planNombre: string;
+  monto: number;
+  emailMp: string;
+  leadId: string;
+}): Promise<RespuestaSuscripcion> {
+  const res = await fetch(`${API_URL}/api/subscriptions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const cuerpo = (await res.json().catch(() => ({ ok: false, error: 'network' }))) as ErrorApi;
+    throw new ApiError(cuerpo, res.status);
+  }
+  const data = (await res.json()) as { ok: true } & RespuestaSuscripcion;
+  return { preapprovalId: data.preapprovalId, initPoint: data.initPoint };
+}

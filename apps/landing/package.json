@@ -3,7 +3,9 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
@@ -14,6 +16,7 @@
     "e2e": "playwright test"
   },
   "dependencies": {
+    "@paulmillr/qr": "^0.3.0",
     "@radix-ui/react-dialog": "1.1.23",
     "@radix-ui/react-tabs": "1.1.21",
     "lucide-react": "1.42.0",
