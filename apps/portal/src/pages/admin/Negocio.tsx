@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Search, X } from 'lucide-react';
+import { cn } from '@/lib/cn';
 import { supabase } from '@/lib/supabase';
 import { obtenerLeadsAdmin, esAfiliado, type LeadResumenAdmin } from '@/lib/api';
 import { Skeleton } from '@/ui/Skeleton';
 import { Chip } from '@/ui/Chip';
 import { Input } from '@/ui/Input';
 import { Field } from '@/ui/Field';
-import { Select } from '@/ui/Select';
 import { Tabs, TabPanel, type ItemTab } from '@/ui/Tabs';
 import { FichaLead } from '@/features/admin/FichaLead';
 
@@ -18,13 +18,13 @@ const ITEMS: ItemTab<Pestana>[] = [
   { valor: 'leads', label: 'Leads' },
 ];
 
-const OPCIONES_RANGO = [
-  { value: 'mes', label: 'Este mes' },
-  { value: '7', label: 'Últimos 7 días' },
-  { value: '14', label: 'Últimos 14 días' },
-  { value: '30', label: 'Últimos 30 días' },
-  { value: 'personalizado', label: 'Personalizado' },
-  { value: 'todo', label: 'Todo' },
+const OPCIONES_RANGO: Array<{ valor: Rango; label: string }> = [
+  { valor: 'mes', label: 'Este mes' },
+  { valor: '7', label: '7 días' },
+  { valor: '14', label: '14 días' },
+  { valor: '30', label: '30 días' },
+  { valor: 'personalizado', label: 'Personalizado' },
+  { valor: 'todo', label: 'Todo' },
 ];
 
 function nombreCompleto(l: LeadResumenAdmin): string {
@@ -162,42 +162,58 @@ export function AdminNegocio() {
         </p>
       ) : null}
 
-      {/* Filtros: buscador (ocupa el espacio) + rango temporal. Cuando
-          "Personalizado" activo, aparecen dos inputs de fecha debajo. */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-        <div className="relative flex-1">
-          <Search
-            size={16}
-            aria-hidden="true"
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-500"
-          />
-          <Input
-            id="neg-buscar"
-            type="search"
-            placeholder="Buscar por nombre, email o DNI…"
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            className="pl-9"
-          />
-          {busqueda ? (
+      {/* Buscador. Toma todo el ancho — el rango temporal pasa a botones
+          debajo para que esten siempre visibles sin tener que abrir un
+          dropdown. */}
+      <div className="relative">
+        <Search
+          size={16}
+          aria-hidden="true"
+          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-500"
+        />
+        <Input
+          id="neg-buscar"
+          type="search"
+          placeholder="Buscar por nombre, email o DNI…"
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          className="pl-9"
+        />
+        {busqueda ? (
+          <button
+            type="button"
+            onClick={() => setBusqueda('')}
+            aria-label="Limpiar búsqueda"
+            className="absolute right-2 top-1/2 inline-flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-pill text-ink-500 hover:bg-ink-100 hover:text-ink-800"
+          >
+            <X size={14} />
+          </button>
+        ) : null}
+      </div>
+
+      {/* Rango temporal como grupo de botones (toggle). El activo lleva
+          bg-marca-600 + texto blanco; el resto queda neutro con hover. */}
+      <div role="group" aria-label="Rango temporal" className="flex flex-wrap gap-2">
+        {OPCIONES_RANGO.map((opt) => {
+          const activo = rango === opt.valor;
+          return (
             <button
+              key={opt.valor}
               type="button"
-              onClick={() => setBusqueda('')}
-              aria-label="Limpiar búsqueda"
-              className="absolute right-2 top-1/2 inline-flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-pill text-ink-500 hover:bg-ink-100 hover:text-ink-800"
+              onClick={() => setRango(opt.valor)}
+              aria-pressed={activo}
+              className={cn(
+                'cursor-pointer rounded-pill px-4 py-2 text-sm font-medium transition-colors duration-200',
+                'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca-500',
+                activo
+                  ? 'bg-marca-600 text-white shadow-suave'
+                  : 'bg-white text-ink-700 ring-1 ring-ink-200 hover:bg-ink-50',
+              )}
             >
-              <X size={14} />
+              {opt.label}
             </button>
-          ) : null}
-        </div>
-        <div className="sm:w-56">
-          <Select
-            id="neg-rango"
-            opciones={OPCIONES_RANGO}
-            value={rango}
-            onChange={(v) => setRango(v as Rango)}
-          />
-        </div>
+          );
+        })}
       </div>
 
       {rango === 'personalizado' ? (
