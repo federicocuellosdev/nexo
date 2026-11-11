@@ -104,7 +104,7 @@ export function Home() {
 
         <div
           data-entrada
-          className="mx-auto w-full max-w-[1200px] px-4 pt-20 pb-32 lg:px-8 lg:pt-40 lg:pb-24"
+          className="mx-auto w-full max-w-[1200px] px-4 pt-[60px] pb-32 lg:px-8 lg:pt-[140px] lg:pb-24"
         >
           <p className="font-display text-lg text-marca-100 italic lg:text-xl">(Previnca Salud)</p>
           <h1 className="mt-4 max-w-[14ch] text-4xl text-white lg:text-6xl">Tu salud, resuelta desde el celular</h1>
