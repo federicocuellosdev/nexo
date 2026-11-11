@@ -164,8 +164,9 @@ export function AdminNegocio() {
 
       {/* Buscador + rango temporal en la misma fila. En viewport angosto
           los filtros bajan a su propia línea con wrap. El search tiene
-          max-width para no inflarse y empujar los filtros. */}
-      <div className="flex flex-wrap items-center gap-3">
+          max-width para no inflarse y empujar los filtros. Debajo, una
+          línea tenue separa este bloque de las pestañas. */}
+      <div className="flex flex-wrap items-center gap-3 border-b border-ink-100 pb-5">
         <div className="relative min-w-[240px] max-w-xs flex-1">
           <Search
             size={16}
@@ -193,7 +194,7 @@ export function AdminNegocio() {
           ) : null}
         </div>
 
-        <div role="group" aria-label="Rango temporal" className="flex flex-nowrap gap-2 overflow-x-auto">
+        <div role="group" aria-label="Rango temporal" className="flex flex-wrap gap-2">
           {OPCIONES_RANGO.map((opt) => {
             const activo = rango === opt.valor;
             return (
@@ -203,7 +204,7 @@ export function AdminNegocio() {
                 onClick={() => setRango(opt.valor)}
                 aria-pressed={activo}
                 className={cn(
-                  'shrink-0 cursor-pointer whitespace-nowrap rounded-pill px-4 py-2 text-sm font-medium transition-colors duration-200',
+                  'inline-flex h-11 shrink-0 cursor-pointer items-center whitespace-nowrap rounded-pill px-4 text-sm font-medium transition-colors duration-200',
                   'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca-500',
                   activo
                     ? 'bg-marca-600 text-white shadow-suave'
