@@ -121,12 +121,6 @@ export function AdminVendedores() {
                     DNI
                   </th>
                   <th scope="col" className="px-4 py-3">
-                    Email
-                  </th>
-                  <th scope="col" className="px-4 py-3">
-                    Teléfono
-                  </th>
-                  <th scope="col" className="px-4 py-3">
                     Etiqueta
                   </th>
                   <th scope="col" className="px-4 py-3">
@@ -145,8 +139,6 @@ export function AdminVendedores() {
                     <tr key={v.id} className="hover:bg-ink-50/60">
                       <td className="whitespace-nowrap px-4 py-3 font-medium text-ink-900">{nombre}</td>
                       <td className="whitespace-nowrap px-4 py-3 text-ink-700">{v.dni ?? '—'}</td>
-                      <td className="whitespace-nowrap px-4 py-3 text-ink-700">{v.email}</td>
-                      <td className="whitespace-nowrap px-4 py-3 text-ink-700">{v.telefono ?? '—'}</td>
                       <td className="whitespace-nowrap px-4 py-3">
                         {v.etiqueta ? <Chip tono="marca">{v.etiqueta}</Chip> : <span className="text-ink-400">—</span>}
                       </td>
