@@ -1,26 +1,26 @@
 import { useEffect, useState } from 'react';
-import { Dialog } from '@/ui/Dialog';
-import { Skeleton } from '@/ui/Skeleton';
+import { ArrowLeft } from 'lucide-react';
 import { Chip } from '@/ui/Chip';
+import { Skeleton } from '@/ui/Skeleton';
+import { Button } from '@/ui/Button';
 import { supabase } from '@/lib/supabase';
 import { obtenerLeadDetalle } from '@/lib/api';
 
-export interface FichaLeadDialogProps {
+export interface FichaLeadProps {
   leadId: string;
-  /** Título mostrado (nombre completo del lead desde la tabla). */
   nombre: string;
-  /** Subtítulo contextual (email o estado). */
   descripcion?: string;
-  onCerrar: () => void;
+  /** Vuelve al listado anterior. */
+  onVolver: () => void;
 }
 
 /**
- * Dialog con la ficha completa de un lead (titular). Trae todos los campos
- * de v3.leads + lista de beneficiarios asociados. Se usa desde la sección
- * Negocio tanto para la tabla Afiliados como para la tabla Leads — el
- * contenido es el mismo, solo cambia desde dónde se abre.
+ * Vista full-section de la ficha de un lead (titular). Reemplaza al
+ * dialog: ocupa el espacio del listado de Negocio, con un botón "Volver"
+ * arriba para regresar a la tabla. Trae todos los campos de v3.leads
+ * agrupados por sección + beneficiarios asociados.
  */
-export function FichaLeadDialog({ leadId, nombre, descripcion, onCerrar }: FichaLeadDialogProps) {
+export function FichaLead({ leadId, nombre, descripcion, onVolver }: FichaLeadProps) {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | undefined>(undefined);
   const [lead, setLead] = useState<Record<string, unknown> | null>(null);
@@ -39,7 +39,7 @@ export function FichaLeadDialog({ leadId, nombre, descripcion, onCerrar }: Ficha
         setLead(det.lead);
         setBeneficiarios(det.beneficiarios);
       } catch (err) {
-        console.error('[FichaLeadDialog] error', err);
+        console.error('[FichaLead] error', err);
         if (!cancelado) setError('No pudimos cargar la ficha.');
       } finally {
         if (!cancelado) setCargando(false);
@@ -51,28 +51,33 @@ export function FichaLeadDialog({ leadId, nombre, descripcion, onCerrar }: Ficha
   }, [leadId]);
 
   return (
-    <Dialog
-      abierto
-      onCambio={(abierto) => {
-        if (!abierto) onCerrar();
-      }}
-      titulo={nombre}
-      descripcion={descripcion}
-    >
-      {cargando ? (
-        <div className="flex flex-col gap-2">
-          {[0, 1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-5 w-full" />
-          ))}
-        </div>
-      ) : error ? (
-        <p role="alert" className="rounded-card bg-danger-50 px-4 py-3 text-sm text-danger-700 ring-1 ring-danger-500/30">
-          {error}
-        </p>
-      ) : lead ? (
-        <FichaContenido lead={lead} beneficiarios={beneficiarios} />
-      ) : null}
-    </Dialog>
+    <div data-entrada className="flex flex-col gap-5">
+      <Button type="button" variante="secundario" tamano="sm" className="self-start" onClick={onVolver}>
+        <ArrowLeft size={16} aria-hidden="true" />
+        Volver
+      </Button>
+
+      <div>
+        <h2 className="font-display text-2xl text-ink-950">{nombre}</h2>
+        {descripcion ? <p className="mt-1 text-sm text-ink-600">{descripcion}</p> : null}
+      </div>
+
+      <div className="rounded-card bg-white p-6 shadow-card ring-1 ring-ink-100">
+        {cargando ? (
+          <div className="flex flex-col gap-2">
+            {[0, 1, 2, 3, 4, 5].map((i) => (
+              <Skeleton key={i} className="h-5 w-full" />
+            ))}
+          </div>
+        ) : error ? (
+          <p role="alert" className="text-sm text-danger-700">
+            {error}
+          </p>
+        ) : lead ? (
+          <FichaContenido lead={lead} beneficiarios={beneficiarios} />
+        ) : null}
+      </div>
+    </div>
   );
 }
 
@@ -103,11 +108,6 @@ interface FichaContenidoProps {
   beneficiarios: Array<Record<string, unknown>>;
 }
 
-/**
- * Agrupa los campos de v3.leads por sección (Contacto, Plan, MP, Perfil,
- * Integraciones) para que la ficha se lea como una historia en vez de
- * una lista plana de 30 columnas.
- */
 function FichaContenido({ lead, beneficiarios }: FichaContenidoProps) {
   const perfil = lead.perfil && typeof lead.perfil === 'object' ? (lead.perfil as Record<string, unknown>) : null;
   const domicilio =
@@ -116,7 +116,7 @@ function FichaContenido({ lead, beneficiarios }: FichaContenidoProps) {
       : null;
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       <Seccion titulo="Contacto">
         <Dato label="Nombre" valor={formatearValor(lead.nombre)} />
         <Dato label="Apellido" valor={formatearValor(lead.apellido)} />
@@ -175,16 +175,14 @@ function FichaContenido({ lead, beneficiarios }: FichaContenidoProps) {
         <Seccion titulo={`Beneficiarios (${beneficiarios.length})`}>
           <div className="col-span-full flex flex-col gap-3">
             {beneficiarios.map((b, i) => {
-              const perfilB =
-                b.perfil && typeof b.perfil === 'object' ? (b.perfil as Record<string, unknown>) : null;
+              const perfilB = b.perfil && typeof b.perfil === 'object' ? (b.perfil as Record<string, unknown>) : null;
               return (
                 <div key={String(b.id ?? i)} className="rounded-campo bg-ink-50 p-3">
                   <p className="text-sm font-medium text-ink-900">
                     {formatearValor(b.nombre)} {formatearValor(b.apellido)}
                   </p>
                   <p className="text-xs text-ink-600">
-                    DNI {formatearValor(b.dni)} · Nac.{' '}
-                    {formatearValor(b.fecha_nacimiento)}
+                    DNI {formatearValor(b.dni)} · Nac. {formatearValor(b.fecha_nacimiento)}
                     {perfilB?.relacion ? ` · ${String(perfilB.relacion)}` : ''}
                   </p>
                 </div>
@@ -200,8 +198,8 @@ function FichaContenido({ lead, beneficiarios }: FichaContenidoProps) {
 function Seccion({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
     <section>
-      <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-ink-500">{titulo}</h3>
-      <dl className="grid gap-x-4 gap-y-2 sm:grid-cols-2">{children}</dl>
+      <h3 className="mb-3 text-xs font-medium uppercase tracking-wide text-ink-500">{titulo}</h3>
+      <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">{children}</dl>
     </section>
   );
 }

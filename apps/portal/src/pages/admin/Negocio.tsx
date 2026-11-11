@@ -1,17 +1,30 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ExternalLink } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { obtenerLeadsAdmin, esAfiliado, type LeadResumenAdmin } from '@/lib/api';
 import { Skeleton } from '@/ui/Skeleton';
 import { Chip } from '@/ui/Chip';
+import { Input } from '@/ui/Input';
+import { Field } from '@/ui/Field';
+import { Select } from '@/ui/Select';
 import { Tabs, TabPanel, type ItemTab } from '@/ui/Tabs';
-import { FichaLeadDialog } from '@/features/admin/FichaLeadDialog';
+import { FichaLead } from '@/features/admin/FichaLead';
 
 type Pestana = 'afiliados' | 'leads';
+type Rango = '7' | '14' | '30' | 'mes' | 'personalizado' | 'todo';
 
 const ITEMS: ItemTab<Pestana>[] = [
   { valor: 'afiliados', label: 'Afiliados' },
   { valor: 'leads', label: 'Leads' },
+];
+
+const OPCIONES_RANGO = [
+  { value: 'mes', label: 'Este mes' },
+  { value: '7', label: 'Últimos 7 días' },
+  { value: '14', label: 'Últimos 14 días' },
+  { value: '30', label: 'Últimos 30 días' },
+  { value: 'personalizado', label: 'Personalizado' },
+  { value: 'todo', label: 'Todo' },
 ];
 
 function nombreCompleto(l: LeadResumenAdmin): string {
@@ -26,13 +39,55 @@ function formatearFecha(iso: string): string {
   }
 }
 
+/** Convierte `YYYY-MM-DD` del <input type="date"> a timestamp UTC al inicio
+ *  del día (desde) o al final (hasta). Null si el string es inválido. */
+function isoAStart(iso: string): number | null {
+  if (!iso) return null;
+  const t = new Date(`${iso}T00:00:00`).getTime();
+  return Number.isNaN(t) ? null : t;
+}
+function isoAEnd(iso: string): number | null {
+  if (!iso) return null;
+  const t = new Date(`${iso}T23:59:59.999`).getTime();
+  return Number.isNaN(t) ? null : t;
+}
+
+/** Deriva {desde, hasta} (timestamps) del rango seleccionado. Null =
+ *  sin cota en ese extremo. */
+function resolverRango(rango: Rango, desdeInput: string, hastaInput: string): { desde: number | null; hasta: number | null } {
+  const ahora = Date.now();
+  if (rango === 'todo') return { desde: null, hasta: null };
+  if (rango === 'personalizado') return { desde: isoAStart(desdeInput), hasta: isoAEnd(hastaInput) };
+  if (rango === 'mes') {
+    const hoy = new Date();
+    const primerDia = new Date(hoy.getFullYear(), hoy.getMonth(), 1).getTime();
+    return { desde: primerDia, hasta: null };
+  }
+  const dias = parseInt(rango, 10);
+  return { desde: ahora - dias * 24 * 60 * 60 * 1000, hasta: null };
+}
+
+function filtrar(lista: LeadResumenAdmin[], busqueda: string, desde: number | null, hasta: number | null): LeadResumenAdmin[] {
+  const q = busqueda.trim().toLowerCase();
+  return lista.filter((l) => {
+    const t = new Date(l.created_at).getTime();
+    if (desde !== null && t < desde) return false;
+    if (hasta !== null && t > hasta) return false;
+    if (q === '') return true;
+    const hay =
+      (l.nombre ?? '').toLowerCase().includes(q) ||
+      (l.apellido ?? '').toLowerCase().includes(q) ||
+      l.email.toLowerCase().includes(q) ||
+      (l.dni ?? '').toLowerCase().includes(q);
+    return hay;
+  });
+}
+
 /**
  * Sección "Negocio" del admin. Dos tablas con el mismo backing data
- * (v3.leads) splittea por estado:
- *  - Afiliados: pagaron + perfil completo (DNI + fecha nac).
- *  - Leads: todo el resto del funnel (incluye los sin pagar y los
- *    pagados sin perfil).
- * Click en una fila → dialog con la ficha detallada.
+ * (v3.leads) splittea por estado. Con buscador por nombre/email/DNI y
+ * filtro por rango de fecha de alta. Click en "Ver" abre la ficha
+ * inline reemplazando el listado.
  */
 export function AdminNegocio() {
   const [pestana, setPestana] = useState<Pestana>('afiliados');
@@ -40,6 +95,12 @@ export function AdminNegocio() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | undefined>(undefined);
   const [seleccionado, setSeleccionado] = useState<LeadResumenAdmin | null>(null);
+
+  // Filtros
+  const [busqueda, setBusqueda] = useState('');
+  const [rango, setRango] = useState<Rango>('mes');
+  const [desdeCustom, setDesdeCustom] = useState('');
+  const [hastaCustom, setHastaCustom] = useState('');
 
   const cargar = useCallback(async () => {
     setCargando(true);
@@ -64,21 +125,34 @@ export function AdminNegocio() {
   }, [cargar]);
 
   const { afiliados, enFunnel } = useMemo(() => {
+    const { desde, hasta } = resolverRango(rango, desdeCustom, hastaCustom);
     const afi: LeadResumenAdmin[] = [];
     const fun: LeadResumenAdmin[] = [];
-    for (const l of leads) {
+    for (const l of filtrar(leads, busqueda, desde, hasta)) {
       if (esAfiliado(l)) afi.push(l);
       else fun.push(l);
     }
     return { afiliados: afi, enFunnel: fun };
-  }, [leads]);
+  }, [leads, busqueda, rango, desdeCustom, hastaCustom]);
+
+  // Vista ficha: full-section, sin tabla ni filtros.
+  if (seleccionado) {
+    return (
+      <FichaLead
+        leadId={seleccionado.id}
+        nombre={nombreCompleto(seleccionado)}
+        descripcion={seleccionado.email}
+        onVolver={() => setSeleccionado(null)}
+      />
+    );
+  }
 
   return (
     <div data-entrada className="flex flex-col gap-6">
       <div>
         <h1 className="text-2xl text-ink-950">Negocio</h1>
         <p className="mt-1 text-sm text-ink-600">
-          Afiliados con cobertura activa y leads en el funnel. Click en una fila para ver la ficha.
+          Afiliados con cobertura activa y leads en el funnel. Click en "Ver" para abrir la ficha.
         </p>
       </div>
 
@@ -88,23 +162,71 @@ export function AdminNegocio() {
         </p>
       ) : null}
 
+      {/* Filtros: buscador (ocupa el espacio) + rango temporal. Cuando
+          "Personalizado" activo, aparecen dos inputs de fecha debajo. */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+        <div className="relative flex-1">
+          <Search
+            size={16}
+            aria-hidden="true"
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-500"
+          />
+          <Input
+            id="neg-buscar"
+            type="search"
+            placeholder="Buscar por nombre, email o DNI…"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            className="pl-9"
+          />
+          {busqueda ? (
+            <button
+              type="button"
+              onClick={() => setBusqueda('')}
+              aria-label="Limpiar búsqueda"
+              className="absolute right-2 top-1/2 inline-flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-pill text-ink-500 hover:bg-ink-100 hover:text-ink-800"
+            >
+              <X size={14} />
+            </button>
+          ) : null}
+        </div>
+        <div className="sm:w-56">
+          <Select
+            id="neg-rango"
+            opciones={OPCIONES_RANGO}
+            value={rango}
+            onChange={(v) => setRango(v as Rango)}
+          />
+        </div>
+      </div>
+
+      {rango === 'personalizado' ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Desde" htmlFor="neg-desde">
+            <Input id="neg-desde" type="date" value={desdeCustom} onChange={(e) => setDesdeCustom(e.target.value)} />
+          </Field>
+          <Field label="Hasta" htmlFor="neg-hasta">
+            <Input id="neg-hasta" type="date" value={hastaCustom} onChange={(e) => setHastaCustom(e.target.value)} />
+          </Field>
+        </div>
+      ) : null}
+
       <Tabs valor={pestana} onCambio={setPestana} items={ITEMS} etiqueta="Negocio">
         <TabPanel<Pestana> valor="afiliados">
-          {cargando ? <SkeletonTabla /> : <Tabla lista={afiliados} vacio="Todavía no hay afiliados con cobertura activa." modo="afiliado" onAbrir={setSeleccionado} />}
+          {cargando ? (
+            <SkeletonTabla />
+          ) : (
+            <Tabla lista={afiliados} vacio="No hay afiliados en el rango seleccionado." modo="afiliado" onAbrir={setSeleccionado} />
+          )}
         </TabPanel>
         <TabPanel<Pestana> valor="leads">
-          {cargando ? <SkeletonTabla /> : <Tabla lista={enFunnel} vacio="No hay leads en el funnel." modo="lead" onAbrir={setSeleccionado} />}
+          {cargando ? (
+            <SkeletonTabla />
+          ) : (
+            <Tabla lista={enFunnel} vacio="No hay leads en el rango seleccionado." modo="lead" onAbrir={setSeleccionado} />
+          )}
         </TabPanel>
       </Tabs>
-
-      {seleccionado ? (
-        <FichaLeadDialog
-          leadId={seleccionado.id}
-          nombre={nombreCompleto(seleccionado)}
-          descripcion={seleccionado.email}
-          onCerrar={() => setSeleccionado(null)}
-        />
-      ) : null}
     </div>
   );
 }
@@ -168,10 +290,9 @@ function Tabla({ lista, vacio, modo, onAbrir }: TablaProps) {
                         e.stopPropagation();
                         onAbrir(l);
                       }}
-                      aria-label={`Ver ficha de ${nombre}`}
-                      className="inline-flex size-8 cursor-pointer items-center justify-center rounded-pill text-ink-500 transition-colors hover:bg-marca-50 hover:text-marca-700"
+                      className="inline-flex cursor-pointer items-center rounded-pill bg-marca-50 px-3 py-1 text-xs font-medium text-marca-700 transition-colors hover:bg-marca-100"
                     >
-                      <ExternalLink size={16} />
+                      Ver
                     </button>
                   </td>
                 </tr>
