@@ -13,7 +13,7 @@ import { obtenerMisRoles, type Rol } from '@/lib/api';
 
 const ITEMS_ADMIN: NavItem[] = [
   { to: '/admin/dashboard', label: 'Dashboard', icono: LayoutDashboard },
-  { to: '/admin/afiliados', label: 'Afiliados', icono: Users },
+  { to: '/admin/vendedores', label: 'Vendedores', icono: Users },
 ];
 
 function Marca() {

@@ -5,25 +5,26 @@ import { Field } from '@/ui/Field';
 import { Input } from '@/ui/Input';
 import { Button } from '@/ui/Button';
 import { supabase } from '@/lib/supabase';
-import { editarAfiliadoAdmin, type AfiliadoAdmin } from '@/lib/api';
+import { editarVendedorAdmin, type VendedorAdmin } from '@/lib/api';
 
-export interface EditarAfiliadoDialogProps {
-  afiliado: AfiliadoAdmin;
+export interface EditarVendedorDialogProps {
+  vendedor: VendedorAdmin;
   onCerrar: () => void;
   /** Se llama cuando el PATCH termina OK, para que el caller refresque la lista. */
   onGuardado: () => void;
 }
 
 /**
- * Dialog para editar los datos básicos del titular: nombre, apellido, DNI,
- * teléfono. Email NO es editable — es el identificador en auth.users y
- * cambiarlo rompe la correlación con la sesión.
+ * Dialog para editar los datos del vendedor: nombre, apellido, DNI, teléfono,
+ * etiqueta. Email NO es editable — es la clave humana de la tabla; si hay
+ * que cambiarlo, se borra y se crea de nuevo.
  */
-export function EditarAfiliadoDialog({ afiliado, onCerrar, onGuardado }: EditarAfiliadoDialogProps) {
-  const [nombre, setNombre] = useState(afiliado.nombre);
-  const [apellido, setApellido] = useState(afiliado.apellido);
-  const [dni, setDni] = useState(afiliado.dni ?? '');
-  const [telefono, setTelefono] = useState(afiliado.telefono ?? '');
+export function EditarVendedorDialog({ vendedor, onCerrar, onGuardado }: EditarVendedorDialogProps) {
+  const [nombre, setNombre] = useState(vendedor.nombre);
+  const [apellido, setApellido] = useState(vendedor.apellido);
+  const [dni, setDni] = useState(vendedor.dni ?? '');
+  const [telefono, setTelefono] = useState(vendedor.telefono ?? '');
+  const [etiqueta, setEtiqueta] = useState(vendedor.etiqueta ?? '');
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
 
@@ -41,15 +42,16 @@ export function EditarAfiliadoDialog({ afiliado, onCerrar, onGuardado }: EditarA
       const { data } = await supabase.auth.getSession();
       const token = data.session?.access_token;
       if (!token) throw new Error('sesión expirada');
-      await editarAfiliadoAdmin(token, afiliado.id, {
+      await editarVendedorAdmin(token, vendedor.id, {
         nombre: nombre.trim(),
         apellido: apellido.trim(),
         dni: dni.trim() || undefined,
         telefono: telefono.trim() || undefined,
+        etiqueta: etiqueta.trim() || undefined,
       });
       onGuardado();
     } catch (err) {
-      console.error('[EditarAfiliadoDialog] error', err);
+      console.error('[EditarVendedorDialog] error', err);
       setError('No pudimos guardar los cambios. Probá de nuevo.');
     } finally {
       setGuardando(false);
@@ -62,8 +64,8 @@ export function EditarAfiliadoDialog({ afiliado, onCerrar, onGuardado }: EditarA
       onCambio={(abierto) => {
         if (!abierto) onCerrar();
       }}
-      titulo="Editar afiliado"
-      descripcion={afiliado.email}
+      titulo="Editar vendedor"
+      descripcion={vendedor.email}
     >
       <form onSubmit={guardar} noValidate className="flex flex-col gap-4">
         <div className="grid gap-4 sm:grid-cols-2">
@@ -82,6 +84,14 @@ export function EditarAfiliadoDialog({ afiliado, onCerrar, onGuardado }: EditarA
               inputMode="tel"
               value={telefono}
               onChange={(e) => setTelefono(e.target.value)}
+            />
+          </Field>
+          <Field label="Etiqueta" htmlFor="editar-etiqueta">
+            <Input
+              id="editar-etiqueta"
+              placeholder="PREVINCA, Externos…"
+              value={etiqueta}
+              onChange={(e) => setEtiqueta(e.target.value)}
             />
           </Field>
         </div>

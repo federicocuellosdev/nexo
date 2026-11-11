@@ -1,21 +1,22 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Copy, Pencil, Plus, Check } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { obtenerAfiliadosAdmin, type AfiliadoAdmin } from '@/lib/api';
+import { obtenerVendedoresAdmin, type VendedorAdmin } from '@/lib/api';
 import { landingUrl } from '@/lib/urls';
 import { Skeleton } from '@/ui/Skeleton';
 import { Button } from '@/ui/Button';
-import { EditarAfiliadoDialog } from '@/features/admin/EditarAfiliadoDialog';
-import { AgregarAfiliadoDialog } from '@/features/admin/AgregarAfiliadoDialog';
+import { Chip } from '@/ui/Chip';
+import { EditarVendedorDialog } from '@/features/admin/EditarVendedorDialog';
+import { AgregarVendedorDialog } from '@/features/admin/AgregarVendedorDialog';
 
-function nombreCompleto(a: AfiliadoAdmin): string {
-  return `${a.nombre} ${a.apellido}`.trim();
+function nombreCompleto(v: VendedorAdmin): string {
+  return `${v.nombre} ${v.apellido}`.trim();
 }
 
 /** URL de atribución: si alguien hace alta entrando por ella, la venta
- *  queda referenciada a este afiliado (vendedor). */
-function urlAtribucion(afiliado: AfiliadoAdmin): string {
-  return `${landingUrl()}/catalogo?ref=${afiliado.id}`;
+ *  queda referenciada a este vendedor. */
+function urlAtribucion(vendedor: VendedorAdmin): string {
+  return `${landingUrl()}/onboarding?ref=${vendedor.id}`;
 }
 
 function BotonCopiar({ valor, etiqueta }: { valor: string; etiqueta: string }) {
@@ -44,15 +45,15 @@ function BotonCopiar({ valor, etiqueta }: { valor: string; etiqueta: string }) {
 }
 
 /**
- * Tabla de afiliados (vendedores del programa). Cada fila es una línea sola
- * sin sub-textos: nombre completo, DNI, email, teléfono, URL de atribución y
- * acciones. Arriba a la derecha el botón '+' para agregar uno nuevo.
+ * Tabla de vendedores (partners del programa de ventas). Cada fila es una
+ * línea sola con: nombre, DNI, email, teléfono, etiqueta, URL de atribución
+ * y acciones. Arriba a la derecha el botón '+' para agregar uno nuevo.
  */
-export function AdminAfiliados() {
-  const [afiliados, setAfiliados] = useState<AfiliadoAdmin[]>([]);
+export function AdminVendedores() {
+  const [vendedores, setVendedores] = useState<VendedorAdmin[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | undefined>(undefined);
-  const [editando, setEditando] = useState<AfiliadoAdmin | null>(null);
+  const [editando, setEditando] = useState<VendedorAdmin | null>(null);
   const [agregando, setAgregando] = useState(false);
 
   const cargar = useCallback(async () => {
@@ -63,11 +64,11 @@ export function AdminAfiliados() {
       const { data } = await supabase.auth.getSession();
       const token = data.session?.access_token;
       if (!token) throw new Error('sesión expirada');
-      const lista = await obtenerAfiliadosAdmin(token);
-      setAfiliados(lista);
+      const lista = await obtenerVendedoresAdmin(token);
+      setVendedores(lista);
     } catch (err) {
-      console.error('[AdminAfiliados] fetch error', err);
-      setError('No pudimos cargar los afiliados');
+      console.error('[AdminVendedores] fetch error', err);
+      setError('No pudimos cargar los vendedores');
     } finally {
       setCargando(false);
     }
@@ -81,9 +82,9 @@ export function AdminAfiliados() {
     <div data-entrada className="flex flex-col gap-6">
       <div className="flex items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl text-ink-950">Afiliados</h1>
+          <h1 className="text-2xl text-ink-950">Vendedores</h1>
           <p className="mt-1 text-sm text-ink-600">
-            Vendedores del programa. Cada uno tiene una URL para atribuirse las ventas que genere.
+            Partners del programa de ventas. Cada uno tiene una URL para atribuirse las ventas que genere.
           </p>
         </div>
         <Button onClick={() => setAgregando(true)}>
@@ -104,9 +105,9 @@ export function AdminAfiliados() {
             <Skeleton key={i} className="h-12 w-full" />
           ))}
         </div>
-      ) : afiliados.length === 0 ? (
+      ) : vendedores.length === 0 ? (
         <div className="rounded-card bg-white px-6 py-12 text-center shadow-card ring-1 ring-ink-100">
-          <p className="text-sm text-ink-600">Todavía no hay afiliados cargados.</p>
+          <p className="text-sm text-ink-600">Todavía no hay vendedores cargados.</p>
         </div>
       ) : (
         <div className="overflow-hidden rounded-card bg-white shadow-card ring-1 ring-ink-100">
@@ -127,7 +128,10 @@ export function AdminAfiliados() {
                     Teléfono
                   </th>
                   <th scope="col" className="px-4 py-3">
-                    URL de afiliado
+                    Etiqueta
+                  </th>
+                  <th scope="col" className="px-4 py-3">
+                    URL de vendedor
                   </th>
                   <th scope="col" className="px-4 py-3 text-right">
                     Acciones
@@ -135,15 +139,18 @@ export function AdminAfiliados() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-ink-100">
-                {afiliados.map((a) => {
-                  const url = urlAtribucion(a);
-                  const nombre = nombreCompleto(a);
+                {vendedores.map((v) => {
+                  const url = urlAtribucion(v);
+                  const nombre = nombreCompleto(v);
                   return (
-                    <tr key={a.id} className="hover:bg-ink-50/60">
+                    <tr key={v.id} className="hover:bg-ink-50/60">
                       <td className="whitespace-nowrap px-4 py-3 font-medium text-ink-900">{nombre}</td>
-                      <td className="whitespace-nowrap px-4 py-3 text-ink-700">{a.dni ?? '—'}</td>
-                      <td className="whitespace-nowrap px-4 py-3 text-ink-700">{a.email}</td>
-                      <td className="whitespace-nowrap px-4 py-3 text-ink-700">{a.telefono ?? '—'}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-ink-700">{v.dni ?? '—'}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-ink-700">{v.email}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-ink-700">{v.telefono ?? '—'}</td>
+                      <td className="whitespace-nowrap px-4 py-3">
+                        {v.etiqueta ? <Chip tono="marca">{v.etiqueta}</Chip> : <span className="text-ink-400">—</span>}
+                      </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <code
@@ -158,7 +165,7 @@ export function AdminAfiliados() {
                       <td className="whitespace-nowrap px-4 py-3 text-right">
                         <button
                           type="button"
-                          onClick={() => setEditando(a)}
+                          onClick={() => setEditando(v)}
                           aria-label={`Editar ${nombre}`}
                           className="inline-flex size-8 cursor-pointer items-center justify-center rounded-pill text-ink-500 transition-colors hover:bg-marca-50 hover:text-marca-700"
                         >
@@ -175,8 +182,8 @@ export function AdminAfiliados() {
       )}
 
       {editando ? (
-        <EditarAfiliadoDialog
-          afiliado={editando}
+        <EditarVendedorDialog
+          vendedor={editando}
           onCerrar={() => setEditando(null)}
           onGuardado={() => {
             setEditando(null);
@@ -186,7 +193,7 @@ export function AdminAfiliados() {
       ) : null}
 
       {agregando ? (
-        <AgregarAfiliadoDialog
+        <AgregarVendedorDialog
           onCerrar={() => setAgregando(false)}
           onCreado={() => {
             setAgregando(false);

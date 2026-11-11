@@ -353,41 +353,43 @@ export async function obtenerMetricasAdmin(accessToken: string): Promise<Metrica
   return data.metricas;
 }
 
-export interface AfiliadoAdmin {
+export interface VendedorAdmin {
   id: string;
   nombre: string;
   apellido: string;
   email: string;
   dni: string | null;
   telefono: string | null;
+  etiqueta: string | null;
   fechaAlta: string;
 }
 
-export async function obtenerAfiliadosAdmin(accessToken: string): Promise<AfiliadoAdmin[]> {
-  const respuesta = await fetch(`${API_URL}/api/admin/afiliados`, {
+export async function obtenerVendedoresAdmin(accessToken: string): Promise<VendedorAdmin[]> {
+  const respuesta = await fetch(`${API_URL}/api/admin/vendedores`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   if (!respuesta.ok) {
     const cuerpo = (await respuesta.json().catch(() => ({ ok: false, error: 'network' }))) as ErrorApi;
     throw new ApiError(cuerpo, respuesta.status);
   }
-  const data = (await respuesta.json()) as { ok: true; afiliados: AfiliadoAdmin[] };
-  return data.afiliados;
+  const data = (await respuesta.json()) as { ok: true; vendedores: VendedorAdmin[] };
+  return data.vendedores;
 }
 
-export interface EdicionAfiliado {
+export interface EdicionVendedor {
   nombre?: string;
   apellido?: string;
   dni?: string;
   telefono?: string;
+  etiqueta?: string;
 }
 
-export async function editarAfiliadoAdmin(
+export async function editarVendedorAdmin(
   accessToken: string,
   id: string,
-  patch: EdicionAfiliado,
+  patch: EdicionVendedor,
 ): Promise<void> {
-  const respuesta = await fetch(`${API_URL}/api/admin/afiliados/${id}`, {
+  const respuesta = await fetch(`${API_URL}/api/admin/vendedores/${id}`, {
     method: 'PATCH',
     headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(patch),
@@ -398,16 +400,17 @@ export async function editarAfiliadoAdmin(
   }
 }
 
-export interface AltaAfiliado {
+export interface AltaVendedor {
   nombre: string;
   apellido: string;
   email: string;
   dni?: string;
   telefono?: string;
+  etiqueta?: string;
 }
 
-export async function crearAfiliadoAdmin(accessToken: string, payload: AltaAfiliado): Promise<string> {
-  const respuesta = await fetch(`${API_URL}/api/admin/afiliados`, {
+export async function crearVendedorAdmin(accessToken: string, payload: AltaVendedor): Promise<string> {
+  const respuesta = await fetch(`${API_URL}/api/admin/vendedores`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
