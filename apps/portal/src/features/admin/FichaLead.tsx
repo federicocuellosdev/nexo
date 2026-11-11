@@ -506,8 +506,8 @@ function SwitchCobertura({ leadId, pausadaInicial, onCambio }: SwitchCoberturaPr
     <div className="flex items-center gap-2">
       <span
         className={[
-          'inline-flex h-9 items-center rounded-pill bg-ink-100 px-3 text-sm font-medium',
-          activa ? 'text-ink-700' : 'text-warn-700',
+          'inline-flex h-9 items-center rounded-pill px-3 text-sm font-medium ring-1',
+          activa ? 'bg-ink-100 text-ink-700 ring-ink-200' : 'bg-warn-100 text-warn-800 ring-warn-300',
         ].join(' ')}
       >
         {activa ? 'Activa' : 'Pausada'}
