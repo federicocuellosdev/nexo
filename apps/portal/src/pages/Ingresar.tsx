@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router';
 import { MailCheck } from 'lucide-react';
-import { pedirMagicLink } from '@/lib/api';
+import { obtenerMisRoles, pedirMagicLink } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 import { Field } from '@/ui/Field';
 import { Input } from '@/ui/Input';
@@ -44,10 +44,25 @@ export function Ingresar() {
     let cancelado = false;
     void (async () => {
       try {
-        const { data } = await supabase.auth.getSession();
+        const { data } = await supabase!.auth.getSession();
         if (cancelado) return;
         if (data.session) {
-          navegar('/inicio', { replace: true });
+          // Hay sesión viva: antes de mandarlo a /inicio chequeamos roles.
+          // Si es admin + cliente va al selector; si es solo admin, al
+          // dashboard; si es solo cliente, al portal clásico. Sin este
+          // chequeo, cualquier admin logueado terminaba en /inicio y no
+          // veía nunca /elegir-vista.
+          let destino = '/inicio';
+          try {
+            const roles = await obtenerMisRoles(data.session.access_token);
+            const esAdmin = roles.includes('admin');
+            const esCliente = roles.includes('cliente');
+            if (esAdmin && esCliente) destino = '/elegir-vista';
+            else if (esAdmin) destino = '/admin/dashboard';
+          } catch (err) {
+            console.warn('[ingresar] no se pudieron leer roles', err);
+          }
+          if (!cancelado) navegar(destino, { replace: true });
           return;
         }
       } catch (err) {
