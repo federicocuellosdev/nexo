@@ -55,9 +55,9 @@ function ordenar(prestaciones: Prestacion[]): Prestacion[] {
 export function PlanPrestaciones({ prestaciones, compacto = false }: PlanPrestacionesProps) {
   const ordenadas = ordenar(prestaciones);
   return (
-    <ul className={cn('flex flex-col', compacto ? 'gap-3' : 'divide-y divide-ink-100')}>
+    <ul className="flex flex-col divide-y divide-ink-100">
       {ordenadas.map((prestacion) => (
-        <li key={prestacion.label} className={cn('flex items-start gap-3', compacto ? '' : 'py-3')}>
+        <li key={prestacion.label} className={cn('flex items-start gap-3', compacto ? 'py-2.5' : 'py-3')}>
           <Icon
             icono={GLIFO[prestacion.estado]}
             tono={TONO[prestacion.estado]}

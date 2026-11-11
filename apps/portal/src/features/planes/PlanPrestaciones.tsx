@@ -1,107 +1,85 @@
-import { CircleAlert } from 'lucide-react';
-import type { Prestacion } from '@/mock/planes';
-import { Chip } from '@/ui/Chip';
+import type { EstadoPrestacion, Prestacion } from '@/mock/planes';
+import { Icon } from '@/ui/Icon';
 import { cn } from '@/lib/cn';
 import { ETIQUETA, GLIFO, TONO } from '@/features/planes/estadoPrestacion';
 
 export interface PlanPrestacionesProps {
   prestaciones: Prestacion[];
+  /**
+   * Versión apretada para las tarjetas de plan: sin líneas divisorias y con
+   * menos aire vertical. La ficha de plan usa la versión normal, donde la
+   * lista ES el contenido y puede respirar.
+   */
+  compacto?: boolean;
 }
 
-/**
- * Tabla de prestaciones del plan. Desktop usa `<table>` real (semántica
- * correcta para datos tabulares, mejor para lectores de pantalla y para copy
- * de la tabla a otro lado). Mobile cae en una lista apilada porque tres
- * columnas angostas se vuelven ilegibles en < 640px.
- */
-export function PlanPrestaciones({ prestaciones }: PlanPrestacionesProps) {
-  return (
-    <>
-      {/* Desktop: tabla con encabezados Prestación / Estado / Detalle.
-          El borde inferior de cada row da ritmo visual; hover con bg-ink-50/50
-          ayuda a seguir una fila larga sin perder el renglón. */}
-      {/* Celdas sin padding horizontal en los extremos para que el texto de
-          la primera columna arranque alineado con el h2 'Nexo III' y la
-          última columna llegue hasta el borde derecho. La separación entre
-          columnas intermedias sale del pr-6 de cada celda (menos la ultima). */}
-      <table className="hidden w-full border-collapse text-left sm:table">
-        <thead>
-          <tr className="border-b border-ink-100 text-xs font-medium uppercase tracking-wide text-ink-500">
-            <th scope="col" className="pb-3 pr-6 pt-2 font-medium">
-              Prestación
-            </th>
-            <th scope="col" className="pb-3 pr-6 pt-2 font-medium">
-              Estado
-            </th>
-            <th scope="col" className="pb-3 pt-2 font-medium">
-              Detalle
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-ink-100">
-          {prestaciones.map((prestacion) => (
-            <tr key={prestacion.label} className="align-top">
-              <td className="py-3 pr-6">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span
-                    className={cn(
-                      'text-sm font-medium',
-                      prestacion.estado === 'no-incluido'
-                        ? 'text-ink-400 line-through'
-                        : 'text-ink-900',
-                    )}
-                  >
-                    {prestacion.label}
-                  </span>
-                  {prestacion.pendiente ? (
-                    <Chip tono="warn" icono={CircleAlert}>
-                      a confirmar
-                    </Chip>
-                  ) : null}
-                </div>
-              </td>
-              <td className="py-3 pr-6">
-                <Chip tono={TONO[prestacion.estado]} icono={GLIFO[prestacion.estado]}>
-                  {ETIQUETA[prestacion.estado]}
-                </Chip>
-              </td>
-              <td className="py-3 text-sm text-ink-600">
-                {prestacion.detalle ?? <span className="text-ink-300">—</span>}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+// Orden visual: lo que el plan te DA primero (incluido), después lo que
+// comparte el costo (coseguro), al final lo que NO tiene (no-incluido).
+// Los `no-incluido` agrupados al pie dejan la tarjeta con el valor arriba
+// y el "no" al final, que facilita comparar entre los 3 planes de un vistazo.
+const PESO_ESTADO: Record<EstadoPrestacion, number> = {
+  incluido: 0,
+  coseguro: 1,
+  'no-incluido': 2,
+};
 
-      {/* Mobile: cada prestación en su propia caja. El chip queda a la
-          derecha del título en flex-wrap, y el detalle va debajo. */}
-      <ul className="flex flex-col divide-y divide-ink-100 sm:hidden">
-        {prestaciones.map((prestacion) => (
-          <li key={prestacion.label} className="flex flex-col gap-2 py-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span
-                className={cn(
-                  'text-sm font-medium',
-                  prestacion.estado === 'no-incluido' ? 'text-ink-400 line-through' : 'text-ink-900',
-                )}
-              >
-                {prestacion.label}
-              </span>
-              <Chip tono={TONO[prestacion.estado]} icono={GLIFO[prestacion.estado]}>
-                {ETIQUETA[prestacion.estado]}
-              </Chip>
-            </div>
-            {prestacion.pendiente ? (
-              <Chip tono="warn" icono={CircleAlert}>
-                a confirmar
-              </Chip>
-            ) : null}
+// Orden canónico de labels. Los 3 planes repiten las mismas prestaciones con
+// distintos estados, así que si todos las muestran en el mismo orden la
+// comparación fila a fila es inmediata. Las que no aparezcan en este map
+// caen al final en el orden en que vinieron (estable gracias al index).
+const PESO_LABEL: Record<string, number> = {
+  'Seguro de Salud I': 0,
+  'Seguro de Salud II': 1,
+  'Emergencias médicas': 2,
+  'Médico a domicilio': 3,
+  'Guardia odontológica': 4,
+  'Farmacia': 5,
+  'Óptica': 6,
+  'Doc24 · Clínica': 7,
+  'Doc24 · Psicología': 8,
+};
+
+function ordenar(prestaciones: Prestacion[]): Prestacion[] {
+  return [...prestaciones]
+    .map((p, i) => ({ p, i }))
+    .sort((a, b) => {
+      const estado = PESO_ESTADO[a.p.estado] - PESO_ESTADO[b.p.estado];
+      if (estado !== 0) return estado;
+      const labelA = PESO_LABEL[a.p.label] ?? 99 + a.i;
+      const labelB = PESO_LABEL[b.p.label] ?? 99 + b.i;
+      return labelA - labelB;
+    })
+    .map(({ p }) => p);
+}
+
+export function PlanPrestaciones({ prestaciones, compacto = false }: PlanPrestacionesProps) {
+  const ordenadas = ordenar(prestaciones);
+  return (
+    <ul className="flex flex-col divide-y divide-ink-100">
+      {ordenadas.map((prestacion) => (
+        <li key={prestacion.label} className={cn('flex items-start gap-3', compacto ? 'py-2.5' : 'py-3')}>
+          <Icon
+            icono={GLIFO[prestacion.estado]}
+            tono={TONO[prestacion.estado]}
+            tamano="sm"
+            etiqueta={ETIQUETA[prestacion.estado]}
+          />
+          <div className="min-w-0 flex-1">
+            <span
+              className={cn(
+                'block',
+                compacto ? 'text-sm' : 'text-base',
+                prestacion.estado === 'no-incluido' ? 'text-ink-400 line-through' : 'text-ink-900',
+              )}
+            >
+              {prestacion.label}
+            </span>
             {prestacion.detalle ? (
-              <p className="text-sm text-ink-600">{prestacion.detalle}</p>
+              <p className={cn('mt-0.5 text-ink-600', compacto ? 'text-xs' : 'text-sm')}>{prestacion.detalle}</p>
             ) : null}
-          </li>
-        ))}
-      </ul>
-    </>
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }
