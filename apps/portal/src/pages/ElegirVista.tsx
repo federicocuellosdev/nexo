@@ -50,7 +50,7 @@ export function ElegirVista() {
           <button
             type="button"
             onClick={() => navegar('/inicio')}
-            className="group flex flex-col items-start gap-5 rounded-card bg-white p-6 text-left shadow-card ring-1 ring-ink-100 transition-all hover:ring-marca-500 motion-safe:hover:-translate-y-0.5 lg:p-8"
+            className="group flex cursor-pointer flex-col items-start gap-5 rounded-card bg-white p-6 text-left shadow-card ring-1 ring-ink-100 transition-all hover:ring-marca-500 motion-safe:hover:-translate-y-0.5 lg:p-8"
           >
             <span
               aria-hidden="true"
@@ -72,7 +72,7 @@ export function ElegirVista() {
           <button
             type="button"
             onClick={() => navegar('/admin/dashboard')}
-            className="group flex flex-col items-start gap-5 rounded-card bg-brand-oscurecido p-6 text-left text-white shadow-elevada ring-1 ring-marca-300 transition-all motion-safe:hover:-translate-y-0.5 lg:p-8"
+            className="group flex cursor-pointer flex-col items-start gap-5 rounded-card bg-brand-oscurecido p-6 text-left text-white shadow-elevada ring-1 ring-marca-300 transition-all motion-safe:hover:-translate-y-0.5 lg:p-8"
           >
             <span
               aria-hidden="true"
