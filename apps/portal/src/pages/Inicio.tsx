@@ -532,20 +532,19 @@ export function Inicio() {
         <NovedadesCarousel novedades={NOVEDADES} onInvitar={() => setInvitandoAmigo(true)} />
       </section>
 
-      {/* CTA de cierre: banner con strip de iconos de los servicios +
-          mensaje de referidos. Reusa el DialogoInvitar que ya está en la
-          pantalla, así el usuario no cambia de contexto para invitar. */}
-      {(plan ?? planElegido) ? (() => {
-        const planCta = plan ?? planElegido!;
-        const serviciosCta = planCta.prestaciones.filter((p) => p.estado !== 'no-incluido');
+      {/* CTA de cierre: banner que empuja a terminar la contratación. Solo
+          se muestra si el plan está elegido pero sin pagar — si ya está
+          activo, no hay nada que "avanzar". El strip de iconos funciona
+          como recordatorio visual de lo que se desbloquea al pagar. */}
+      {faltaTerminarCompra && planElegido ? (() => {
+        const serviciosCta = planElegido.prestaciones.filter((p) => p.estado !== 'no-incluido');
         return (
           <section
-            aria-label="Invitá a un amigo"
+            aria-label="Terminar la contratación"
             className="flex flex-col items-center gap-5 rounded-card bg-brand-oscurecido px-6 py-10 text-center shadow-elevada ring-1 ring-marca-300 lg:px-8"
           >
-            {/* Strip de iconos: resumen visual de lo que el amigo recibiría
-                al contratar. Horizontal con separadores en desktop, grilla
-                de 5 columnas apretadas en mobile. */}
+            {/* Strip de iconos: los 5 servicios que se desbloquean al pagar.
+                Wrap en mobile, línea única con gap generoso en desktop. */}
             <div
               aria-hidden="true"
               className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3"
@@ -564,19 +563,18 @@ export function Inicio() {
             </div>
 
             <div className="flex max-w-md flex-col gap-2">
-              <h2 className="font-display text-xl text-white">Invitá a un amigo a Nexo</h2>
+              <h2 className="font-display text-xl text-white">Activá tu cobertura ahora</h2>
               <p className="text-sm text-white/85">
-                Compartile {planCta.nombre} y sumá beneficios cada vez que alguien se activa por tu recomendación.
+                Terminá el pago de {planElegido.nombre} y todos los beneficios quedan disponibles al instante.
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setInvitandoAmigo(true)}
+            <Link
+              to="/pago"
               className="inline-flex h-11 cursor-pointer items-center justify-center rounded-pill bg-white px-6 text-base font-medium text-marca-700 shadow-suave transition-colors duration-200 ease-out-expo hover:bg-ink-50 motion-safe:active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
             >
-              Invitar amigo
-            </button>
+              Terminar de pagar
+            </Link>
           </section>
         );
       })() : null}
