@@ -16,6 +16,10 @@ import { Movimientos } from '@/pages/Movimientos';
 import { Cuenta } from '@/pages/Cuenta';
 import { Demo } from '@/pages/Demo';
 import { Verificar } from '@/pages/Verificar';
+import { ElegirVista } from '@/pages/ElegirVista';
+import { AdminLayout } from '@/layouts/AdminLayout';
+import { AdminDashboard } from '@/pages/admin/Dashboard';
+import { AdminAfiliados } from '@/pages/admin/Afiliados';
 
 /**
  * Se exporta el arreglo además del router para que los tests puedan montar
@@ -31,6 +35,32 @@ export const rutas: RouteObject[] = [
   // farmacia al escanear el QR de la credencial, y quien escanea no tiene —ni
   // debería necesitar— cuenta en el portal.
   { path: '/verificar/:numero', element: <Verificar /> },
+  // Selector cliente/admin: fuera del PortalLayout porque es una pantalla
+  // de transición y no necesita sidebar. El guard de rol está en el
+  // AuthCallback (solo llega acá quien tiene ambos roles).
+  {
+    path: '/elegir-vista',
+    element: (
+      <RequiereUsuario>
+        <ElegirVista />
+      </RequiereUsuario>
+    ),
+  },
+  // Rutas admin: layout propio con sidebar distinta. El AdminLayout re-valida
+  // el rol en cada mount contra /api/me/roles, así nadie llega por URL directa.
+  {
+    path: '/admin',
+    element: (
+      <RequiereUsuario>
+        <AdminLayout />
+      </RequiereUsuario>
+    ),
+    children: [
+      { index: true, element: <Navigate to="/admin/dashboard" replace /> },
+      { path: 'dashboard', element: <AdminDashboard /> },
+      { path: 'afiliados', element: <AdminAfiliados /> },
+    ],
+  },
   {
     path: '/',
     element: (

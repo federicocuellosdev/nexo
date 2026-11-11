@@ -311,3 +311,67 @@ export async function enviarInvitacion(payload: PayloadInvitacion): Promise<void
     throw new ApiError(cuerpo, respuesta.status);
   }
 }
+
+// ──────────────────────────────── Admin ────────────────────────────────
+
+export type Rol = 'cliente' | 'admin';
+
+/**
+ * Devuelve los roles del usuario autenticado. El backend valida el JWT que
+ * mandamos en Authorization: Bearer. Si no hay sesión → 401 (devolvemos
+ * ['cliente'] como fallback para no bloquear la UI si el token expiró).
+ */
+export async function obtenerMisRoles(accessToken: string): Promise<Rol[]> {
+  const respuesta = await fetch(`${API_URL}/api/me/roles`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!respuesta.ok) {
+    // No tiramos ApiError: el caller normal acá es el AuthCallback / layout,
+    // y queremos degradar grácilmente (cliente por default) si algo falla.
+    console.warn('[obtenerMisRoles] respuesta no ok', respuesta.status);
+    return ['cliente'];
+  }
+  const data = (await respuesta.json()) as { ok: true; email: string; roles: Rol[] };
+  return data.roles;
+}
+
+export interface MetricasAdmin {
+  leads: number;
+  pagaron: number;
+  conCobertura: number;
+}
+
+export async function obtenerMetricasAdmin(accessToken: string): Promise<MetricasAdmin> {
+  const respuesta = await fetch(`${API_URL}/api/admin/metrics`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!respuesta.ok) {
+    const cuerpo = (await respuesta.json().catch(() => ({ ok: false, error: 'network' }))) as ErrorApi;
+    throw new ApiError(cuerpo, respuesta.status);
+  }
+  const data = (await respuesta.json()) as { ok: true; metricas: MetricasAdmin };
+  return data.metricas;
+}
+
+export interface AfiliadoAdmin {
+  id: string;
+  email: string;
+  nombre: string | null;
+  apellido: string | null;
+  telefono: string | null;
+  plan: string | null;
+  fechaAlta: string;
+  conCobertura: boolean;
+}
+
+export async function obtenerAfiliadosAdmin(accessToken: string): Promise<AfiliadoAdmin[]> {
+  const respuesta = await fetch(`${API_URL}/api/admin/afiliados`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!respuesta.ok) {
+    const cuerpo = (await respuesta.json().catch(() => ({ ok: false, error: 'network' }))) as ErrorApi;
+    throw new ApiError(cuerpo, respuesta.status);
+  }
+  const data = (await respuesta.json()) as { ok: true; afiliados: AfiliadoAdmin[] };
+  return data.afiliados;
+}

@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { parsearCallback } from '@/lib/callback';
 import { supabase } from '@/lib/supabase';
+import { obtenerMisRoles } from '@/lib/api';
 import { getSession, setSession } from '@/mock/session';
 import { Skeleton } from '@/ui/Skeleton';
 import { LogoNexo } from '@/ui/LogoNexo';
@@ -83,16 +84,29 @@ export function AuthCallback() {
           ...(leadId ? { leadId } : {}),
           ...(dniPrevio === undefined && dniMeta ? { dniLead: dniMeta } : {}),
         });
-        // Entrada por magic link: va a `/inicio` (home del portal), no a
-        // `/bienvenida`. `/bienvenida` es el paso previo al checkout de MP
-        // y se dispara cuando el usuario arranca el flow de pago desde
-        // adentro del portal — no inmediatamente tras verificar el email.
-        //
-        // Hard navigate para que Supabase limpie el hash del URL — el
-        // router mantendría el hash en el history. `BASE_URL` incluye el
-        // subpath (`/app/`) en el deploy unificado landing+portal, y `/` en
-        // dev local → la misma línea sirve para ambos.
-        window.location.replace(`${import.meta.env.BASE_URL}inicio`);
+
+        // Resolver ruta destino según roles:
+        //   - ['cliente']            → /inicio (flujo clásico)
+        //   - ['cliente', 'admin']   → /elegir-vista (selector)
+        //   - ['admin'] sin cliente  → /admin/dashboard (no pasa hoy, pero
+        //                              dejamos previsto el caso)
+        // Si /me/roles falla por cualquier motivo, caemos a /inicio: el
+        // AdminLayout ya revalida y manda a cliente si no corresponde.
+        let destino = 'inicio';
+        try {
+          const token = data.session.access_token;
+          const roles = await obtenerMisRoles(token);
+          const esAdmin = roles.includes('admin');
+          const esCliente = roles.includes('cliente');
+          if (esAdmin && esCliente) destino = 'elegir-vista';
+          else if (esAdmin) destino = 'admin/dashboard';
+          else destino = 'inicio';
+        } catch (err) {
+          console.warn('[auth/callback] no se pudo leer roles, caigo a /inicio', err);
+        }
+
+        // Hard navigate para que Supabase limpie el hash del URL.
+        window.location.replace(`${import.meta.env.BASE_URL}${destino}`);
       })();
       return;
     }
