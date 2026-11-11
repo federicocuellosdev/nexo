@@ -177,7 +177,8 @@ export function AdminNegocio() {
             placeholder="Buscar por nombre, email o DNI…"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            className="rounded-pill! pl-10"
+            className="pl-10"
+            style={{ borderRadius: 100 }}
           />
           {busqueda ? (
             <button
