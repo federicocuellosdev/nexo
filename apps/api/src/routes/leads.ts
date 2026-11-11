@@ -307,6 +307,9 @@ leadsRouter.post('/leads/:id/perfil', async (req, res) => {
   }
   const datos = parsed.data;
 
+  // Además del JSON `perfil`, sincronizamos las columnas top-level `dni` y
+  // `fecha_nacimiento`: el admin las usa para distinguir "pagó" vs
+  // "pagó + con cobertura" (ver `esAfiliado` en portal/lib/api.ts).
   const { data: leadRow, error } = await supabaseAdmin
     .schema('v3')
     .from('leads')
@@ -314,6 +317,8 @@ leadsRouter.post('/leads/:id/perfil', async (req, res) => {
       perfil: datos.perfil,
       beneficiarios: datos.beneficiarios,
       familiares_count: datos.familiaresCount,
+      dni: datos.perfil.numeroDocumento,
+      fecha_nacimiento: datos.perfil.fechaNacimiento,
       perfil_updated_at: new Date().toISOString(),
     })
     .eq('id', id)
@@ -428,10 +433,21 @@ leadsRouter.post('/leads/:id/perfil-paso', async (req, res) => {
     ...(parcial.domicilio ? { domicilio: { ...domicilioActual, ...parcial.domicilio } } : {}),
   };
 
+  // Sincronizamos columnas top-level `dni` y `fecha_nacimiento` cuando el
+  // paso las trae, para que el admin vea "con cobertura" apenas se hayan
+  // cargado (misma razón que en el POST /perfil completo).
+  const syncColumnas: Record<string, string> = {};
+  if (typeof perfilMergeado.numeroDocumento === 'string' && perfilMergeado.numeroDocumento) {
+    syncColumnas.dni = perfilMergeado.numeroDocumento;
+  }
+  if (typeof perfilMergeado.fechaNacimiento === 'string' && perfilMergeado.fechaNacimiento) {
+    syncColumnas.fecha_nacimiento = perfilMergeado.fechaNacimiento;
+  }
+
   const { error: errorUpdate } = await supabaseAdmin
     .schema('v3')
     .from('leads')
-    .update({ perfil: perfilMergeado, perfil_updated_at: new Date().toISOString() })
+    .update({ perfil: perfilMergeado, perfil_updated_at: new Date().toISOString(), ...syncColumnas })
     .eq('id', id);
 
   if (errorUpdate) {
