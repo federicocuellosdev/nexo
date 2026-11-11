@@ -422,3 +422,60 @@ export async function crearVendedorAdmin(accessToken: string, payload: AltaVende
   const data = (await respuesta.json()) as { ok: true; id: string };
   return data.id;
 }
+
+// ─────────────── Negocio (admin: afiliados + leads del funnel) ───────────────
+
+export interface LeadResumenAdmin {
+  id: string;
+  email: string;
+  nombre: string | null;
+  apellido: string | null;
+  telefono: string | null;
+  dni: string | null;
+  fecha_nacimiento: string | null;
+  item_nombre: string | null;
+  mp_status: string | null;
+  created_at: string;
+}
+
+export async function obtenerLeadsAdmin(accessToken: string): Promise<LeadResumenAdmin[]> {
+  const respuesta = await fetch(`${API_URL}/api/admin/leads`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!respuesta.ok) {
+    const cuerpo = (await respuesta.json().catch(() => ({ ok: false, error: 'network' }))) as ErrorApi;
+    throw new ApiError(cuerpo, respuesta.status);
+  }
+  const data = (await respuesta.json()) as { ok: true; leads: LeadResumenAdmin[] };
+  return data.leads;
+}
+
+export interface LeadDetalle {
+  /** Toda la fila de v3.leads tal cual, para mostrarla en la ficha. Queda
+   *  como Record<string, unknown> para evitar mantener el shape redundante
+   *  — la UI accede campo a campo y hace el formateo. */
+  lead: Record<string, unknown>;
+  beneficiarios: Array<Record<string, unknown>>;
+}
+
+export async function obtenerLeadDetalle(accessToken: string, id: string): Promise<LeadDetalle> {
+  const respuesta = await fetch(`${API_URL}/api/admin/leads/${id}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!respuesta.ok) {
+    const cuerpo = (await respuesta.json().catch(() => ({ ok: false, error: 'network' }))) as ErrorApi;
+    throw new ApiError(cuerpo, respuesta.status);
+  }
+  const data = (await respuesta.json()) as {
+    ok: true;
+    lead: Record<string, unknown>;
+    beneficiarios: Array<Record<string, unknown>>;
+  };
+  return { lead: data.lead, beneficiarios: data.beneficiarios };
+}
+
+/** Un lead es "afiliado" (con cobertura) cuando pagó y tiene perfil completo
+ *  (dni + fecha_nacimiento). Igual que la métrica del dashboard. */
+export function esAfiliado(lead: LeadResumenAdmin): boolean {
+  return lead.mp_status === 'authorized' && lead.dni !== null && lead.fecha_nacimiento !== null;
+}

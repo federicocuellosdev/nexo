@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { LayoutDashboard, Users, ArrowLeftRight, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, Briefcase, ArrowLeftRight, LogOut } from 'lucide-react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router';
 import { Sidebar } from '@/ui/Sidebar';
 import { TopBar } from '@/ui/TopBar';
@@ -13,6 +13,7 @@ import { obtenerMisRoles, type Rol } from '@/lib/api';
 
 const ITEMS_ADMIN: NavItem[] = [
   { to: '/admin/dashboard', label: 'Dashboard', icono: LayoutDashboard },
+  { to: '/admin/negocio', label: 'Negocio', icono: Briefcase },
   { to: '/admin/vendedores', label: 'Vendedores', icono: Users },
 ];
 

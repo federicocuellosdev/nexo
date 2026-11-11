@@ -20,6 +20,7 @@ import { ElegirVista } from '@/pages/ElegirVista';
 import { AdminLayout } from '@/layouts/AdminLayout';
 import { AdminDashboard } from '@/pages/admin/Dashboard';
 import { AdminVendedores } from '@/pages/admin/Vendedores';
+import { AdminNegocio } from '@/pages/admin/Negocio';
 
 /**
  * Se exporta el arreglo además del router para que los tests puedan montar
@@ -58,6 +59,7 @@ export const rutas: RouteObject[] = [
     children: [
       { index: true, element: <Navigate to="/admin/dashboard" replace /> },
       { path: 'dashboard', element: <AdminDashboard /> },
+      { path: 'negocio', element: <AdminNegocio /> },
       { path: 'vendedores', element: <AdminVendedores /> },
     ],
   },
