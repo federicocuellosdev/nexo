@@ -313,7 +313,7 @@ adminRouter.get('/admin/leads', requerirAdmin, async (_req, res) => {
   const { data, error } = await supabaseAdmin
     .schema('v3')
     .from('leads')
-    .select('id, email, nombre, apellido, telefono, dni, fecha_nacimiento, item_nombre, mp_status, created_at')
+    .select('id, email, nombre, apellido, telefono, dni, fecha_nacimiento, item_nombre, mp_status, created_at, perfil')
     .eq('es_beneficiario', false)
     .order('created_at', { ascending: false })
     .limit(500);
