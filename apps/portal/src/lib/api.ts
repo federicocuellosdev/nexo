@@ -456,6 +456,9 @@ export interface LeadDetalle {
    *  — la UI accede campo a campo y hace el formateo. */
   lead: Record<string, unknown>;
   beneficiarios: Array<Record<string, unknown>>;
+  /** Vendedor que atribuyó esta venta (si el lead tiene vendedor_id).
+   *  Null cuando el lead vino sin atribución (p. ej. landing directo). */
+  vendedor: Record<string, unknown> | null;
 }
 
 export async function obtenerLeadDetalle(accessToken: string, id: string): Promise<LeadDetalle> {
@@ -470,8 +473,9 @@ export async function obtenerLeadDetalle(accessToken: string, id: string): Promi
     ok: true;
     lead: Record<string, unknown>;
     beneficiarios: Array<Record<string, unknown>>;
+    vendedor: Record<string, unknown> | null;
   };
-  return { lead: data.lead, beneficiarios: data.beneficiarios };
+  return { lead: data.lead, beneficiarios: data.beneficiarios, vendedor: data.vendedor ?? null };
 }
 
 /** Un lead es "afiliado" (con cobertura) cuando pagó y tiene perfil completo

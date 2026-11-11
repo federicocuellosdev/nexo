@@ -17,6 +17,12 @@ export interface PayloadCrearLead {
   /** true = no mandar a Salesforce. Lo usa /onboarding mientras la
    *  integración con SF esté en pruebas. */
   skipSf?: boolean;
+  /** Canal de origen del lead ('landing' | 'onboarding' | …). Se persiste
+   *  en v3.leads.canal para la trazabilidad en la ficha admin. */
+  canal?: string;
+  /** UUID del vendedor que atribuyó esta venta (viene del ?ref= en
+   *  /onboarding). Se persiste en v3.leads.vendedor_id. */
+  vendedorId?: string;
 }
 
 export interface RespuestaCrearLead {

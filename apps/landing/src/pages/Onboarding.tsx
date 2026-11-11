@@ -114,6 +114,12 @@ interface ResultadoOnboarding {
 export function Onboarding() {
   const [parametros] = useSearchParams();
   const modoQR = parametros.get('qr') === 'true';
+  // Vendedor atribuido (viene como ?ref=<uuid>). Si no tiene formato UUID
+  // lo ignoramos — el back valida igual, pero cortarlo acá evita un 400
+  // con el payload entero por un ref malformado en el link compartido.
+  const refParam = parametros.get('ref');
+  const vendedorId =
+    refParam && /^[0-9a-f-]{36}$/i.test(refParam) ? refParam : undefined;
 
   const [paso, setPaso] = useState<Paso>(1);
   const [contacto, setContacto] = useState<DatosContacto>(CONTACTO_VACIO);
@@ -201,6 +207,9 @@ export function Onboarding() {
         // Onboarding de vendedores: NO mandar a SF mientras la integración
         // está en pruebas (ver skipSf en back /leads).
         skipSf: true,
+        // Trazabilidad: marcamos canal + vendedor atribuido (si vino en ?ref=).
+        canal: 'onboarding',
+        ...(vendedorId ? { vendedorId } : {}),
       });
 
       await guardarPerfilOnboarding(resLead.leadId, {

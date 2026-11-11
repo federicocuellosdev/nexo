@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { ArrowLeft, User, CreditCard, MapPin, Puzzle, Users, Compass } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { Chip } from '@/ui/Chip';
 import { Skeleton } from '@/ui/Skeleton';
 import { Button } from '@/ui/Button';
@@ -15,16 +17,17 @@ export interface FichaLeadProps {
 }
 
 /**
- * Vista full-section de la ficha de un lead (titular). Reemplaza al
- * dialog: ocupa el espacio del listado de Negocio, con un botón "Volver"
- * arriba para regresar a la tabla. Trae todos los campos de v3.leads
- * agrupados por sección + beneficiarios asociados.
+ * Vista full-section de la ficha de un lead. Cada sección es una Card propia
+ * (Contacto, Plan, MercadoPago, Domicilio, Trazabilidad, Integraciones,
+ * Familiares) siguiendo el patrón de producción que separa "bloques"
+ * visualmente. Los familiares se muestran como cards en vez de lista plana.
  */
 export function FichaLead({ leadId, nombre, descripcion, onVolver }: FichaLeadProps) {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | undefined>(undefined);
   const [lead, setLead] = useState<Record<string, unknown> | null>(null);
   const [beneficiarios, setBeneficiarios] = useState<Array<Record<string, unknown>>>([]);
+  const [vendedor, setVendedor] = useState<Record<string, unknown> | null>(null);
 
   useEffect(() => {
     let cancelado = false;
@@ -38,6 +41,7 @@ export function FichaLead({ leadId, nombre, descripcion, onVolver }: FichaLeadPr
         if (cancelado) return;
         setLead(det.lead);
         setBeneficiarios(det.beneficiarios);
+        setVendedor(det.vendedor);
       } catch (err) {
         console.error('[FichaLead] error', err);
         if (!cancelado) setError('No pudimos cargar la ficha.');
@@ -62,24 +66,24 @@ export function FichaLead({ leadId, nombre, descripcion, onVolver }: FichaLeadPr
         {descripcion ? <p className="mt-1 text-sm text-ink-600">{descripcion}</p> : null}
       </div>
 
-      <div className="rounded-card bg-white p-6 shadow-card ring-1 ring-ink-100">
-        {cargando ? (
-          <div className="flex flex-col gap-2">
-            {[0, 1, 2, 3, 4, 5].map((i) => (
-              <Skeleton key={i} className="h-5 w-full" />
-            ))}
-          </div>
-        ) : error ? (
-          <p role="alert" className="text-sm text-danger-700">
-            {error}
-          </p>
-        ) : lead ? (
-          <FichaContenido lead={lead} beneficiarios={beneficiarios} />
-        ) : null}
-      </div>
+      {error ? (
+        <p role="alert" className="rounded-card bg-danger-50 px-4 py-3 text-sm text-danger-700 ring-1 ring-danger-500/30">
+          {error}
+        </p>
+      ) : cargando ? (
+        <div className="flex flex-col gap-3">
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="h-32 w-full" />
+          ))}
+        </div>
+      ) : lead ? (
+        <Bloques lead={lead} beneficiarios={beneficiarios} vendedor={vendedor} />
+      ) : null}
     </div>
   );
 }
+
+// ───────────────────────────── Helpers de formato ─────────────────────────────
 
 function formatearValor(valor: unknown): string {
   if (valor === null || valor === undefined || valor === '') return '—';
@@ -88,52 +92,55 @@ function formatearValor(valor: unknown): string {
   return String(valor);
 }
 
-function formatearFecha(iso: unknown): string {
+function formatearFecha(iso: unknown, incluirHora = true): string {
   if (typeof iso !== 'string' || !iso) return '—';
   try {
     return new Date(iso).toLocaleString('es-AR', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+      ...(incluirHora ? { hour: '2-digit', minute: '2-digit' } : {}),
     });
   } catch {
     return iso;
   }
 }
 
-interface FichaContenidoProps {
+// ───────────────────────────── Bloques ─────────────────────────────
+
+interface BloquesProps {
   lead: Record<string, unknown>;
   beneficiarios: Array<Record<string, unknown>>;
+  vendedor: Record<string, unknown> | null;
 }
 
-function FichaContenido({ lead, beneficiarios }: FichaContenidoProps) {
+function Bloques({ lead, beneficiarios, vendedor }: BloquesProps) {
   const perfil = lead.perfil && typeof lead.perfil === 'object' ? (lead.perfil as Record<string, unknown>) : null;
   const domicilio =
     perfil?.domicilio && typeof perfil.domicilio === 'object'
       ? (perfil.domicilio as Record<string, unknown>)
       : null;
+  const canal = typeof lead.canal === 'string' && lead.canal ? lead.canal : null;
 
   return (
-    <div className="flex flex-col gap-6">
-      <Seccion titulo="Contacto">
+    <div className="grid gap-4 lg:grid-cols-2">
+      <Bloque titulo="Contacto" icono={User}>
         <Dato label="Nombre" valor={formatearValor(lead.nombre)} />
         <Dato label="Apellido" valor={formatearValor(lead.apellido)} />
         <Dato label="Email" valor={formatearValor(lead.email)} />
         <Dato label="Teléfono" valor={formatearValor(lead.telefono)} />
         <Dato label="DNI" valor={formatearValor(lead.dni)} />
-        <Dato label="Fecha de nacimiento" valor={formatearValor(lead.fecha_nacimiento)} />
-      </Seccion>
+        <Dato label="Fecha de nacimiento" valor={formatearFecha(lead.fecha_nacimiento, false)} />
+      </Bloque>
 
-      <Seccion titulo="Plan">
+      <Bloque titulo="Plan" icono={Puzzle}>
         <Dato label="Tipo" valor={formatearValor(lead.item_tipo)} />
         <Dato label="Plan" valor={formatearValor(lead.item_nombre)} />
         <Dato label="Slug" valor={formatearValor(lead.item_id)} />
         <Dato label="Familiares" valor={formatearValor(lead.familiares_count)} />
-      </Seccion>
+      </Bloque>
 
-      <Seccion titulo="MercadoPago">
+      <Bloque titulo="MercadoPago" icono={CreditCard}>
         <Dato
           label="Estado"
           valor={
@@ -144,10 +151,10 @@ function FichaContenido({ lead, beneficiarios }: FichaContenidoProps) {
         />
         <Dato label="Preapproval ID" valor={formatearValor(lead.mp_preapproval_id)} />
         <Dato label="Actualizado" valor={formatearFecha(lead.mp_updated_at)} />
-      </Seccion>
+      </Bloque>
 
       {domicilio ? (
-        <Seccion titulo="Domicilio">
+        <Bloque titulo="Domicilio" icono={MapPin}>
           <Dato label="Calle" valor={formatearValor(domicilio.calle)} />
           <Dato label="Número" valor={formatearValor(domicilio.numero)} />
           <Dato label="Piso" valor={formatearValor(domicilio.piso)} />
@@ -157,58 +164,120 @@ function FichaContenido({ lead, beneficiarios }: FichaContenidoProps) {
           <Dato label="Provincia" valor={formatearValor(domicilio.provincia)} />
           <Dato label="Código postal" valor={formatearValor(domicilio.cp)} />
           <Dato label="País" valor={formatearValor(domicilio.pais)} />
-        </Seccion>
+        </Bloque>
       ) : null}
 
-      <Seccion titulo="Integraciones">
+      {/* Trazabilidad: canal + vendedor atribuido. Se muestra siempre; si
+          no hay vendedor dice "Directo", si no hay canal se asume landing. */}
+      <Bloque titulo="Trazabilidad" icono={Compass}>
+        <Dato label="Canal" valor={canal ?? 'landing'} />
+        <Dato label="Alta" valor={formatearFecha(lead.created_at)} />
+        {vendedor ? (
+          <>
+            <Dato label="Vendedor" valor={`${formatearValor(vendedor.nombre)} ${formatearValor(vendedor.apellido)}`.trim()} />
+            <Dato label="Email vendedor" valor={formatearValor(vendedor.email)} />
+            <Dato label="DNI vendedor" valor={formatearValor(vendedor.dni)} />
+            <Dato
+              label="Etiqueta"
+              valor={vendedor.etiqueta ? <Chip tono="marca">{String(vendedor.etiqueta)}</Chip> : '—'}
+            />
+          </>
+        ) : (
+          <Dato label="Vendedor" valor={<span className="text-ink-500">Sin atribución (directo)</span>} />
+        )}
+      </Bloque>
+
+      <Bloque titulo="Integraciones" icono={Puzzle}>
         <Dato label="SF Lead ID" valor={formatearValor(lead.sf_lead_id)} />
         <Dato label="SF Account ID" valor={formatearValor(lead.sf_account_id)} />
         <Dato label="SF Order ID" valor={formatearValor(lead.sf_order_id)} />
         <Dato label="Magic link enviado" valor={formatearFecha(lead.magic_link_sent_at)} />
         <Dato label="Sale sent" valor={formatearFecha(lead.sale_sent_at)} />
         <Dato label="Skip SF" valor={formatearValor(lead.skip_sf)} />
-        <Dato label="Alta" valor={formatearFecha(lead.created_at)} />
         <Dato label="Activado" valor={formatearFecha(lead.activated_at)} />
-      </Seccion>
+      </Bloque>
 
       {beneficiarios.length > 0 ? (
-        <Seccion titulo={`Beneficiarios (${beneficiarios.length})`}>
-          <div className="col-span-full flex flex-col gap-3">
-            {beneficiarios.map((b, i) => {
-              const perfilB = b.perfil && typeof b.perfil === 'object' ? (b.perfil as Record<string, unknown>) : null;
-              return (
-                <div key={String(b.id ?? i)} className="rounded-campo bg-ink-50 p-3">
-                  <p className="text-sm font-medium text-ink-900">
-                    {formatearValor(b.nombre)} {formatearValor(b.apellido)}
-                  </p>
-                  <p className="text-xs text-ink-600">
-                    DNI {formatearValor(b.dni)} · Nac. {formatearValor(b.fecha_nacimiento)}
-                    {perfilB?.relacion ? ` · ${String(perfilB.relacion)}` : ''}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </Seccion>
+        <div className="lg:col-span-2">
+          <BloqueFamiliares beneficiarios={beneficiarios} />
+        </div>
       ) : null}
     </div>
   );
 }
 
-function Seccion({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+// ───────────────────────────── Componentes de bloque ─────────────────────────────
+
+interface BloqueProps {
+  titulo: string;
+  icono: LucideIcon;
+  children: ReactNode;
+}
+
+function Bloque({ titulo, icono: Glifo, children }: BloqueProps) {
   return (
-    <section>
-      <h3 className="mb-3 text-xs font-medium uppercase tracking-wide text-ink-500">{titulo}</h3>
-      <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">{children}</dl>
+    <section className="rounded-card bg-white p-5 shadow-card ring-1 ring-ink-100">
+      <header className="mb-4 flex items-center gap-2">
+        <span aria-hidden="true" className="inline-flex size-7 items-center justify-center rounded-pill bg-marca-50 text-marca-700">
+          <Glifo size={14} strokeWidth={1.75} />
+        </span>
+        <h3 className="text-sm font-medium uppercase tracking-wide text-ink-700">{titulo}</h3>
+      </header>
+      <dl className="grid gap-x-4 gap-y-3 sm:grid-cols-2">{children}</dl>
     </section>
   );
 }
 
-function Dato({ label, valor }: { label: string; valor: React.ReactNode }) {
+function Dato({ label, valor }: { label: string; valor: ReactNode }) {
   return (
     <div className="flex flex-col">
       <dt className="text-xs text-ink-500">{label}</dt>
       <dd className="truncate text-sm text-ink-800">{valor}</dd>
+    </div>
+  );
+}
+
+// ───────────────────────────── Familiares (cards) ─────────────────────────────
+
+function BloqueFamiliares({ beneficiarios }: { beneficiarios: Array<Record<string, unknown>> }) {
+  return (
+    <section className="rounded-card bg-white p-5 shadow-card ring-1 ring-ink-100">
+      <header className="mb-4 flex items-center gap-2">
+        <span aria-hidden="true" className="inline-flex size-7 items-center justify-center rounded-pill bg-marca-50 text-marca-700">
+          <Users size={14} strokeWidth={1.75} />
+        </span>
+        <h3 className="text-sm font-medium uppercase tracking-wide text-ink-700">
+          Familiares ({beneficiarios.length})
+        </h3>
+      </header>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {beneficiarios.map((b, i) => (
+          <CardFamiliar key={String(b.id ?? i)} beneficiario={b} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function CardFamiliar({ beneficiario }: { beneficiario: Record<string, unknown> }) {
+  const perfilB =
+    beneficiario.perfil && typeof beneficiario.perfil === 'object'
+      ? (beneficiario.perfil as Record<string, unknown>)
+      : null;
+  const relacion = perfilB?.relacion;
+  const nombre = `${formatearValor(beneficiario.nombre)} ${formatearValor(beneficiario.apellido)}`.trim();
+
+  return (
+    <div className="flex flex-col gap-2 rounded-campo bg-ink-50 p-4 ring-1 ring-ink-100">
+      <div className="flex items-start justify-between gap-2">
+        <p className="min-w-0 truncate text-sm font-medium text-ink-900">{nombre || '—'}</p>
+        {relacion ? <Chip tono="marca">{String(relacion)}</Chip> : null}
+      </div>
+      <div className="flex flex-col gap-1 text-xs text-ink-600">
+        <span>DNI {formatearValor(beneficiario.dni)}</span>
+        <span>Nacimiento {formatearFecha(beneficiario.fecha_nacimiento, false)}</span>
+        {beneficiario.email ? <span className="truncate">{formatearValor(beneficiario.email)}</span> : null}
+      </div>
     </div>
   );
 }
