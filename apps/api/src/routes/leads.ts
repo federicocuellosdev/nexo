@@ -27,6 +27,11 @@ const PayloadLead = z.object({
   // no mandaban el campo — hasta que el frontend migre a v2 del payload.
   telefono: z.string().regex(/^\d{8,15}$/).optional(),
   dni: z.string().regex(/^\d{7,8}$/),
+  // true = no hacer POST a Salesforce /leads. Lo usa el /onboarding (vendedores
+  // en calle) para que el ensayo no inyecte leads crudos en la cuenta SF
+  // mientras la integracion esta en pruebas. Default false: canal landing
+  // sigue mandando a SF como siempre.
+  skipSf: z.boolean().optional(),
 });
 
 type PayloadLead = z.infer<typeof PayloadLead>;
@@ -57,6 +62,10 @@ leadsRouter.post('/leads', async (req, res) => {
       email: datos.email.toLowerCase(),
       dni: datos.dni,
       ...(datos.telefono ? { telefono: datos.telefono } : {}),
+      // Persistimos el flag en la fila para que cualquier disparo posterior
+      // de SF (sale_intake desde el webhook de pago, additional-sale desde
+      // /familiares, etc.) también lo respete sin tener que pasarlo cada vez.
+      skip_sf: datos.skipSf ?? false,
     })
     .select('id')
     .single();
@@ -66,17 +75,18 @@ leadsRouter.post('/leads', async (req, res) => {
     return res.status(500).json({ ok: false, error: 'db_insert_error' });
   }
 
-  // 2. Envío a Salesforce. Si SF_ENABLED=false devuelve un sfLeadId mock
-  //    sin tocar la red; si está encendido hace el POST real y propaga el
-  //    id devuelto. En cualquier caso guardamos lo que vuelva en la fila:
-  //    así el día que se encienda no tenemos que backfillear nada.
-  const sfResult = await sendLeadIntake({
-    id: leadInsertado.id,
-    firstName: datos.nombre,
-    lastName: datos.apellido,
-    email: datos.email.toLowerCase(),
-    documentNumber: datos.dni,
-  });
+  // 2. Envío a Salesforce. Si viene skipSf=true (caller /onboarding) o si
+  //    SF_ENABLED=false, salteamos el POST y devolvemos un sfLeadId null
+  //    con mock=true. Si no, hace el POST real y propaga el id devuelto.
+  const sfResult = datos.skipSf
+    ? { ok: true as const, mock: true, sfLeadId: null, status: 0, response: null, error: null, payload: { messageId: 'skipped' } }
+    : await sendLeadIntake({
+        id: leadInsertado.id,
+        firstName: datos.nombre,
+        lastName: datos.apellido,
+        email: datos.email.toLowerCase(),
+        documentNumber: datos.dni,
+      });
 
   if (sfResult.sfLeadId) {
     const { error: errorUpdateSf } = await supabaseAdmin
@@ -100,18 +110,22 @@ leadsRouter.post('/leads', async (req, res) => {
   // en el v1/ de los contratos SF, por eso sigue cayendo en la tabla legacy
   // `sf_sync` en vez de una dedicada como las de v2 (sale/additional/order).
   // Fire-and-forget: si falla el log no hace rebotar el alta.
-  await registrarSfSync({
-    leadId: leadInsertado.id,
-    operation: 'lead_intake',
-    endpoint: '/leads',
-    messageId: sfResult.payload.messageId,
-    payload: sfResult.payload,
-    httpStatus: sfResult.status,
-    status: sfResult.ok ? 'success' : 'failed',
-    response: sfResult.response,
-    errorCode: sfResult.error ?? null,
-    sfLeadId: sfResult.sfLeadId,
-  });
+  // No logueamos en sf_sync si skipSf=true (vendedor onboarding) para no
+  // ensuciar la tabla con rows 'skipped' que nunca van a reintentar.
+  if (!datos.skipSf) {
+    await registrarSfSync({
+      leadId: leadInsertado.id,
+      operation: 'lead_intake',
+      endpoint: '/leads',
+      messageId: sfResult.payload.messageId,
+      payload: sfResult.payload,
+      httpStatus: sfResult.status,
+      status: sfResult.ok ? 'success' : 'failed',
+      response: sfResult.response,
+      errorCode: sfResult.error ?? null,
+      sfLeadId: sfResult.sfLeadId,
+    });
+  }
 
   // 3. Generamos el magic link vía Supabase Auth. `type: 'magiclink'` crea el
   //    usuario si no existía (shouldCreateUser default true en magiclink).

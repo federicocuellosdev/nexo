@@ -62,7 +62,7 @@ export async function maybeDispararSaleIntake(leadId: string): Promise<void> {
     .schema('v3')
     .from('leads')
     .select(
-      'id, nombre, apellido, email, item_id, sf_lead_id, mp_status, mp_preapproval_id, perfil, beneficiarios, familiares_count, sale_sent_at',
+      'id, nombre, apellido, email, item_id, sf_lead_id, mp_status, mp_preapproval_id, perfil, beneficiarios, familiares_count, sale_sent_at, skip_sf',
     )
     .eq('id', leadId)
     .maybeSingle();
@@ -71,8 +71,12 @@ export async function maybeDispararSaleIntake(leadId: string): Promise<void> {
     console.warn('[sale-intake-trigger] lead no encontrado', leadId, error);
     return;
   }
-  const row = data as unknown as LeadRow;
+  const row = data as unknown as LeadRow & { skip_sf?: boolean };
 
+  if (row.skip_sf) {
+    console.log('[sale-intake-trigger] skip_sf=true, lead creado desde /onboarding, no disparamos SF', { leadId });
+    return;
+  }
   if (row.sale_sent_at) {
     console.log('[sale-intake-trigger] ya disparado antes, skip', { leadId, sentAt: row.sale_sent_at });
     return;
