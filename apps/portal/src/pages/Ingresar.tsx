@@ -1,11 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
+import { useNavigate } from 'react-router';
 import { MailCheck } from 'lucide-react';
 import { pedirMagicLink } from '@/lib/api';
+import { supabase } from '@/lib/supabase';
 import { Field } from '@/ui/Field';
 import { Input } from '@/ui/Input';
 import { Button, clasesBoton } from '@/ui/Button';
 import { Icon } from '@/ui/Icon';
+import { Skeleton } from '@/ui/Skeleton';
 import { landingUrl } from '@/lib/urls';
 import { LogoNexo, ETIQUETA_MARCA } from '@/ui/LogoNexo';
 
@@ -20,9 +23,42 @@ function validarEmail(email: string): string | undefined {
 }
 
 export function Ingresar() {
+  const navegar = useNavigate();
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | undefined>(undefined);
   const [enviando, setEnviando] = useState(false);
+  // 'cargando' hasta que terminemos el pre-check de sesión. Mientras tanto
+  // no renderizamos el form: evita el flash "tipeá tu email" que se vería a
+  // alguien que ya está logueado antes de redirigirlo a /inicio.
+  const [chequeando, setChequeando] = useState(true);
+
+  useEffect(() => {
+    // Pre-check: si el usuario ya tiene una sesión Supabase válida en
+    // localStorage (persistSession + autoRefreshToken se encargan de
+    // mantenerla viva hasta 30 días), lo mandamos directo a /inicio y nos
+    // ahorramos el magic link. Sin sesión, mostramos el form.
+    if (!supabase) {
+      setChequeando(false);
+      return;
+    }
+    let cancelado = false;
+    void (async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (cancelado) return;
+        if (data.session) {
+          navegar('/inicio', { replace: true });
+          return;
+        }
+      } catch (err) {
+        console.warn('[ingresar] no se pudo leer la sesión de Supabase', err);
+      }
+      if (!cancelado) setChequeando(false);
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, [navegar]);
 
   async function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
@@ -87,31 +123,44 @@ export function Ingresar() {
           la bajada. Es una pantalla de entrada desde afuera y comparte el
           mismo momento que la del post-envío — que se vean hermanas. */}
       <main className="mx-auto w-full max-w-[600px] px-4 py-20 text-center lg:px-8 lg:py-28">
-        <div className="flex justify-center">
-          <Icon icono={MailCheck} tono="marca" tamano="lg" />
-        </div>
+        {chequeando ? (
+          // Skeleton mínimo: no mostramos "Ingresá a tu portal" mientras
+          // el check de sesión corre, porque si hay sesión válida el
+          // usuario nunca debería ver esta pantalla.
+          <div className="mx-auto flex max-w-[440px] flex-col gap-4">
+            <Skeleton className="h-6 w-2/3 self-center" />
+            <Skeleton className="h-11 w-full" />
+            <Skeleton className="h-11 w-full" />
+          </div>
+        ) : (
+          <>
+            <div className="flex justify-center">
+              <Icon icono={MailCheck} tono="marca" tamano="lg" />
+            </div>
 
-        <h1 className="mt-8 font-display text-4xl text-ink-950 italic">Ingresá a tu portal</h1>
+            <h1 className="mt-8 font-display text-4xl text-ink-950 italic">Ingresá a tu portal</h1>
 
-        {/* El formulario mantiene su alineación izquierda y ancho acotado
-            para que el email entre en una sola línea cómoda. */}
-        <form onSubmit={enviar} noValidate className="mx-auto mt-10 flex max-w-[440px] flex-col gap-4 text-left">
-          <Field label="Email" htmlFor="ingresar-email" error={error} requerido>
-            <Input
-              id="ingresar-email"
-              name="email"
-              type="email"
-              inputMode="email"
-              autoComplete="email"
-              value={email}
-              invalido={error !== undefined}
-              onChange={(evento) => setEmail(evento.target.value)}
-            />
-          </Field>
-          <Button type="submit" ancho="full" tamano="lg" disabled={enviando}>
-            {enviando ? 'Enviando…' : 'Enviarme el enlace'}
-          </Button>
-        </form>
+            {/* El formulario mantiene su alineación izquierda y ancho acotado
+                para que el email entre en una sola línea cómoda. */}
+            <form onSubmit={enviar} noValidate className="mx-auto mt-10 flex max-w-[440px] flex-col gap-4 text-left">
+              <Field label="Email" htmlFor="ingresar-email" error={error} requerido>
+                <Input
+                  id="ingresar-email"
+                  name="email"
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  value={email}
+                  invalido={error !== undefined}
+                  onChange={(evento) => setEmail(evento.target.value)}
+                />
+              </Field>
+              <Button type="submit" ancho="full" tamano="lg" disabled={enviando}>
+                {enviando ? 'Enviando…' : 'Enviarme el enlace'}
+              </Button>
+            </form>
+          </>
+        )}
       </main>
     </div>
   );
