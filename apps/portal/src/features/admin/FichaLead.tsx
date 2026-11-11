@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { ArrowLeft, Receipt } from 'lucide-react';
+import { ArrowLeft, CreditCard, Receipt } from 'lucide-react';
 import { Chip } from '@/ui/Chip';
 import { Skeleton } from '@/ui/Skeleton';
 import { Button } from '@/ui/Button';
@@ -320,16 +320,19 @@ function ColumnaDatos({ leadId, lead, beneficiarios, vendedor }: ColumnaDatosPro
           }
           ancho="completo"
         />
-        <div className="pt-2 sm:col-span-2">
-          <button
-            type="button"
-            onClick={() => setVerTransacciones(true)}
-            className="inline-flex cursor-pointer items-center gap-2 rounded-pill bg-marca-50 px-4 py-2 text-sm font-medium text-marca-700 transition-colors hover:bg-marca-100"
-          >
-            <Receipt size={14} aria-hidden="true" />
-            Ver transacciones {pagos ? `(${pagos.length})` : ''}
-          </button>
-        </div>
+        <Dato
+          etiqueta="Transacciones"
+          valor={
+            <button
+              type="button"
+              onClick={() => setVerTransacciones(true)}
+              className="inline-flex cursor-pointer items-center gap-1.5 text-sm font-medium text-marca-700 hover:text-marca-800"
+            >
+              <Receipt size={14} aria-hidden="true" />
+              Ver todas {pagos ? `(${pagos.length})` : ''}
+            </button>
+          }
+        />
       </Seccion>
 
       {domicilio ? (
@@ -437,6 +440,7 @@ function DialogoTransacciones({
   return (
     <Dialog
       abierto
+      ancho="ancho"
       onCambio={(abierto) => {
         if (!abierto) onCerrar();
       }}
@@ -448,44 +452,54 @@ function DialogoTransacciones({
       ) : pagos.length === 0 ? (
         <p className="py-6 text-center text-sm text-ink-500">Sin transacciones registradas.</p>
       ) : (
-        <div className="-mx-6 max-h-[60vh] overflow-auto">
-          <table className="min-w-full text-left text-sm">
-            <thead className="sticky top-0 border-y border-ink-100 bg-white text-xs font-medium uppercase tracking-wide text-ink-500">
-              <tr>
-                <th className="px-6 py-2">Fecha</th>
-                <th className="px-6 py-2">ID pago</th>
-                <th className="px-6 py-2">Monto</th>
-                <th className="px-6 py-2">Estado</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-ink-100">
-              {pagos.map((p) => (
-                <tr key={p.id}>
-                  <td className="whitespace-nowrap px-6 py-3 text-ink-800">{formatearFecha(p.received_at)}</td>
-                  <td className="px-6 py-3 font-mono text-xs text-ink-700">
-                    {p.mp_payment_id ?? <span className="text-ink-400">— {p.id.slice(0, 8)}</span>}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-3 text-ink-900">
-                    {p.monto !== null
-                      ? (p.monto).toLocaleString('es-AR', {
-                          style: 'currency',
-                          currency: p.moneda ?? 'ARS',
-                          maximumFractionDigits: 0,
-                        })
-                      : '—'}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-3">
-                    <Chip tono={p.status === 'authorized' || p.status === 'approved' ? 'ok' : 'warn'}>
-                      {p.status ?? '—'}
-                    </Chip>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ul className="-mx-6 max-h-[65vh] overflow-y-auto divide-y divide-ink-100">
+          {pagos.map((p) => (
+            <FilaMovimientoAdmin key={p.id} pago={p} />
+          ))}
+        </ul>
       )}
     </Dialog>
+  );
+}
+
+/**
+ * Fila estilo MovimientoRow del portal cliente, con agregado de ID de
+ * transacción (mono) al lado del concepto. Mismo tratamiento: icono
+ * CreditCard, chip de estado y monto a la derecha.
+ */
+function FilaMovimientoAdmin({ pago }: { pago: PagoMp }) {
+  const estadoOk = pago.status === 'authorized' || pago.status === 'approved';
+  const textoEstado = estadoOk ? 'Pagada' : (pago.status ?? 'Pendiente');
+  const idTx = pago.mp_payment_id ?? pago.id;
+
+  return (
+    <li className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-4 px-6 py-4 sm:grid-cols-[auto_minmax(0,1fr)_auto_auto_auto]">
+      <span
+        aria-hidden="true"
+        className="inline-flex size-8 shrink-0 items-center justify-center rounded-pill bg-ink-100 text-ink-700"
+      >
+        <CreditCard size={14} />
+      </span>
+
+      <div className="flex min-w-0 flex-col">
+        <span className="truncate text-sm font-medium text-ink-900">Cuota Previnca Nexo</span>
+        <span className="truncate font-mono text-xs text-ink-500">{idTx}</span>
+      </div>
+
+      <span className="hidden text-sm text-ink-500 tabular-nums sm:inline">{formatearFecha(pago.received_at)}</span>
+
+      <Chip tono={estadoOk ? 'ok' : 'warn'}>{textoEstado}</Chip>
+
+      <span className="whitespace-nowrap text-right text-sm font-medium tabular-nums text-ink-900">
+        {pago.monto !== null
+          ? pago.monto.toLocaleString('es-AR', {
+              style: 'currency',
+              currency: pago.moneda ?? 'ARS',
+              maximumFractionDigits: 0,
+            })
+          : '—'}
+      </span>
+    </li>
   );
 }
 
