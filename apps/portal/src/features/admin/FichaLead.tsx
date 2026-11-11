@@ -170,14 +170,17 @@ function TarjetaIdentidad({ lead, fallbackNombre, fallbackEmail }: TarjetaIdenti
   const perfilCompleto = tieneDni && tieneFechaNac;
   const estadoMp = str(lead.mp_status);
   const conCobertura = estadoMp === 'authorized' && perfilCompleto;
+  const pausada = lead.cobertura_pausada === true;
 
-  const chip = conCobertura
-    ? { tono: 'ok' as const, texto: 'Con cobertura' }
-    : estadoMp === 'authorized'
-      ? { tono: 'warn' as const, texto: 'Pagó · falta perfil' }
-      : estadoMp
-        ? { tono: 'neutro' as const, texto: estadoMp }
-        : { tono: 'neutro' as const, texto: 'Sin pagar' };
+  const chip = pausada
+    ? { tono: 'neutro' as const, texto: 'Cobertura pausada' }
+    : conCobertura
+      ? { tono: 'ok' as const, texto: 'Con cobertura' }
+      : estadoMp === 'authorized'
+        ? { tono: 'warn' as const, texto: 'Pagó · falta perfil' }
+        : estadoMp
+          ? { tono: 'neutro' as const, texto: estadoMp }
+          : { tono: 'neutro' as const, texto: 'Sin pagar' };
 
   return (
     <section
@@ -500,9 +503,18 @@ function SwitchCobertura({ leadId, pausadaInicial, onCambio }: SwitchCoberturaPr
   const activa = !pausada;
 
   return (
-    <div className="flex items-center gap-3 rounded-pill bg-white px-3 py-1.5 shadow-card ring-1 ring-ink-200">
-      <span className="text-sm font-medium text-ink-900">Cobertura</span>
-      <button
+    <div className="flex items-center gap-2">
+      <span
+        className={[
+          'inline-flex h-9 items-center rounded-pill bg-ink-100 px-3 text-sm font-medium',
+          activa ? 'text-ink-700' : 'text-warn-700',
+        ].join(' ')}
+      >
+        {activa ? 'Activa' : 'Pausada'}
+      </span>
+      <div className="flex items-center gap-3 rounded-pill bg-white px-3 py-1.5 shadow-card ring-1 ring-ink-200">
+        <span className="text-sm font-medium text-ink-900">Cobertura</span>
+        <button
         type="button"
         role="switch"
         aria-checked={activa}
@@ -522,6 +534,7 @@ function SwitchCobertura({ leadId, pausadaInicial, onCambio }: SwitchCoberturaPr
           ].join(' ')}
         />
       </button>
+      </div>
     </div>
   );
 }
