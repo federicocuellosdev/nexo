@@ -162,58 +162,57 @@ export function AdminNegocio() {
         </p>
       ) : null}
 
-      {/* Buscador. Toma todo el ancho — el rango temporal pasa a botones
-          debajo para que esten siempre visibles sin tener que abrir un
-          dropdown. */}
-      <div className="relative">
-        <Search
-          size={16}
-          aria-hidden="true"
-          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-500"
-        />
-        <Input
-          id="neg-buscar"
-          type="search"
-          placeholder="Buscar por nombre, email o DNI…"
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-          className="rounded-pill! pl-9"
-        />
-        {busqueda ? (
-          <button
-            type="button"
-            onClick={() => setBusqueda('')}
-            aria-label="Limpiar búsqueda"
-            className="absolute right-2 top-1/2 inline-flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-pill text-ink-500 hover:bg-ink-100 hover:text-ink-800"
-          >
-            <X size={14} />
-          </button>
-        ) : null}
-      </div>
-
-      {/* Rango temporal como grupo de botones (toggle). El activo lleva
-          bg-marca-600 + texto blanco; el resto queda neutro con hover. */}
-      <div role="group" aria-label="Rango temporal" className="flex flex-nowrap gap-2 overflow-x-auto pb-1">
-        {OPCIONES_RANGO.map((opt) => {
-          const activo = rango === opt.valor;
-          return (
+      {/* Buscador + rango temporal en la misma fila. En viewport angosto
+          los filtros bajan a su propia línea con wrap. */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative min-w-[240px] flex-1">
+          <Search
+            size={16}
+            aria-hidden="true"
+            className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-500"
+          />
+          <Input
+            id="neg-buscar"
+            type="search"
+            placeholder="Buscar por nombre, email o DNI…"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            className="rounded-pill! pl-10"
+          />
+          {busqueda ? (
             <button
-              key={opt.valor}
               type="button"
-              onClick={() => setRango(opt.valor)}
-              aria-pressed={activo}
-              className={cn(
-                'shrink-0 cursor-pointer whitespace-nowrap rounded-pill px-4 py-2 text-sm font-medium transition-colors duration-200',
-                'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca-500',
-                activo
-                  ? 'bg-marca-600 text-white shadow-suave'
-                  : 'bg-white text-ink-700 ring-1 ring-ink-200 hover:bg-ink-50',
-              )}
+              onClick={() => setBusqueda('')}
+              aria-label="Limpiar búsqueda"
+              className="absolute right-2 top-1/2 inline-flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-pill text-ink-500 hover:bg-ink-100 hover:text-ink-800"
             >
-              {opt.label}
+              <X size={14} />
             </button>
-          );
-        })}
+          ) : null}
+        </div>
+
+        <div role="group" aria-label="Rango temporal" className="flex flex-nowrap gap-2 overflow-x-auto">
+          {OPCIONES_RANGO.map((opt) => {
+            const activo = rango === opt.valor;
+            return (
+              <button
+                key={opt.valor}
+                type="button"
+                onClick={() => setRango(opt.valor)}
+                aria-pressed={activo}
+                className={cn(
+                  'shrink-0 cursor-pointer whitespace-nowrap rounded-pill px-4 py-2 text-sm font-medium transition-colors duration-200',
+                  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca-500',
+                  activo
+                    ? 'bg-marca-600 text-white shadow-suave'
+                    : 'bg-white text-ink-700 ring-1 ring-ink-200 hover:bg-ink-50',
+                )}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {rango === 'personalizado' ? (
