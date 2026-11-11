@@ -405,31 +405,24 @@ export function Inicio() {
         const planBeneficios = plan ?? planElegido!;
         const beneficios = planBeneficios.prestaciones.filter((p) => p.estado !== 'no-incluido');
         return (
-          // Bloque jerarquizado con el gradient de marca (mismo tratamiento
-          // que la banda "Completá tu perfil" en /cuenta y el EmptyState
-          // "Todavía no tenés un plan"). Las cards internas quedan
-          // vidriosas (bg-white/10 + ring white/20) para no competir con
-          // el fondo pero mantener la separación visual entre prestaciones.
-          <section
-            aria-label="Beneficios del plan"
-            className="rounded-card bg-brand-oscurecido p-6 shadow-elevada ring-1 ring-marca-300 lg:p-8"
-          >
-            <div className="mb-6">
-              <h2 className="font-display text-xl text-white">
+          // Bloque transparente (sin fondo propio): la jerarquía la aportan
+          // las cards internas, cada una con el gradient de marca. Así cada
+          // beneficio se lee como una "pastilla" independiente y la grilla
+          // mantiene aire con el resto del dashboard.
+          <section aria-label="Beneficios del plan" className="border-t border-ink-200 pt-8">
+            <div className="mb-5">
+              <h2 className="font-display text-xl text-ink-950">
                 Desbloqueá todos estos beneficios con {planBeneficios.nombre}
               </h2>
             </div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {beneficios.map((prestacion) => {
                 const Glifo = iconoDePrestacion(prestacion.label);
-                // Preferimos la descripción expandida de iconoPrestacion si
-                // hay mapeo para el label; si no, caemos al `detalle` corto
-                // del mock. Así labels nuevos no se quedan sin copia.
                 const descripcion = descripcionDePrestacion(prestacion.label) ?? prestacion.detalle;
                 return (
                   <div
                     key={prestacion.label}
-                    className="flex gap-3 rounded-card bg-white/10 p-5 ring-1 ring-white/20 backdrop-blur-sm"
+                    className="flex gap-3 rounded-card bg-brand-oscurecido p-5 text-white shadow-elevada ring-1 ring-marca-300"
                   >
                     <span
                       aria-hidden="true"
