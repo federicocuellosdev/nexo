@@ -4,7 +4,6 @@ import { supabase } from '@/lib/supabase';
 import { obtenerVendedoresAdmin, type VendedorAdmin } from '@/lib/api';
 import { landingUrl } from '@/lib/urls';
 import { Skeleton } from '@/ui/Skeleton';
-import { Button } from '@/ui/Button';
 import { Chip } from '@/ui/Chip';
 import { EditarVendedorDialog } from '@/features/admin/EditarVendedorDialog';
 import { AgregarVendedorDialog } from '@/features/admin/AgregarVendedorDialog';
@@ -87,9 +86,14 @@ export function AdminVendedores() {
             Partners del programa de ventas. Cada uno tiene una URL para atribuirse las ventas que genere.
           </p>
         </div>
-        <Button onClick={() => setAgregando(true)} aria-label="Agregar vendedor" className="!px-3">
-          <Plus size={18} aria-hidden="true" />
-        </Button>
+        <button
+          type="button"
+          onClick={() => setAgregando(true)}
+          aria-label="Agregar vendedor"
+          className="inline-flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-pill bg-marca-600 text-white shadow-suave transition-colors duration-200 ease-out-expo hover:bg-marca-700 motion-safe:active:scale-[0.96] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca-500"
+        >
+          <Plus size={20} aria-hidden="true" />
+        </button>
       </div>
 
       {error ? (

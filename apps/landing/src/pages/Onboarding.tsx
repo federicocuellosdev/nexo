@@ -281,7 +281,7 @@ export function Onboarding() {
 }
 
 function Indicador({ paso }: { paso: Paso }) {
-  const titulo = paso === 1 ? 'Datos personales' : paso === 2 ? 'Documento' : paso === 3 ? 'Domicilio' : paso === 4 ? 'Familiares' : 'Listo';
+  const titulo = paso === 1 ? 'Datos del titular' : paso === 2 ? 'Documento' : paso === 3 ? 'Domicilio' : paso === 4 ? 'Familiares' : 'Listo';
   return (
     <div>
       <div className="flex items-baseline justify-between gap-3">
@@ -323,6 +323,9 @@ function FormContacto({ datos, onCambio, onSubmit, error, enviando }: PasoProps<
   }, []);
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
+      {/* Nombre + Apellido en una fila (son datos emparejados y cortos);
+          email y telefono full-width porque son mas anchos y se leen mejor
+          ocupando todo el input. */}
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Nombre" htmlFor="onb-nombre" requerido>
           <Input id="onb-nombre" value={datos.nombre} onChange={(e) => onCambio({ ...datos, nombre: e.target.value })} />
@@ -330,13 +333,13 @@ function FormContacto({ datos, onCambio, onSubmit, error, enviando }: PasoProps<
         <Field label="Apellido" htmlFor="onb-apellido" requerido>
           <Input id="onb-apellido" value={datos.apellido} onChange={(e) => onCambio({ ...datos, apellido: e.target.value })} />
         </Field>
-        <Field label="Email" htmlFor="onb-email" requerido>
-          <Input id="onb-email" type="email" inputMode="email" value={datos.email} onChange={(e) => onCambio({ ...datos, email: e.target.value })} />
-        </Field>
-        <Field label="Teléfono" htmlFor="onb-telefono" requerido>
-          <Input id="onb-telefono" inputMode="tel" value={datos.telefono} onChange={(e) => onCambio({ ...datos, telefono: e.target.value })} />
-        </Field>
       </div>
+      <Field label="Email" htmlFor="onb-email" requerido>
+        <Input id="onb-email" type="email" inputMode="email" value={datos.email} onChange={(e) => onCambio({ ...datos, email: e.target.value })} />
+      </Field>
+      <Field label="Teléfono" htmlFor="onb-telefono" requerido>
+        <Input id="onb-telefono" inputMode="tel" value={datos.telefono} onChange={(e) => onCambio({ ...datos, telefono: e.target.value })} />
+      </Field>
       {error ? <p className="text-sm text-danger-700">{error}</p> : null}
       <Button type="submit" ancho="full" tamano="lg" disabled={enviando}>
         Continuar
