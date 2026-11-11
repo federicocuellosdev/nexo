@@ -16,23 +16,23 @@ interface MetaPrestacion {
 const META_POR_LABEL: Record<string, MetaPrestacion> = {
   'Médico Clínico': {
     icono: Stethoscope,
-    descripcion: 'Teleconsultas con médicos las 24 horas.',
+    descripcion: '1 consulta sin cargo al mes.',
   },
   Psicología: {
     icono: HeartHandshake,
-    descripcion: 'Sesiones con psicólogos a distancia.',
+    descripcion: '1 sesión al mes a $15.000.',
   },
   'Emergencias médicas': {
     icono: Siren,
-    descripcion: 'Asistencia inmediata ante situaciones críticas.',
+    descripcion: 'Asistencia inmediata 24 horas.',
   },
   'Guardia odontológica': {
     icono: Smile,
-    descripcion: 'Atención profesional ante dolores agudos.',
+    descripcion: 'Guardia todos los días del año.',
   },
   'Descuentos en farmacias': {
     icono: Pill,
-    descripcion: 'Hasta 50% off en farmacias adheridas.',
+    descripcion: 'Hasta 50% off en adheridas.',
   },
 };
 

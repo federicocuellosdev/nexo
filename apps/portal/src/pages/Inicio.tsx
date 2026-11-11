@@ -431,8 +431,10 @@ export function Inicio() {
                       <Glifo size={20} strokeWidth={1.75} />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-white">{prestacion.label}</p>
-                      {descripcion ? <p className="mt-1 text-sm text-white/80">{descripcion}</p> : null}
+                      <p className="truncate text-sm font-semibold text-white">{prestacion.label}</p>
+                      {descripcion ? (
+                        <p className="mt-1 truncate text-sm text-white/80">{descripcion}</p>
+                      ) : null}
                     </div>
                   </div>
                 );
