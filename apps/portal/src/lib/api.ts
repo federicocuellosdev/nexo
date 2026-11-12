@@ -550,6 +550,13 @@ export interface LeadResumenAdmin {
    *  fechaNacimiento, domicilio). Lo usa `calcularCompletitud` para el
    *  porcentaje que ve el admin en la tabla de Leads. */
   perfil: Record<string, unknown> | null;
+  /** true cuando la fila es un beneficiario (familiar). El backend
+   *  hereda mp_status del titular en el enrich, así que esAfiliado()
+   *  funciona igual para ambos. */
+  es_beneficiario?: boolean;
+  /** FK al titular si `es_beneficiario = true`. Permite abrir la ficha
+   *  de familiar al clickear en el listado. */
+  titular_lead_id?: string | null;
 }
 
 /**

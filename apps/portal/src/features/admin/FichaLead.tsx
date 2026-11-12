@@ -207,7 +207,7 @@ function TarjetaIdentidad({ lead, fallbackNombre, fallbackEmail }: TarjetaIdenti
   const chip = conCobertura
     ? pausada
       ? { tono: 'neutro' as const, texto: 'Cobertura pausada' }
-      : { tono: 'ok' as const, texto: 'Con cobertura' }
+      : { tono: 'ok' as const, texto: 'Activo' }
     : { tono: 'neutro' as const, texto: 'Acceso a la app web' };
 
   return (
@@ -304,14 +304,6 @@ function ColumnaDatos({ leadId, lead, beneficiarios, vendedor, fuente, onVerVend
 
   return (
     <div className="flex flex-col gap-6">
-      <Seccion titulo="Condición">
-        <Dato
-          etiqueta="Rol en la suscripción"
-          valor={<Chip tono="marca">Titular</Chip>}
-          ancho="completo"
-        />
-      </Seccion>
-
       <Seccion titulo="Contacto">
         <Dato etiqueta="Nombre" valor={formatearValor(lead.nombre)} />
         <Dato etiqueta="Apellido" valor={formatearValor(lead.apellido)} />
@@ -642,11 +634,10 @@ function CardFamiliar({
   return (
     <div className="flex flex-col gap-2 rounded-campo bg-ink-50 p-4 ring-1 ring-ink-100">
       <p className="min-w-0 truncate text-sm font-medium text-ink-900">{nombre || '—'}</p>
-      <div className="flex flex-col gap-1 text-xs text-ink-600">
-        <span>DNI {formatearValor(beneficiario.dni)}</span>
-        <span>Nacimiento {formatearFecha(beneficiario.fecha_nacimiento, false)}</span>
-        {beneficiario.email ? <span className="truncate">{formatearValor(beneficiario.email)}</span> : null}
-      </div>
+      <span className="inline-flex w-fit items-center rounded-pill bg-marca-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-marca-700">
+        Beneficiario
+      </span>
+      <span className="text-xs text-ink-600">DNI {formatearValor(beneficiario.dni)}</span>
       {id && onVerFamiliar ? (
         <button
           type="button"
@@ -708,14 +699,6 @@ function SwitchCobertura({ leadId, pausadaInicial, onCambio }: SwitchCoberturaPr
 
   return (
     <div className="flex items-center gap-2">
-      <span
-        className={[
-          'inline-flex h-9 items-center rounded-pill px-3 text-sm font-medium ring-1',
-          activa ? 'bg-ink-100 text-ink-700 ring-ink-200' : 'bg-warn-100 text-warn-800 ring-warn-300',
-        ].join(' ')}
-      >
-        {activa ? 'Activa' : 'Pausada'}
-      </span>
       <div className="flex items-center gap-3 rounded-pill bg-white px-3 py-1.5 shadow-card ring-1 ring-ink-200">
         <span className="text-sm font-medium text-ink-900">Cobertura</span>
         <button

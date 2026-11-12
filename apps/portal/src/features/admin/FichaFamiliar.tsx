@@ -88,36 +88,6 @@ export function FichaFamiliar({ beneficiarioId, onVolver, onVerTitular }: FichaF
           />
 
           <div className="flex flex-col gap-6">
-            <Seccion titulo="Condición">
-              <Dato
-                etiqueta="Rol en la suscripción"
-                valor={<Chip tono="marca">Beneficiario</Chip>}
-                ancho="completo"
-              />
-              {titular ? (
-                <>
-                  <Dato
-                    etiqueta="Nombre del titular"
-                    valor={
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (typeof titular.id === 'string') onVerTitular?.(titular.id);
-                        }}
-                        className="cursor-pointer text-marca-700 underline-offset-2 hover:underline"
-                      >
-                        {`${formatearValor(titular.nombre)} ${formatearValor(titular.apellido)}`.trim()}
-                      </button>
-                    }
-                  />
-                  <Dato
-                    etiqueta="ID del titular"
-                    valor={<span className="font-mono text-xs">{formatearValor(titular.id)}</span>}
-                  />
-                </>
-              ) : null}
-            </Seccion>
-
             <Seccion titulo="Contacto">
               <Dato etiqueta="Nombre" valor={formatearValor(beneficiario.nombre)} />
               <Dato etiqueta="Apellido" valor={formatearValor(beneficiario.apellido)} />

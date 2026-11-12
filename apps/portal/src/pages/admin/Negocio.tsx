@@ -166,6 +166,23 @@ export function AdminNegocio({ fuente = 'admin' }: AdminNegocioProps = {}) {
     );
   }
   if (seleccionado) {
+    // Si la fila elegida es un beneficiario, abrimos la FichaFamiliar
+    // directa (misma vista que al hacer click desde "Ver ficha" dentro de
+    // la seccion Familiares del titular).
+    if (seleccionado.es_beneficiario) {
+      return (
+        <FichaFamiliar
+          beneficiarioId={seleccionado.id}
+          onVolver={() => setSeleccionado(null)}
+          onVerTitular={(titularId) => {
+            // Reemplazamos la selección por el titular (mismo tipo de UI).
+            const titular = leads.find((l) => l.id === titularId);
+            if (titular) setSeleccionado(titular);
+            else setSeleccionado(null);
+          }}
+        />
+      );
+    }
     return (
       <FichaLead
         leadId={seleccionado.id}
@@ -362,7 +379,16 @@ function Tabla({ lista, vacio, modo, onAbrir }: TablaProps) {
                   className="cursor-pointer hover:bg-ink-50/60"
                   onClick={() => onAbrir(l)}
                 >
-                  <td className="whitespace-nowrap px-4 py-3 font-medium text-ink-900">{nombre}</td>
+                  <td className="whitespace-nowrap px-4 py-3 font-medium text-ink-900">
+                    <div className="flex items-center gap-2">
+                      <span>{nombre}</span>
+                      {l.es_beneficiario ? (
+                        <span className="inline-flex items-center rounded-pill bg-ink-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-ink-600">
+                          Beneficiario
+                        </span>
+                      ) : null}
+                    </div>
+                  </td>
                   <td className="whitespace-nowrap px-4 py-3 text-ink-700">{l.dni ?? '—'}</td>
                   <td className="whitespace-nowrap px-4 py-3 text-ink-700">{l.email}</td>
                   <td className="whitespace-nowrap px-4 py-3 text-ink-700">{l.item_nombre ?? '—'}</td>
