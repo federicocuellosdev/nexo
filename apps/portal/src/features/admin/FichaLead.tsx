@@ -322,18 +322,10 @@ function ColumnaDatos({ leadId, lead, beneficiarios, vendedor, fuente }: Columna
 
       <Seccion titulo="MercadoPago">
         <Dato
-          etiqueta="Fecha de suscripción"
-          valor={cargandoPagos ? '…' : formatearFecha(primeraTx?.received_at)}
-        />
-        <Dato
-          etiqueta="Última transacción"
-          valor={cargandoPagos ? '…' : formatearFecha(ultimaTx?.received_at)}
-        />
-        <Dato
           etiqueta="ID de suscripción"
           valor={<span className="font-mono text-xs">{formatearValor(lead.mp_preapproval_id)}</span>}
-          ancho="completo"
         />
+        <Dato etiqueta="Fecha de suscripción" valor={cargandoPagos ? '…' : formatearFecha(primeraTx?.received_at)} />
         <Dato
           etiqueta="ID última transacción"
           valor={
@@ -343,10 +335,14 @@ function ColumnaDatos({ leadId, lead, beneficiarios, vendedor, fuente }: Columna
               <span className="font-mono text-xs">{formatearValor(ultimaTx?.mp_payment_id ?? ultimaTx?.id)}</span>
             )
           }
-          ancho="completo"
         />
         <Dato
-          etiqueta="Transacciones"
+          etiqueta="Fecha última transacción"
+          valor={cargandoPagos ? '…' : formatearFecha(ultimaTx?.received_at)}
+        />
+        <Dato etiqueta="Transacciones" valor={pagos ? `${pagos.length}` : '—'} />
+        <Dato
+          etiqueta="Historial"
           valor={
             <button
               type="button"
@@ -354,7 +350,7 @@ function ColumnaDatos({ leadId, lead, beneficiarios, vendedor, fuente }: Columna
               className="inline-flex cursor-pointer items-center gap-1.5 text-sm font-medium text-marca-700 hover:text-marca-800"
             >
               <Receipt size={14} aria-hidden="true" />
-              Ver todas {pagos ? `(${pagos.length})` : ''}
+              Ver todas
             </button>
           }
         />
