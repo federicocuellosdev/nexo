@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router';
 import { MailCheck } from 'lucide-react';
 import { obtenerMisRoles, pedirMagicLink } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
+import { getSession, setSession } from '@/mock/session';
 import { Field } from '@/ui/Field';
 import { Input } from '@/ui/Input';
 import { Button, clasesBoton } from '@/ui/Button';
@@ -47,6 +48,22 @@ export function Ingresar() {
         const { data } = await supabase!.auth.getSession();
         if (cancelado) return;
         if (data.session) {
+          // Hidratamos el mock session desde el user de Supabase si se perdió
+          // (ej: otra pestaña lo limpió, sesión Supabase sobrevivió al reset del
+          // mock, etc). Sin esto, RequiereUsuario bouncea /inicio → /ingresar y
+          // este useEffect vuelve a dispararse: loop infinito con skeleton eterno.
+          const previo = getSession().usuario;
+          const email = data.session.user.email ?? '';
+          if (previo === undefined || previo.email !== email) {
+            const meta = data.session.user.user_metadata ?? {};
+            const nombreMeta = typeof meta.nombre === 'string' ? meta.nombre : '';
+            const apellidoMeta = typeof meta.apellido === 'string' ? meta.apellido : '';
+            const telefonoMeta = typeof meta.telefono === 'string' ? meta.telefono : '';
+            setSession({
+              usuario: { nombre: nombreMeta, apellido: apellidoMeta, email, telefono: telefonoMeta },
+            });
+          }
+
           // Hay sesión viva: antes de mandarlo a /inicio chequeamos roles.
           // Si es admin + cliente va al selector; si es solo admin, al
           // dashboard; si es solo cliente, al portal clásico. Sin este
