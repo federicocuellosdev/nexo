@@ -179,7 +179,7 @@ export function AdminVendedores() {
                             className="font-mono text-xs text-ink-700"
                             title={url}
                           >
-                            /onboarding?ref={v.codigo_corto}
+                            {url.replace(/^https?:\/\//, '')}
                           </code>
                           <BotonCopiar valor={url} etiqueta={`Copiar URL de ${nombre}`} />
                         </div>
