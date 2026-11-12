@@ -276,10 +276,26 @@ export function PortalLayout() {
   }
 
   // Enlace y no botón: la landing está en otro origen, es navegación de verdad.
+  // Antes solo limpiaba el mock state (`resetSession`) y dejaba el JWT de
+  // Supabase vivo en localStorage — al volver al portal te reconocía como
+  // logueado. Ahora primero cortamos la sesión en Supabase (purga el token
+  // `sb-<ref>-auth-token`), después limpiamos el mock, y recién ahí navegamos.
+  async function onCerrarSesion(evento: React.MouseEvent<HTMLAnchorElement>) {
+    evento.preventDefault();
+    if (supabase) {
+      try {
+        await supabase.auth.signOut();
+      } catch (err) {
+        console.warn('[PortalLayout] signOut error', err);
+      }
+    }
+    resetSession();
+    window.location.href = landingUrl();
+  }
   const cerrarSesion = (
     <a
       href={landingUrl()}
-      onClick={() => resetSession()}
+      onClick={onCerrarSesion}
       className="flex items-center gap-3 rounded-campo px-3 py-2.5 text-sm font-medium text-ink-600 transition-colors duration-200 hover:bg-ink-50 hover:text-ink-900"
     >
       Cerrar sesión

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { UserPlus, Users } from 'lucide-react';
 import { resetSession, setSession, useSession } from '@/mock/session';
+import { supabase } from '@/lib/supabase';
 import { BORRADOR_INICIAL, desdePerfil, type PasoPerfil } from '@/features/perfil/validacion';
 import { PerfilWizard, type DatosDelWizard } from '@/features/perfil/PerfilWizard';
 import { Card } from '@/ui/Card';
@@ -374,11 +375,23 @@ export function Cuenta() {
           <a
             href={landingUrl()}
             onClick={(evento) => {
+              evento.preventDefault();
               if (!confirmarDoble('¿Cerrar sesión?', 'Vas a volver a la página principal. ¿Confirmás?')) {
-                evento.preventDefault();
                 return;
               }
-              resetSession();
+              // Primero cortamos la sesión Supabase para que el JWT salga de
+              // localStorage; después limpiamos el mock y navegamos al landing.
+              void (async () => {
+                if (supabase) {
+                  try {
+                    await supabase.auth.signOut();
+                  } catch (err) {
+                    console.warn('[Cuenta] signOut error', err);
+                  }
+                }
+                resetSession();
+                window.location.href = landingUrl();
+              })();
             }}
             className={clasesBoton({ variante: 'peligro', tamano: 'sm' })}
           >
