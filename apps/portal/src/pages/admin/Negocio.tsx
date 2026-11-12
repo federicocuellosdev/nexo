@@ -790,13 +790,13 @@ function BotonDescargaCSV({
       aria-label={`Descargar ${nombreArchivo} como CSV`}
       title={disabled ? 'Nada para descargar' : `Descargar ${lista.length} filas como CSV`}
       className={cn(
-        'inline-flex h-10 shrink-0 items-center gap-2 rounded-pill bg-white px-3 text-sm font-medium text-ink-700 ring-1 ring-ink-200 transition-colors',
+        'inline-flex h-9 shrink-0 items-center gap-1.5 rounded-pill bg-white px-3 text-xs font-medium text-ink-700 ring-1 ring-ink-200 transition-colors',
         'hover:bg-ink-50 hover:text-ink-900',
         'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca-500',
         disabled ? 'cursor-not-allowed opacity-50 hover:bg-white hover:text-ink-700' : 'cursor-pointer',
       )}
     >
-      <Download size={14} aria-hidden="true" />
+      <Download size={12} aria-hidden="true" />
       {nombreArchivo === 'leads' ? 'CSV LEADS' : 'CSV AFILIADO'}
     </button>
   );
