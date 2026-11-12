@@ -64,7 +64,7 @@ const OPCIONES_LOCALIDAD = [
   { value: 'Villa Gobernador Gálvez', label: 'Villa Gobernador Gálvez' },
 ];
 
-type Paso = 1 | 2 | 3 | 4 | 5 | 6;
+type Paso = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 interface DatosContacto {
   nombre: string;
@@ -142,6 +142,11 @@ export function Onboarding() {
   const [documento, setDocumento] = useState<DatosDocumento>(DOCUMENTO_VACIO);
   const [domicilio, setDomicilio] = useState<DatosDomicilio>(DOMICILIO_VACIO);
   const [beneficiarios, setBeneficiarios] = useState<BeneficiarioForm[]>([]);
+  // Email de la cuenta de MercadoPago que va a abonar (paso 6). No tiene por
+  // qué coincidir con el email del cliente: puede pagar un familiar o una
+  // empresa con una cuenta MP distinta. Lo pre-cargamos con el email del
+  // titular para el caso típico.
+  const [emailMp, setEmailMp] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resultado, setResultado] = useState<ResultadoOnboarding | null>(null);
@@ -191,6 +196,10 @@ export function Onboarding() {
       }
       return null;
     }
+    if (p === 6) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(emailMp.trim())) return 'Revisá el email de MercadoPago';
+      return null;
+    }
     return null;
   }
 
@@ -205,12 +214,18 @@ export function Onboarding() {
     }
     setError(null);
 
-    if (paso < 5) {
+    if (paso < 6) {
+      // Al entrar al paso 6 (Email MP), pre-cargo con el email del titular si
+      // todavía no se tocó. Caso típico: el que contrata paga desde su propio
+      // MP → el email es el mismo. Si no, el vendedor lo edita.
+      if (paso === 5 && !emailMp.trim()) {
+        setEmailMp(contacto.email.trim());
+      }
       setPaso((paso + 1) as Paso);
       return;
     }
 
-    // Paso 5 (Familiares) → envío al backend (crea lead + perfil + MP sub)
+    // Paso 6 (Email MP) → envío al backend (crea lead + perfil + MP sub)
     setEnviando(true);
     try {
       const resLead = await crearLead({
@@ -266,7 +281,7 @@ export function Onboarding() {
         planId: PLAN.slug,
         planNombre: PLAN.nombre,
         monto: total,
-        emailMp: contacto.email.trim(),
+        emailMp: emailMp.trim(),
         leadId: resLead.leadId,
       });
 
@@ -275,7 +290,7 @@ export function Onboarding() {
         initPoint: resMp.initPoint,
         preapprovalId: resMp.preapprovalId,
       });
-      setPaso(6);
+      setPaso(7);
     } catch (err) {
       console.error('[onboarding] error', err);
       if (err instanceof ApiError && err.cuerpo.error === 'mp_no_configurado') {
@@ -345,6 +360,16 @@ export function Onboarding() {
               total={total}
               familiaresCount={beneficiarios.length}
             />
+          ) : paso === 6 ? (
+            <FormEmailMp
+              valor={emailMp}
+              onCambio={setEmailMp}
+              onAtras={volver}
+              onSubmit={avanzar}
+              error={error}
+              enviando={enviando}
+              pasoValido={pasoValido}
+            />
           ) : resultado ? (
             <Resumen contacto={contacto} total={total} familiaresCount={beneficiarios.length} resultado={resultado} />
           ) : null}
@@ -361,6 +386,7 @@ function Indicador({ paso }: { paso: Paso }) {
     : paso === 3 ? 'Documento'
     : paso === 4 ? 'Domicilio'
     : paso === 5 ? 'Familiares'
+    : paso === 6 ? 'Email de MercadoPago'
     : 'Listo';
   // Paso 5 (Familiares) es opcional: el usuario puede confirmar sin cargar
   // ninguno. Marcamos el estado al lado del título en vez de usar otro bloque
@@ -369,7 +395,7 @@ function Indicador({ paso }: { paso: Paso }) {
   return (
     <div>
       <div className="flex items-baseline justify-between gap-3">
-        <span className="text-sm font-medium text-ink-500">{`Paso ${paso} de 6`}</span>
+        <span className="text-sm font-medium text-ink-500">{`Paso ${paso} de 7`}</span>
         <span className="text-sm text-ink-600">
           {titulo}
           {opcional ? <span className="ml-1.5 text-ink-400">(opcional)</span> : null}
@@ -379,11 +405,11 @@ function Indicador({ paso }: { paso: Paso }) {
         role="progressbar"
         aria-valuenow={paso}
         aria-valuemin={1}
-        aria-valuemax={6}
+        aria-valuemax={7}
         aria-label="Progreso del onboarding"
         className="mt-3 flex items-center gap-2"
       >
-        {[1, 2, 3, 4, 5, 6].map((n) => (
+        {[1, 2, 3, 4, 5, 6, 7].map((n) => (
           <span
             key={n}
             aria-hidden="true"
@@ -713,6 +739,61 @@ function FormFamiliares({
 
       {error ? <p className="text-sm text-danger-700">{error}</p> : null}
 
+      <div className="flex flex-col gap-3 sm:flex-row-reverse">
+        <Button type="submit" ancho="full" tamano="lg" className="sm:w-auto" disabled={enviando || !pasoValido}>
+          Continuar
+        </Button>
+        <Button type="button" variante="secundario" ancho="full" tamano="lg" className="sm:w-auto" onClick={onAtras} disabled={enviando}>
+          Atrás
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+/**
+ * Paso 6 "Email de MercadoPago". Pre-cargado con el email del titular — es
+ * el caso típico (el cliente paga desde su propia cuenta MP). Pero el
+ * vendedor puede editarlo si quien paga es otra persona (familiar, empresa,
+ * cuenta de uso único, etc). Ese email viaja al backend en el payload del
+ * POST /subscriptions y MP lo usa como `payer_email` del preapproval.
+ */
+function FormEmailMp({
+  valor,
+  onCambio,
+  onAtras,
+  onSubmit,
+  error,
+  enviando,
+  pasoValido,
+}: {
+  valor: string;
+  onCambio: (v: string) => void;
+  onAtras: () => void;
+  onSubmit: (e: FormEvent<HTMLFormElement>) => void;
+  error: string | null;
+  enviando: boolean;
+  pasoValido: boolean;
+}) {
+  useEffect(() => {
+    document.getElementById('onb-emailmp')?.focus();
+  }, []);
+  return (
+    <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
+      <p className="text-sm text-ink-700">
+        Ingresá el email de la cuenta de MercadoPago que va a pagar. Puede ser distinto al del titular.
+      </p>
+      <Field label="Email de MercadoPago" htmlFor="onb-emailmp" ayuda="A ese email le va a llegar la suscripción de MP." requerido>
+        <Input
+          id="onb-emailmp"
+          type="email"
+          inputMode="email"
+          placeholder="pagador@email.com"
+          value={valor}
+          onChange={(e) => onCambio(e.target.value)}
+        />
+      </Field>
+      {error ? <p className="text-sm text-danger-700">{error}</p> : null}
       <div className="flex flex-col gap-3 sm:flex-row-reverse">
         <Button type="submit" ancho="full" tamano="lg" className="sm:w-auto" disabled={enviando || !pasoValido}>
           {enviando ? 'Creando…' : 'Confirmar alta'}
