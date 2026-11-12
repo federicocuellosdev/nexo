@@ -42,10 +42,25 @@ export async function pedirMagicLink(email: string): Promise<void> {
 
 export interface LeadResumen {
   tipo: 'plan' | 'producto';
+  /** Slug del item (ex. "nexo-1") — se usa para armar sesion.intent.id. */
   id: string;
+  /** UUID de v3.leads — lo usa el portal para endpoints que lo requieren. */
+  leadId?: string;
   nombre: string;
   /** Datos del titular del lead. Opcional por compat con backends viejos. */
-  titular?: { nombre: string; apellido: string; dni?: string; telefono?: string };
+  titular?: { nombre: string; apellido: string; dni?: string; telefono?: string; fechaNacimiento?: string };
+  /** JSON del perfil si el usuario ya lo cargó en el onboarding
+   *  (tipoDocumento, numeroDocumento, sexo, fechaNacimiento, domicilio).
+   *  Lo usa PortalLayout para hidratar sesion.perfil y evitar que un usuario
+   *  del onboarding vea "Completá tu perfil" cuando ya cargó todo. */
+  perfil?: Record<string, unknown> | null;
+  /** Estado de la suscripción MP del lead ('authorized' = pagada, etc).
+   *  Si viene 'authorized' el PortalLayout inserta una Orden sintética en
+   *  sesion.ordenes para que derivarEstado() pase a 'activo'/'pagadoSinPerfil'
+   *  en vez de pedirle al usuario que pague de nuevo. */
+  mpStatus?: string | null;
+  preapprovalId?: string | null;
+  familiaresCount?: number;
 }
 
 /**

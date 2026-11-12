@@ -182,6 +182,59 @@ export function PortalLayout() {
         if (sesionActual.dniLead === undefined && lead.titular?.dni) {
           patch.dniLead = lead.titular.dni;
         }
+
+        // Hidratar `sesion.perfil` desde v3.leads.perfil cuando el usuario ya
+        // completó datos en el onboarding del vendedor (o en un flujo previo).
+        // Sin esto, /cuenta muestra "Completá tu perfil" aunque sexo, fecha
+        // nac y domicilio ya estén cargados en la DB.
+        if (sesionActual.perfil === undefined && lead.perfil && typeof lead.perfil === 'object') {
+          const p = lead.perfil as Record<string, any>;
+          const dom = p.domicilio as Record<string, any> | undefined;
+          const perfilCompleto =
+            p.tipoDocumento && p.numeroDocumento && p.sexo && p.fechaNacimiento &&
+            dom?.calle && dom?.numero && dom?.localidad && dom?.cp;
+          if (perfilCompleto) {
+            patch.perfil = {
+              tipoDocumento: p.tipoDocumento,
+              numeroDocumento: p.numeroDocumento,
+              sexo: p.sexo,
+              fechaNacimiento: p.fechaNacimiento,
+              domicilio: {
+                calle: dom.calle,
+                numero: dom.numero,
+                piso: dom.piso ?? '',
+                departamento: dom.departamento ?? '',
+                torre: dom.torre ?? '',
+                localidad: dom.localidad,
+                provincia: dom.provincia ?? 'Santa Fe',
+                cp: dom.cp,
+                pais: dom.pais ?? 'Argentina',
+              },
+            };
+          }
+        }
+
+        // Hidratar `sesion.ordenes` con una orden pagada sintética cuando el
+        // backend reporta mp_status='authorized' y la sesión no tiene ninguna
+        // orden pagada todavía. Sin esto, derivarEstado() devuelve
+        // 'conCuentaSinPago' aunque el cliente ya pagó por el link del
+        // vendedor, y el portal muestra "Terminar compra".
+        const tienePagadaLocal = sesionActual.ordenes.some((o) => o.estado === 'pagada');
+        if (!tienePagadaLocal && lead.mpStatus === 'authorized' && lead.preapprovalId) {
+          patch.ordenes = [
+            {
+              id: `ord-${lead.preapprovalId}`,
+              fecha: new Date().toISOString().slice(0, 10),
+              tipo: lead.tipo,
+              itemId: lead.id,
+              concepto: `${lead.nombre} · cuota mensual`,
+              monto: 0, // monto real viene del back/MP, 0 como placeholder hasta sync
+              estado: 'pagada',
+            },
+            ...sesionActual.ordenes,
+          ];
+        }
+
         if (Object.keys(patch).length > 0) setSession(patch);
       } catch (err) {
         console.warn('[portal] no se pudo consultar v3.leads', err);
