@@ -83,7 +83,198 @@ adminRouter.get('/me/roles', async (req, res) => {
     return res.status(401).json({ ok: false, error: 'no_autenticado' });
   }
   const admin = await esAdmin(email);
-  return res.status(200).json({ ok: true, email, roles: admin ? ['cliente', 'admin'] : ['cliente'] });
+  // ¿El email está dado de alta como vendedor? Si sí, sumamos el rol y
+  // devolvemos vendedorId + codigoCorto para que el portal pueda usarlos
+  // sin tener que hacer una round-trip extra.
+  const { data: vendedor } = await supabaseAdmin
+    .schema('v3')
+    .from('vendedores')
+    .select('id, codigo_corto')
+    .ilike('email', email)
+    .maybeSingle();
+
+  const roles = ['cliente'];
+  if (admin) roles.push('admin');
+  if (vendedor) roles.push('vendedor');
+
+  return res.status(200).json({
+    ok: true,
+    email,
+    roles,
+    vendedorId: vendedor?.id ?? null,
+    codigoCorto: vendedor?.codigo_corto ?? null,
+  });
+});
+
+/**
+ * Middleware: el usuario autenticado debe estar en v3.vendedores. Deja
+ * `req.vendedorId` disponible para los handlers. 401 si no hay token, 403
+ * si el email no matchea ningún vendedor.
+ */
+interface VendedorRequest extends Request {
+  vendedorEmail?: string;
+  vendedorId?: string;
+}
+
+async function requerirVendedor(req: VendedorRequest, res: Response, next: () => void): Promise<void> {
+  const email = await emailDelToken(req);
+  if (email === null) {
+    res.status(401).json({ ok: false, error: 'no_autenticado' });
+    return;
+  }
+  const { data: vendedor } = await supabaseAdmin
+    .schema('v3')
+    .from('vendedores')
+    .select('id')
+    .ilike('email', email)
+    .maybeSingle();
+  if (!vendedor) {
+    res.status(403).json({ ok: false, error: 'no_autorizado' });
+    return;
+  }
+  req.vendedorEmail = email;
+  req.vendedorId = vendedor.id;
+  next();
+}
+
+// ────────────────── Endpoints scoped al vendedor logueado ──────────────────
+
+/** Perfil completo del vendedor logueado (nombre, URL de atribución, etc). */
+adminRouter.get('/vendedor/me', async (req: VendedorRequest, res: Response, next: () => void) => {
+  await requerirVendedor(req, res, async () => {
+    const { data, error } = await supabaseAdmin
+      .schema('v3')
+      .from('vendedores')
+      .select('id, nombre, apellido, email, dni, telefono, etiqueta, codigo_corto, created_at')
+      .eq('id', req.vendedorId!)
+      .maybeSingle();
+    if (error || !data) {
+      console.error('[GET /vendedor/me] db error', error);
+      return res.status(500).json({ ok: false, error: 'db_error' });
+    }
+    return res.status(200).json({ ok: true, vendedor: data });
+  });
+  // El middleware llama a next() cuando pasa el chequeo; si no, ya respondió.
+  if (!req.vendedorId) return;
+});
+
+/** KPIs del vendedor: cuántos leads, pagaron y con cobertura — todos
+ *  filtrados por vendedor_id = me. Mismo shape que /admin/metrics. */
+adminRouter.get('/vendedor/me/metrics', async (req: VendedorRequest, res: Response, next: () => void) => {
+  await requerirVendedor(req, res, async () => {
+    const vendedorId = req.vendedorId!;
+    const base = () =>
+      supabaseAdmin.schema('v3').from('leads').select('id', { count: 'exact', head: true }).eq('es_beneficiario', false).eq('vendedor_id', vendedorId);
+    const { count: leadsCount } = await base();
+    const { count: pagaronCount } = await base().eq('mp_status', 'authorized');
+    const { count: conCoberturaCount } = await base().eq('mp_status', 'authorized').not('dni', 'is', null).not('fecha_nacimiento', 'is', null);
+
+    return res.status(200).json({
+      ok: true,
+      metricas: {
+        leads: leadsCount ?? 0,
+        pagaron: pagaronCount ?? 0,
+        conCobertura: conCoberturaCount ?? 0,
+      },
+    });
+  });
+  if (!req.vendedorId) return;
+});
+
+/** Lista de leads atribuidos al vendedor logueado. Mismo shape que
+ *  /admin/leads — la UI de Negocio reutiliza sin cambios. */
+adminRouter.get('/vendedor/me/leads', async (req: VendedorRequest, res: Response, next: () => void) => {
+  await requerirVendedor(req, res, async () => {
+    const { data, error } = await supabaseAdmin
+      .schema('v3')
+      .from('leads')
+      .select('id, email, nombre, apellido, telefono, dni, fecha_nacimiento, item_nombre, mp_status, created_at, perfil')
+      .eq('es_beneficiario', false)
+      .eq('vendedor_id', req.vendedorId!)
+      .order('created_at', { ascending: false })
+      .limit(500);
+
+    if (error) {
+      console.error('[GET /vendedor/me/leads] db error', error);
+      return res.status(500).json({ ok: false, error: 'db_error' });
+    }
+    return res.status(200).json({ ok: true, leads: data ?? [] });
+  });
+  if (!req.vendedorId) return;
+});
+
+/** Ficha de un lead para el vendedor. 404 si el lead no está atribuido a él. */
+adminRouter.get('/vendedor/me/leads/:id', async (req: VendedorRequest, res: Response, next: () => void) => {
+  await requerirVendedor(req, res, async () => {
+    const id = req.params.id ?? '';
+    if (!/^[0-9a-f-]{36}$/i.test(id)) {
+      return res.status(400).json({ ok: false, error: 'id_invalido' });
+    }
+    const { data: titular, error } = await supabaseAdmin
+      .schema('v3')
+      .from('leads')
+      .select('*')
+      .eq('id', id)
+      .eq('es_beneficiario', false)
+      .eq('vendedor_id', req.vendedorId!)
+      .maybeSingle();
+    if (error || !titular) {
+      return res.status(404).json({ ok: false, error: 'no_encontrado' });
+    }
+    const { data: beneficiarios } = await supabaseAdmin
+      .schema('v3')
+      .from('leads')
+      .select('id, nombre, apellido, email, dni, telefono, fecha_nacimiento, perfil, created_at')
+      .eq('titular_lead_id', id)
+      .eq('es_beneficiario', true)
+      .order('created_at', { ascending: true });
+
+    // El vendedor es él mismo — devolvemos la fila para que la ficha la
+    // pueda mostrar sin re-fetchear.
+    const { data: vendedorRow } = await supabaseAdmin
+      .schema('v3')
+      .from('vendedores')
+      .select('id, nombre, apellido, email, dni, telefono, etiqueta, created_at')
+      .eq('id', req.vendedorId!)
+      .maybeSingle();
+
+    return res.status(200).json({
+      ok: true,
+      lead: titular,
+      beneficiarios: beneficiarios ?? [],
+      vendedor: vendedorRow ?? null,
+    });
+  });
+  if (!req.vendedorId) return;
+});
+
+/** Pagos de un lead atribuido al vendedor logueado. */
+adminRouter.get('/vendedor/me/leads/:id/pagos', async (req: VendedorRequest, res: Response, next: () => void) => {
+  await requerirVendedor(req, res, async () => {
+    const id = req.params.id ?? '';
+    if (!/^[0-9a-f-]{36}$/i.test(id)) {
+      return res.status(400).json({ ok: false, error: 'id_invalido' });
+    }
+    // Chequeamos atribución antes de devolver los pagos.
+    const { data: titular } = await supabaseAdmin
+      .schema('v3')
+      .from('leads')
+      .select('id')
+      .eq('id', id)
+      .eq('vendedor_id', req.vendedorId!)
+      .maybeSingle();
+    if (!titular) {
+      return res.status(404).json({ ok: false, error: 'no_encontrado' });
+    }
+    const { data } = await supabaseAdmin
+      .schema('v3')
+      .from('pagos')
+      .select('id, mp_payment_id, mp_preapproval_id, payer_email, monto, moneda, status, external_reference, received_at')
+      .eq('lead_id', id)
+      .order('received_at', { ascending: false });
+    return res.status(200).json({ ok: true, pagos: data ?? [] });
+  });
+  if (!req.vendedorId) return;
 });
 
 /**
