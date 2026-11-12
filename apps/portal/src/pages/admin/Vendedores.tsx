@@ -149,7 +149,7 @@ export function AdminVendedores() {
                     Etiqueta
                   </th>
                   <th scope="col" className="px-4 py-3">
-                    URL de vendedor
+                    URL del vendedor
                   </th>
                   <th scope="col" className="px-4 py-3 text-right">
                     Acciones
@@ -179,7 +179,7 @@ export function AdminVendedores() {
                             className="font-mono text-xs text-ink-700"
                             title={url}
                           >
-                            {url.replace(/^https?:\/\//, '')}
+                            {url}
                           </code>
                           <BotonCopiar valor={url} etiqueta={`Copiar URL de ${nombre}`} />
                         </div>

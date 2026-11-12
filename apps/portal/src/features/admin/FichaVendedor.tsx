@@ -238,7 +238,7 @@ export function FichaVendedor({ vendedorId, onVolver }: FichaVendedorProps) {
             {/* 3 KPI cards con chevrons entre ellas indicando el flujo. En
                 mobile se apilan y la chevron rota 90° para seguir leyendo
                 como progresion vertical. */}
-            <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <div className="flex-1">
                 <TarjetaMetrica titulo="Leads" valor={metricas?.leads} icono={Users} cargando={cargandoMetricas} />
               </div>
@@ -381,7 +381,7 @@ interface TarjetaMetricaProps {
 function TarjetaMetrica({ titulo, valor, icono: Glifo, cargando }: TarjetaMetricaProps) {
   return (
     <div className="flex flex-col gap-3 rounded-card bg-white p-5 shadow-card ring-1 ring-ink-100">
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-center justify-between gap-3">
         <p className="text-sm font-medium text-ink-600">{titulo}</p>
         <span
           aria-hidden="true"

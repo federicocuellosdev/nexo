@@ -120,7 +120,7 @@ export function AdminDashboard({ fuente = 'admin' }: AdminDashboardProps = {}) {
           (indican la direccion lead→pago→cobertura). En mobile cada card
           va apilada y el chevron rota 90° abajo para seguir leyendose como
           progresion. */}
-      <div className="flex flex-col items-stretch gap-3 lg:flex-row lg:items-center">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <div className="flex-1">
           <TarjetaMetrica
             titulo="Leads generados"
