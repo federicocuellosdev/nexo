@@ -124,7 +124,7 @@ export function Home() {
               aparece acá como único CTA del hero. */}
           <div className="mt-8 hidden sm:block">
             <Link to="/catalogo" className={clasesBoton({ tamano: 'lg' })}>
-              Ver planes
+              Quiero mi cobertura
             </Link>
           </div>
         </div>

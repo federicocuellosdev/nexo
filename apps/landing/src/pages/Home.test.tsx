@@ -14,7 +14,7 @@ test('el hero muestra el precio de entrada derivado de los planes', () => {
 
 test('el hero lleva al catálogo', () => {
   montarEn('/');
-  expect(screen.getByRole('link', { name: 'Ver planes' })).toHaveAttribute('href', '/catalogo');
+  expect(screen.getByRole('link', { name: 'Quiero mi cobertura' })).toHaveAttribute('href', '/catalogo');
 });
 
 test('el segundo CTA del hero lleva a la pestaña de productos', () => {
