@@ -84,14 +84,14 @@ export const ON_DEMAND: Producto[] = [
   {
     id: 'psicologia',
     nombre: 'Psicología On Demand',
-    precio: 15000,
-    detalle: 'Sesiones online con profesionales — pago por sesión',
+    precio: 30000,
+    detalle: '1ra sesión del mes bonificada a $15.000 · siguientes a $30.000',
   },
   {
     id: 'seguro-hogar',
     nombre: 'Seguros del Hogar On Demand',
     precio: 19000,
-    detalle: 'Protección ante imprevistos del hogar — pago aparte',
+    detalle: 'Desde $19.000 — Hasta 1er piso o 2do piso + · Incendio, Resp. Civil y más',
   },
 ];
 
