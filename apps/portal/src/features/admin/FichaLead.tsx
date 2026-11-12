@@ -38,6 +38,10 @@ export interface FichaLeadProps {
   fuente?: 'admin' | 'vendedor';
   /** Oculta el switch de cobertura (solo admin puede pausar). */
   sinAccionesAdmin?: boolean;
+  /** Si está, Trazabilidad muestra el nombre del vendedor como botón que
+   *  dispara esto. Sirve para navegar de la ficha del lead a la del
+   *  vendedor atribuido. */
+  onVerVendedor?: (vendedorId: string) => void;
 }
 
 /**
@@ -46,7 +50,7 @@ export interface FichaLeadProps {
  * de cobertura, y a la derecha secciones apiladas (Contacto, Plan, MP,
  * Domicilio, Trazabilidad, Integraciones, Familiares).
  */
-export function FichaLead({ leadId, nombre, descripcion, onVolver, fuente = 'admin', sinAccionesAdmin = false }: FichaLeadProps) {
+export function FichaLead({ leadId, nombre, descripcion, onVolver, fuente = 'admin', sinAccionesAdmin = false, onVerVendedor }: FichaLeadProps) {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | undefined>(undefined);
   const [lead, setLead] = useState<Record<string, unknown> | null>(null);
@@ -128,7 +132,7 @@ export function FichaLead({ leadId, nombre, descripcion, onVolver, fuente = 'adm
       ) : lead ? (
         <div className="grid gap-6 lg:grid-cols-[320px_1fr] lg:items-start">
           <TarjetaIdentidad lead={lead} fallbackNombre={nombre} fallbackEmail={descripcion} />
-          <ColumnaDatos leadId={leadId} lead={lead} beneficiarios={beneficiarios} vendedor={vendedor} fuente={fuente} />
+          <ColumnaDatos leadId={leadId} lead={lead} beneficiarios={beneficiarios} vendedor={vendedor} fuente={fuente} onVerVendedor={onVerVendedor} />
         </div>
       ) : null}
     </div>
@@ -251,9 +255,10 @@ interface ColumnaDatosProps {
   beneficiarios: Array<Record<string, unknown>>;
   vendedor: Record<string, unknown> | null;
   fuente: 'admin' | 'vendedor';
+  onVerVendedor?: (vendedorId: string) => void;
 }
 
-function ColumnaDatos({ leadId, lead, beneficiarios, vendedor, fuente }: ColumnaDatosProps) {
+function ColumnaDatos({ leadId, lead, beneficiarios, vendedor, fuente, onVerVendedor }: ColumnaDatosProps) {
   const [pagos, setPagos] = useState<PagoMp[] | null>(null);
   const [cargandoPagos, setCargandoPagos] = useState(true);
   const [verTransacciones, setVerTransacciones] = useState(false);
@@ -372,31 +377,37 @@ function ColumnaDatos({ leadId, lead, beneficiarios, vendedor, fuente }: Columna
 
       <Seccion titulo="Trazabilidad">
         <Dato etiqueta="Canal" valor={<Chip tono="marca">{canal}</Chip>} />
+        <Dato
+          etiqueta="Vendedor"
+          valor={
+            canal === 'landing' && !vendedor ? (
+              <span className="text-ink-500">No aplica</span>
+            ) : vendedor ? (
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof vendedor.id === 'string') onVerVendedor?.(vendedor.id);
+                }}
+                className="cursor-pointer text-marca-700 underline-offset-2 hover:underline"
+              >
+                {`${formatearValor(vendedor.nombre)} ${formatearValor(vendedor.apellido)}`.trim()}
+              </button>
+            ) : (
+              <span className="text-ink-500">Sin atribución</span>
+            )
+          }
+        />
         <Dato etiqueta="Alta" valor={formatearFecha(lead.created_at)} />
-        {vendedor ? (
-          <>
-            <Dato
-              etiqueta="Vendedor"
-              valor={`${formatearValor(vendedor.nombre)} ${formatearValor(vendedor.apellido)}`.trim()}
-            />
-            <Dato etiqueta="Email vendedor" valor={formatearValor(vendedor.email)} />
-            <Dato etiqueta="DNI vendedor" valor={formatearValor(vendedor.dni)} />
-            <Dato
-              etiqueta="Etiqueta"
-              valor={
-                vendedor.etiqueta ? (
-                  <span className="inline-flex items-center rounded-pill bg-marca-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-marca-700">
-                    {String(vendedor.etiqueta)}
-                  </span>
-                ) : (
-                  '—'
-                )
-              }
-            />
-          </>
-        ) : (
-          <Dato etiqueta="Vendedor" valor={<span className="text-ink-500">Sin atribución (directo)</span>} />
-        )}
+        {vendedor?.etiqueta ? (
+          <Dato
+            etiqueta="Etiqueta vendedor"
+            valor={
+              <span className="inline-flex items-center rounded-pill bg-marca-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-marca-700">
+                {String(vendedor.etiqueta)}
+              </span>
+            }
+          />
+        ) : null}
         <Dato etiqueta="Origen (utm_source)" valor={formatearValor(lead.utm_source)} />
         <Dato etiqueta="Medio (utm_medium)" valor={formatearValor(lead.utm_medium)} />
         <Dato etiqueta="Campaña (utm_campaign)" valor={formatearValor(lead.utm_campaign)} />
@@ -413,11 +424,6 @@ function ColumnaDatos({ leadId, lead, beneficiarios, vendedor, fuente }: Columna
         <Dato
           etiqueta="Referer"
           valor={<span className="font-mono text-xs break-all">{formatearValor(lead.referer)}</span>}
-          ancho="completo"
-        />
-        <Dato
-          etiqueta="Landing URL"
-          valor={<span className="font-mono text-xs break-all">{formatearValor(lead.landing_url)}</span>}
           ancho="completo"
         />
       </Seccion>

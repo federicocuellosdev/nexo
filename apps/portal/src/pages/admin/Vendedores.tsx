@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Copy, Pencil, Plus, Check } from 'lucide-react';
+import { useSearchParams } from 'react-router';
+import { Copy, Pencil, Plus, Check, Eye } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { obtenerVendedoresAdmin, type VendedorAdmin } from '@/lib/api';
 import { landingUrl } from '@/lib/urls';
 import { Skeleton } from '@/ui/Skeleton';
 import { EditarVendedorDialog } from '@/features/admin/EditarVendedorDialog';
 import { AgregarVendedorDialog } from '@/features/admin/AgregarVendedorDialog';
+import { FichaVendedor } from '@/features/admin/FichaVendedor';
 
 function nombreCompleto(v: VendedorAdmin): string {
   return `${v.nombre} ${v.apellido}`.trim();
@@ -56,6 +58,7 @@ export function AdminVendedores() {
   const [error, setError] = useState<string | undefined>(undefined);
   const [editando, setEditando] = useState<VendedorAdmin | null>(null);
   const [agregando, setAgregando] = useState(false);
+  const [viendo, setViendo] = useState<VendedorAdmin | null>(null);
 
   const cargar = useCallback(async () => {
     setCargando(true);
@@ -78,6 +81,24 @@ export function AdminVendedores() {
   useEffect(() => {
     void cargar();
   }, [cargar]);
+
+  // Apertura por deep link `/admin/vendedores?ver=UUID`. Lo usa FichaLead
+  // para saltar desde la ficha de un lead a la de su vendedor atribuido.
+  const [params, setParams] = useSearchParams();
+  useEffect(() => {
+    const verId = params.get('ver');
+    if (!verId) return;
+    const match = vendedores.find((v) => v.id === verId);
+    if (match) {
+      setViendo(match);
+      params.delete('ver');
+      setParams(params, { replace: true });
+    }
+  }, [vendedores, params, setParams]);
+
+  if (viendo) {
+    return <FichaVendedor vendedorId={viendo.id} onVolver={() => setViendo(null)} />;
+  }
 
   return (
     <div data-entrada className="flex flex-col gap-6">
@@ -166,14 +187,25 @@ export function AdminVendedores() {
                         </div>
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-right">
-                        <button
-                          type="button"
-                          onClick={() => setEditando(v)}
-                          aria-label={`Editar ${nombre}`}
-                          className="inline-flex size-8 cursor-pointer items-center justify-center rounded-pill text-ink-500 transition-colors hover:bg-marca-50 hover:text-marca-700"
-                        >
-                          <Pencil size={16} />
-                        </button>
+                        <div className="inline-flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setViendo(v)}
+                            aria-label={`Ver ficha de ${nombre}`}
+                            className="inline-flex cursor-pointer items-center gap-1 rounded-pill bg-marca-50 px-3 py-1 text-xs font-medium text-marca-700 transition-colors hover:bg-marca-100"
+                          >
+                            <Eye size={12} />
+                            Ver
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditando(v)}
+                            aria-label={`Editar ${nombre}`}
+                            className="inline-flex size-8 cursor-pointer items-center justify-center rounded-pill text-ink-500 transition-colors hover:bg-ink-100 hover:text-ink-800"
+                          >
+                            <Pencil size={14} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

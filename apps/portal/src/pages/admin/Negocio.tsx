@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router';
 import { Calendar, Search, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { supabase } from '@/lib/supabase';
@@ -99,6 +100,7 @@ export interface AdminNegocioProps {
 }
 
 export function AdminNegocio({ fuente = 'admin' }: AdminNegocioProps = {}) {
+  const navegar = useNavigate();
   const [pestana, setPestana] = useState<Pestana>('afiliados');
   const [leads, setLeads] = useState<LeadResumenAdmin[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -156,6 +158,11 @@ export function AdminNegocio({ fuente = 'admin' }: AdminNegocioProps = {}) {
         onVolver={() => setSeleccionado(null)}
         fuente={fuente}
         sinAccionesAdmin={fuente === 'vendedor'}
+        onVerVendedor={
+          fuente === 'admin'
+            ? (vendedorId: string) => navegar(`/admin/vendedores?ver=${vendedorId}`)
+            : undefined
+        }
       />
     );
   }

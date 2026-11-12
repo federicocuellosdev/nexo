@@ -437,6 +437,45 @@ export interface AltaVendedor {
 }
 
 /**
+ * Ficha de un vendedor específico (para el admin).
+ */
+export async function obtenerVendedorAdmin(accessToken: string, id: string): Promise<VendedorAdmin> {
+  const respuesta = await fetch(`${API_URL}/api/admin/vendedores/${id}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!respuesta.ok) {
+    const cuerpo = (await respuesta.json().catch(() => ({ ok: false, error: 'network' }))) as ErrorApi;
+    throw new ApiError(cuerpo, respuesta.status);
+  }
+  const data = (await respuesta.json()) as { ok: true; vendedor: VendedorAdmin };
+  return data.vendedor;
+}
+
+/**
+ * KPIs del vendedor filtrados por rango temporal. desde/hasta son ISO
+ * strings (YYYY-MM-DD o full ISO). Mismo shape que MetricasAdmin.
+ */
+export async function obtenerMetricasVendedorAdmin(
+  accessToken: string,
+  id: string,
+  opciones?: { desde?: string; hasta?: string },
+): Promise<MetricasAdmin> {
+  const query = new URLSearchParams();
+  if (opciones?.desde) query.set('desde', opciones.desde);
+  if (opciones?.hasta) query.set('hasta', opciones.hasta);
+  const qs = query.toString();
+  const respuesta = await fetch(`${API_URL}/api/admin/vendedores/${id}/metrics${qs ? `?${qs}` : ''}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!respuesta.ok) {
+    const cuerpo = (await respuesta.json().catch(() => ({ ok: false, error: 'network' }))) as ErrorApi;
+    throw new ApiError(cuerpo, respuesta.status);
+  }
+  const data = (await respuesta.json()) as { ok: true; metricas: MetricasAdmin };
+  return data.metricas;
+}
+
+/**
  * Lista de etiquetas distintas ya cargadas en v3.vendedores. El combobox
  * del alta las usa para autocomplete: tipeás "previnca" y aparece la
  * existente si matchea, si no aparece la opción "Crear etiqueta 'XYZ'"
