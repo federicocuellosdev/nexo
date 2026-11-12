@@ -6,6 +6,7 @@ import { config } from '../config.js';
 import { emailClient } from '../lib/resend.js';
 import { asuntoVendedorBienvenida, htmlVendedorBienvenida } from '../emails/vendedorBienvenida.js';
 import { asuntoVendedorActualizado, htmlVendedorActualizado } from '../emails/vendedorActualizado.js';
+import { asuntoVendedorReenvio, htmlVendedorReenvio } from '../emails/vendedorReenvio.js';
 
 /**
  * Genera un código corto único de 6 chars (A-Z 0-9) para v3.vendedores.
@@ -561,6 +562,73 @@ adminRouter.patch('/admin/vendedores/:id', requerirAdmin, async (req, res) => {
     });
   } catch (err) {
     console.warn('[PATCH /admin/vendedores/:id] no se pudo enviar email de confirmación', err);
+  }
+
+  return res.status(200).json({ ok: true });
+});
+
+/**
+ * Reenvía al vendedor un email con sus datos actuales (tabla para que
+ * confirme que están OK) + magic link nuevo de un solo uso + URL de
+ * atribución. Lo dispara el admin desde la ficha cuando el vendedor
+ * perdió el link original.
+ */
+adminRouter.post('/admin/vendedores/:id/reenviar-email', requerirAdmin, async (req, res) => {
+  const { data: vendedor, error: errorVendedor } = await supabaseAdmin
+    .schema('v3')
+    .from('vendedores')
+    .select('id, nombre, apellido, email, dni, telefono, etiqueta, codigo_corto')
+    .eq('id', req.params.id)
+    .maybeSingle();
+
+  if (errorVendedor || !vendedor) {
+    return res.status(404).json({ ok: false, error: 'vendedor_no_encontrado' });
+  }
+
+  // Generar magic link nuevo. Igual que al alta: propagamos nombre/rol/código
+  // al user_metadata para que el callback hidrate la sesión como vendedor.
+  const { data: linkData, error: errorLink } = await supabaseAdmin.auth.admin.generateLink({
+    type: 'magiclink',
+    email: vendedor.email,
+    options: {
+      data: {
+        nombre: vendedor.nombre,
+        apellido: vendedor.apellido,
+        rol: 'vendedor',
+        vendedorId: vendedor.id,
+        codigoCorto: vendedor.codigo_corto,
+      },
+      redirectTo: `${config.portalUrl}/auth/callback?destino=/vendedor/dashboard`,
+    },
+  });
+
+  if (errorLink || !linkData.properties?.action_link) {
+    console.error('[POST /admin/vendedores/:id/reenviar-email] magic link falló', errorLink);
+    return res.status(502).json({ ok: false, error: 'magic_link_error' });
+  }
+
+  const urlOnboarding = `${config.landingUrl}/onboarding?ref=${vendedor.codigo_corto}`;
+
+  try {
+    await emailClient.enviar({
+      to: vendedor.email,
+      subject: asuntoVendedorReenvio(),
+      html: htmlVendedorReenvio({
+        nombre: vendedor.nombre,
+        apellido: vendedor.apellido,
+        email: vendedor.email,
+        dni: vendedor.dni,
+        telefono: vendedor.telefono,
+        etiqueta: vendedor.etiqueta,
+        codigo: vendedor.codigo_corto,
+        magicLink: linkData.properties.action_link,
+        urlOnboarding,
+        logoUrl: config.emailLogoUrl,
+      }),
+    });
+  } catch (err) {
+    console.error('[POST /admin/vendedores/:id/reenviar-email] email send error', err);
+    return res.status(502).json({ ok: false, error: 'email_send_error' });
   }
 
   return res.status(200).json({ ok: true });
