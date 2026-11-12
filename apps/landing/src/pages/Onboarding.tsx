@@ -793,7 +793,7 @@ function FormEmailMp({
       {error ? <p className="text-sm text-danger-700">{error}</p> : null}
       <div className="flex flex-col gap-3 sm:flex-row-reverse">
         <Button type="submit" ancho="full" tamano="lg" className="sm:w-auto" disabled={enviando || !pasoValido}>
-          {enviando ? 'Creando…' : 'Confirmar alta'}
+          {enviando ? 'Creando…' : 'Crear Lead'}
         </Button>
         <Button type="button" variante="secundario" ancho="full" tamano="lg" className="sm:w-auto" onClick={onAtras} disabled={enviando}>
           Atrás
@@ -851,10 +851,12 @@ function Resumen({ contacto, total, familiaresCount, resultado }: ResumenProps) 
       <div className="flex flex-col items-center gap-4 rounded-card bg-white px-4 py-6 ring-1 ring-ink-200">
         <div className="flex items-center gap-2 text-sm font-medium text-ink-700">
           <QrCode size={16} aria-hidden="true" />
-          Escaneá para pagar
+          Escaneá con la cámara del celular
         </div>
         <QR url={resultado.initPoint} lado={240} />
-        <p className="max-w-xs text-center text-xs text-ink-500">El cliente escanea con la cámara del celular y completa el pago en MercadoPago.</p>
+        <p className="max-w-xs text-center text-xs text-ink-500">
+          Usá la <strong>cámara</strong> del teléfono (no el escáner de la app MercadoPago). Se abre el checkout en el navegador.
+        </p>
       </div>
 
       <div className="flex flex-col gap-3">
@@ -929,10 +931,10 @@ function DialogoWhatsapp({
         if (!ab) onCerrar();
       }}
       titulo="Enviar link por WhatsApp"
-      descripcion="Ingresá el teléfono del cliente. Vamos a abrir WhatsApp con el mensaje ya escrito — solo tenés que apretar enviar."
+      descripcion="Abrimos WhatsApp con el mensaje ya escrito."
     >
       <div className="flex flex-col gap-5">
-        <Field label="Teléfono del cliente" htmlFor="wa-tel" ayuda="Solo dígitos, sin 0 ni 15. Ej: 3411234567" requerido>
+        <Field label="Teléfono del cliente" htmlFor="wa-tel" ayuda="Sin 0 ni 15. Ej: 3411234567" requerido>
           <Input
             id="wa-tel"
             inputMode="numeric"
