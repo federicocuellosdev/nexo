@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { ChevronDown, CircleAlert, Glasses, Pill, ShieldCheck, Stethoscope } from 'lucide-react';
+import { Brain, ChevronDown, CircleAlert, Pill, ShieldCheck, Siren, Smile, Stethoscope } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useSession } from '@/mock/session';
 import { derivarEstado } from '@/lib/estado';
@@ -20,27 +20,90 @@ import { clasesBoton } from '@/ui/Button';
 
 const COMO_USARLA = [
   {
-    id: 'doc24',
+    id: 'clinico',
     icono: Stethoscope,
-    titulo: 'Telemedicina Doc24',
-    texto:
-      'Atención médica 24/7 desde casa. Tocá "Ir a Doc24", ingresá con tu email y tu primera consulta del mes es sin cargo.',
+    titulo: 'Médico Clínico',
+    texto: 'Tu primera consulta del mes es sin cargo. El resto se cubre con las prestaciones del plan.',
+  },
+  {
+    id: 'psicologia',
+    icono: Brain,
+    titulo: 'Psicología',
+    texto: 'Primera sesión a $15.000 bonificada. Reservá desde el botón "Psicología" y elegí profesional.',
+  },
+  {
+    id: 'emergencias',
+    icono: Siren,
+    titulo: 'Emergencias médicas',
+    texto: 'Asistencia inmediata 24 horas ante urgencias de salud.',
+  },
+  {
+    id: 'odontologia',
+    icono: Smile,
+    titulo: 'Guardia odontológica',
+    texto: 'Atención ante dolores agudos y urgencias dentales.',
   },
   {
     id: 'farmacia',
     icono: Pill,
-    titulo: 'Farmacia',
-    texto:
-      'Hasta 50% de descuento en medicamentos. Tocá "Buscar farmacias", acercate a la sucursal y mostrá tu credencial.',
-  },
-  {
-    id: 'optica',
-    icono: Glasses,
-    titulo: 'Óptica',
-    texto:
-      'Un par de anteojos al año sin costo. Tocá "Buscar ópticas", elegí tu sucursal y retirá con tu credencial.',
+    titulo: 'Descuentos en farmacias',
+    texto: 'Hasta 50% de descuento en farmacias adheridas. Mostrás la credencial en la caja.',
   },
 ];
+
+/**
+ * Acceso rápido a una cobertura. Si viene `href`, abre en pestaña nueva;
+ * si no, se renderiza como `<button disabled>` con el mismo look pero sin
+ * acción — placeholder visual hasta que Previnca defina destino.
+ */
+function AccesoCobertura({
+  icono: Glifo,
+  label,
+  descripcion,
+  href,
+}: {
+  icono: typeof Stethoscope;
+  label: string;
+  descripcion?: string;
+  href?: string;
+}) {
+  const clases =
+    'flex items-center gap-3 rounded-card bg-brand-oscurecido px-5 py-4 text-white shadow-elevada transition-opacity';
+  const contenido = (
+    <>
+      <Glifo size={22} strokeWidth={1.75} aria-hidden="true" className="shrink-0 text-white" />
+      <span className="flex min-w-0 flex-col">
+        <span className="text-sm font-medium leading-tight">{label}</span>
+        {descripcion ? (
+          <span className="text-xs text-white/80 leading-tight">{descripcion}</span>
+        ) : null}
+      </span>
+    </>
+  );
+  if (href) {
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        data-elevar
+        className={cn(clases, 'hover:opacity-95')}
+      >
+        {contenido}
+      </a>
+    );
+  }
+  return (
+    <button
+      type="button"
+      disabled
+      aria-label={`${label} — próximamente`}
+      className={cn(clases, 'cursor-not-allowed opacity-70')}
+    >
+      {contenido}
+    </button>
+  );
+}
 
 export function Coberturas() {
   const sesion = useSession();
@@ -158,37 +221,38 @@ export function Coberturas() {
                 secundarias. */}
             <div className="border-t border-ink-100 pt-5">
               <h3 className="mb-3 text-base font-medium text-ink-900">Usar mi cobertura</h3>
-              <div className="grid gap-3 sm:grid-cols-3">
-                <a
-                  href="https://www.doc24.com.ar/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  data-elevar
-                  className="flex items-center gap-3 rounded-card bg-brand-oscurecido px-5 py-5 text-white shadow-elevada"
-                >
-                  <Stethoscope size={22} strokeWidth={1.75} aria-hidden="true" className="text-white" />
-                  <span className="text-sm font-medium">Ir a Doc24</span>
-                </a>
-                <a
-                  href="https://www.farmacity.com/sucursales/?distance=5&province=santa-fe"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  data-elevar
-                  className="flex items-center gap-3 rounded-card bg-brand-oscurecido px-5 py-5 text-white shadow-elevada"
-                >
-                  <Pill size={22} strokeWidth={1.75} aria-hidden="true" className="text-white" />
-                  <span className="text-sm font-medium">Buscar farmacias</span>
-                </a>
-                <a
-                  href="https://www.rosariovision.com.ar/sucursales"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  data-elevar
-                  className="flex items-center gap-3 rounded-card bg-brand-oscurecido px-5 py-5 text-white shadow-elevada"
-                >
-                  <Glasses size={22} strokeWidth={1.75} aria-hidden="true" className="text-white" />
-                  <span className="text-sm font-medium">Buscar ópticas</span>
-                </a>
+              {/* 5 accesos del plan Nexo. Hoy solo Psicología tiene link
+                  (videoconsulta de Previnca v1). El resto son placeholders
+                  visuales hasta que Previnca defina destino — se renderizan
+                  como <button disabled> para preservar la UI y dejar explícito
+                  que son no-interactivos (no silenciosamente "rotos"). */}
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <AccesoCobertura
+                  icono={Stethoscope}
+                  label="Médico Clínico"
+                  descripcion="1° Consulta sin cargo"
+                />
+                <AccesoCobertura
+                  icono={Brain}
+                  label="Psicología"
+                  descripcion="1° Sesión a $15.000"
+                  href="https://test-doctorprevinca.videoconsultas.app/paciente/autogestion"
+                />
+                <AccesoCobertura
+                  icono={Siren}
+                  label="Emergencias médicas"
+                  descripcion="Asistencia 24 horas"
+                />
+                <AccesoCobertura
+                  icono={Smile}
+                  label="Guardia odontológica"
+                  descripcion="Dolores agudos y urgencias"
+                />
+                <AccesoCobertura
+                  icono={Pill}
+                  label="Descuentos en farmacias"
+                  descripcion="Hasta 50% off en adheridas"
+                />
               </div>
             </div>
 
