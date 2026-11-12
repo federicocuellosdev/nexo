@@ -63,7 +63,7 @@ const OPCIONES_LOCALIDAD = [
   { value: 'Villa Gobernador Gálvez', label: 'Villa Gobernador Gálvez' },
 ];
 
-type Paso = 1 | 2 | 3 | 4 | 5;
+type Paso = 1 | 2 | 3 | 4 | 5 | 6;
 
 interface DatosContacto {
   nombre: string;
@@ -154,7 +154,9 @@ export function Onboarding() {
   const pasoValido = validar(paso) === null;
 
   function validar(p: Paso): string | null {
-    if (p === 1) {
+    // Paso 1: Plan — informativo (solo hay un plan), nada que validar.
+    if (p === 1) return null;
+    if (p === 2) {
       const c = contacto;
       if (!c.nombre.trim()) return 'Ingresá el nombre';
       if (!c.apellido.trim()) return 'Ingresá el apellido';
@@ -162,14 +164,14 @@ export function Onboarding() {
       if (!/^\d{8,15}$/.test(c.telefono.trim())) return 'Teléfono debe ser 8-15 dígitos';
       return null;
     }
-    if (p === 2) {
+    if (p === 3) {
       const d = documento;
       if (!/^\d{7,8}$/.test(d.dni.trim())) return 'DNI debe ser 7-8 dígitos';
       if (!d.fechaNacimiento) return 'Ingresá la fecha de nacimiento';
       if (d.sexo === '') return 'Seleccioná el sexo';
       return null;
     }
-    if (p === 3) {
+    if (p === 4) {
       const d = domicilio;
       if (!d.calle.trim()) return 'Ingresá la calle';
       if (!d.numero.trim()) return 'Ingresá el número';
@@ -178,7 +180,7 @@ export function Onboarding() {
       if (!d.cp.trim()) return 'Ingresá el código postal';
       return null;
     }
-    if (p === 4) {
+    if (p === 5) {
       for (let i = 0; i < beneficiarios.length; i += 1) {
         const b = beneficiarios[i]!;
         const n = i + 1;
@@ -203,12 +205,12 @@ export function Onboarding() {
     }
     setError(null);
 
-    if (paso < 4) {
+    if (paso < 5) {
       setPaso((paso + 1) as Paso);
       return;
     }
 
-    // Paso 4 → envío al backend (crea lead + perfil + MP sub)
+    // Paso 5 (Familiares) → envío al backend (crea lead + perfil + MP sub)
     setEnviando(true);
     try {
       const resLead = await crearLead({
@@ -273,7 +275,7 @@ export function Onboarding() {
         initPoint: resMp.initPoint,
         preapprovalId: resMp.preapprovalId,
       });
-      setPaso(5);
+      setPaso(6);
     } catch (err) {
       console.error('[onboarding] error', err);
       if (err instanceof ApiError && err.cuerpo.error === 'mp_no_configurado') {
@@ -306,7 +308,7 @@ export function Onboarding() {
 
   return (
     <div className="mx-auto max-w-[640px] px-4 pt-6 pb-16 lg:pt-10">
-      <h1 className="text-2xl text-ink-950">Onboarding Previnca Nexo</h1>
+      <h1 className="text-2xl text-ink-950">Onboarding</h1>
       <p className="mt-2 text-sm text-ink-600">
         Cargá los datos del cliente. Al terminar te mostramos el {modoQR ? 'QR' : 'link'} para pagar.
       </p>
@@ -315,12 +317,14 @@ export function Onboarding() {
         <Indicador paso={paso} />
 
         {paso === 1 ? (
-          <FormContacto datos={contacto} onCambio={setContacto} onSubmit={avanzar} error={error} enviando={enviando} pasoValido={pasoValido} />
+          <FormPlan onSubmit={avanzar} enviando={enviando} />
         ) : paso === 2 ? (
-          <FormDocumento datos={documento} onCambio={setDocumento} onAtras={volver} onSubmit={avanzar} error={error} enviando={enviando} pasoValido={pasoValido} />
+          <FormContacto datos={contacto} onCambio={setContacto} onAtras={volver} onSubmit={avanzar} error={error} enviando={enviando} pasoValido={pasoValido} />
         ) : paso === 3 ? (
-          <FormDomicilio datos={domicilio} onCambio={setDomicilio} onAtras={volver} onSubmit={avanzar} error={error} enviando={enviando} pasoValido={pasoValido} />
+          <FormDocumento datos={documento} onCambio={setDocumento} onAtras={volver} onSubmit={avanzar} error={error} enviando={enviando} pasoValido={pasoValido} />
         ) : paso === 4 ? (
+          <FormDomicilio datos={domicilio} onCambio={setDomicilio} onAtras={volver} onSubmit={avanzar} error={error} enviando={enviando} pasoValido={pasoValido} />
+        ) : paso === 5 ? (
           <FormFamiliares
             beneficiarios={beneficiarios}
             onAgregar={agregarBeneficiario}
@@ -343,22 +347,28 @@ export function Onboarding() {
 }
 
 function Indicador({ paso }: { paso: Paso }) {
-  const titulo = paso === 1 ? 'Datos del titular' : paso === 2 ? 'Documento' : paso === 3 ? 'Domicilio' : paso === 4 ? 'Familiares' : 'Listo';
+  const titulo =
+    paso === 1 ? 'Plan'
+    : paso === 2 ? 'Datos del titular'
+    : paso === 3 ? 'Documento'
+    : paso === 4 ? 'Domicilio'
+    : paso === 5 ? 'Familiares'
+    : 'Listo';
   return (
     <div>
       <div className="flex items-baseline justify-between gap-3">
-        <span className="text-sm font-medium text-ink-500">{`Paso ${paso} de 5`}</span>
+        <span className="text-sm font-medium text-ink-500">{`Paso ${paso} de 6`}</span>
         <span className="text-sm text-ink-600">{titulo}</span>
       </div>
       <div
         role="progressbar"
         aria-valuenow={paso}
         aria-valuemin={1}
-        aria-valuemax={5}
+        aria-valuemax={6}
         aria-label="Progreso del onboarding"
         className="mt-3 flex items-center gap-2"
       >
-        {[1, 2, 3, 4, 5].map((n) => (
+        {[1, 2, 3, 4, 5, 6].map((n) => (
           <span
             key={n}
             aria-hidden="true"
@@ -382,7 +392,7 @@ interface PasoProps<T> {
   pasoValido: boolean;
 }
 
-function FormContacto({ datos, onCambio, onSubmit, error, enviando, pasoValido }: PasoProps<DatosContacto>) {
+function FormContacto({ datos, onCambio, onAtras, onSubmit, error, enviando, pasoValido }: PasoProps<DatosContacto>) {
   useEffect(() => {
     document.getElementById('onb-nombre')?.focus();
   }, []);
@@ -406,7 +416,40 @@ function FormContacto({ datos, onCambio, onSubmit, error, enviando, pasoValido }
         <Input id="onb-telefono" inputMode="numeric" maxLength={15} placeholder="3411234567" value={datos.telefono} onChange={(e) => onCambio({ ...datos, telefono: soloDigitos(e.target.value) })} />
       </Field>
       {error ? <p className="text-sm text-danger-700">{error}</p> : null}
-      <Button type="submit" ancho="full" tamano="lg" disabled={enviando || !pasoValido}>
+      <div className="flex flex-col gap-3 sm:flex-row-reverse">
+        <Button type="submit" ancho="full" tamano="lg" className="sm:w-auto" disabled={enviando || !pasoValido}>
+          Continuar
+        </Button>
+        <Button type="button" variante="secundario" ancho="full" tamano="lg" className="sm:w-auto" onClick={onAtras} disabled={enviando}>
+          Atrás
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+/**
+ * Paso 1 "Plan". Hoy solo hay un plan — en vez de un selector, se muestra
+ * una card cuadrada con nombre y precio del único producto disponible.
+ * Es informativa: el onSubmit avanza al paso 2 (datos del titular).
+ */
+function FormPlan({ onSubmit, enviando }: { onSubmit: (e: FormEvent<HTMLFormElement>) => void; enviando: boolean }) {
+  return (
+    <form onSubmit={onSubmit} noValidate className="flex flex-col gap-5">
+      <p className="text-sm text-ink-700">Este es el plan que vas a contratar:</p>
+      <div className="mx-auto w-full max-w-[280px]">
+        <div
+          className="flex aspect-square flex-col items-center justify-center gap-3 rounded-card bg-marca-50 p-6 text-center ring-1 ring-marca-200"
+          aria-label={`Plan ${PLAN.nombre}, ${PLAN.precio} pesos por mes`}
+        >
+          <p className="text-xs font-medium uppercase tracking-wide text-marca-700">Plan</p>
+          <p className="font-display text-2xl text-ink-950">{PLAN.nombre}</p>
+          <div className="mt-2">
+            <Money monto={PLAN.precio} periodo="por mes" tamano="md" />
+          </div>
+        </div>
+      </div>
+      <Button type="submit" ancho="full" tamano="lg" disabled={enviando}>
         Continuar
       </Button>
     </form>
