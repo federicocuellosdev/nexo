@@ -65,7 +65,7 @@ export function ElegirVista() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-[1200px] flex-1 px-4 py-16 lg:px-8 lg:py-24">
+      <main className="mx-auto w-full max-w-[760px] flex-1 px-4 py-16 lg:px-8 lg:py-24">
         <div className="text-center">
           <h1 className="font-display text-3xl text-ink-950 italic lg:text-4xl">¿Qué vista?</h1>
           <p className="mt-3 text-base text-ink-600">
