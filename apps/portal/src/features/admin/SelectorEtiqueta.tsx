@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Plus, Tag } from 'lucide-react';
+import { Check, ChevronDown, Plus, Tag } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { supabase } from '@/lib/supabase';
 import { obtenerEtiquetasAdmin } from '@/lib/api';
@@ -127,11 +127,30 @@ export function SelectorEtiqueta({ id, valor, onCambio, placeholder = 'Ej. PREVI
           aria-expanded={abierto}
           aria-autocomplete="list"
           className={cn(
-            'h-11 w-full rounded-campo border border-ink-200 bg-white pl-9 pr-3 text-base text-ink-900',
+            'h-11 w-full rounded-campo border border-ink-200 bg-white pl-9 pr-9 text-base text-ink-900',
             'placeholder:text-ink-400 transition-colors duration-200',
             'hover:border-ink-300 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-marca-500',
           )}
         />
+        {/* Chevron a la derecha para dejar en claro que es un selector (no un
+            text input común). Clickeable: toggle del popover, así quien no
+            escribe nada igual puede abrirlo. */}
+        <button
+          type="button"
+          tabIndex={-1}
+          aria-label={abierto ? 'Cerrar opciones' : 'Abrir opciones'}
+          onMouseDown={(ev) => {
+            ev.preventDefault();
+            setAbierto((v) => !v);
+          }}
+          className="absolute right-2 top-1/2 inline-flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-pill text-ink-500 hover:text-ink-800"
+        >
+          <ChevronDown
+            size={16}
+            aria-hidden="true"
+            className={cn('transition-transform duration-150', abierto && 'rotate-180')}
+          />
+        </button>
       </div>
 
       {abierto && (filtradas.length > 0 || mostrarCrear) ? (

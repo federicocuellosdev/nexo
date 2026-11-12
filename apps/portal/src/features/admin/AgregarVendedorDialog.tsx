@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { ArrowLeft, Check } from 'lucide-react';
+import { ArrowLeft, Check, MailCheck } from 'lucide-react';
 import { Dialog } from '@/ui/Dialog';
 import { Field } from '@/ui/Field';
 import { Input } from '@/ui/Input';
@@ -20,13 +20,16 @@ export interface AgregarVendedorDialogProps {
 type Paso = 1 | 2;
 
 /**
- * Alta de un vendedor desde el admin, dividida en dos pasos:
- *   1. Datos personales (nombre, apellido, email, teléfono, DNI).
- *   2. Etiqueta (combobox) + confirmación.
+ * Alta de un vendedor desde el admin, dividida en dos pasos + una pantalla
+ * de confirmación:
+ *   1. Datos personales (nombre, apellido, email, teléfono).
+ *   2. Etiqueta (combobox) + DNI.
+ *   Éxito: se muestra una pantalla con ícono + mensaje de confirmación.
+ *     El onCreado se dispara recién cuando el usuario toca "Listo", así ve
+ *     el feedback de que la acción terminó y que salió el email.
  *
  * El backend genera `codigo_corto` + manda email de bienvenida con magic
- * link al vendedor automáticamente — este dialog solo recibe el id del
- * vendedor creado y cierra.
+ * link al vendedor automáticamente.
  */
 export function AgregarVendedorDialog({ onCerrar, onCreado }: AgregarVendedorDialogProps) {
   const [paso, setPaso] = useState<Paso>(1);
@@ -38,6 +41,9 @@ export function AgregarVendedorDialog({ onCerrar, onCreado }: AgregarVendedorDia
   const [etiqueta, setEtiqueta] = useState('');
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
+  // Cuando el POST termina OK, en vez de cerrar directo guardamos el id acá
+  // y pasamos al estado de éxito. El parent se entera recién en "Listo".
+  const [creadoId, setCreadoId] = useState<string | undefined>(undefined);
 
   function validarPaso1(): string | undefined {
     if (nombre.trim() === '' || apellido.trim() === '') return 'Nombre y apellido son obligatorios';
@@ -74,7 +80,7 @@ export function AgregarVendedorDialog({ onCerrar, onCreado }: AgregarVendedorDia
         telefono: telefono.trim() || undefined,
         etiqueta: etiqueta.trim() || undefined,
       });
-      onCreado(id);
+      setCreadoId(id);
     } catch (err) {
       console.error('[AgregarVendedorDialog] error', err);
       if (err instanceof ApiError && err.cuerpo.error === 'email_ya_registrado') {
@@ -88,23 +94,39 @@ export function AgregarVendedorDialog({ onCerrar, onCreado }: AgregarVendedorDia
     }
   }
 
+  const enExito = creadoId !== undefined;
+
   return (
     <Dialog
       abierto
       onCambio={(abierto) => {
-        if (!abierto) onCerrar();
+        // Si se cierra el dialog estando en éxito, igual avisamos al parent
+        // así refresca la lista — si no, el vendedor recién creado no
+        // aparecería hasta que el admin recargue.
+        if (!abierto) {
+          if (enExito && creadoId) onCreado(creadoId);
+          else onCerrar();
+        }
       }}
-      titulo="Nuevo vendedor"
+      titulo={enExito ? 'Vendedor creado' : 'Nuevo vendedor'}
       descripcion={
-        paso === 1
-          ? 'Paso 1 de 2 — Datos personales del partner comercial.'
-          : 'Paso 2 de 2 — Etiqueta y confirmación. Le vamos a mandar un email con un magic link para que acceda al panel.'
+        enExito
+          ? undefined
+          : paso === 1
+            ? 'Paso 1 de 2 — Datos personales del partner comercial.'
+            : 'Paso 2 de 2 — Etiqueta y DNI. Le vamos a mandar un email con un magic link para que acceda al panel.'
       }
     >
-      <IndicadorPasos paso={paso} />
-
-      {paso === 1 ? (
+      {enExito ? (
+        <PantallaExito email={email} onListo={() => creadoId && onCreado(creadoId)} />
+      ) : (
+        <>
+          <IndicadorPasos paso={paso} />
+          {paso === 1 ? (
         <form onSubmit={avanzar} noValidate className="flex flex-col gap-4">
+          {/* Fila 1: nombre + apellido (grid 2-cols). Fila 2 y 3: email y
+              teléfono cada uno a ancho completo — más legible que un grid
+              de 4 inputs amontonados. DNI y etiqueta se piden en paso 2. */}
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Nombre" htmlFor="agregar-nombre" requerido>
               <Input id="agregar-nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} autoFocus />
@@ -112,27 +134,24 @@ export function AgregarVendedorDialog({ onCerrar, onCreado }: AgregarVendedorDia
             <Field label="Apellido" htmlFor="agregar-apellido" requerido>
               <Input id="agregar-apellido" value={apellido} onChange={(e) => setApellido(e.target.value)} />
             </Field>
-            <Field label="Email" htmlFor="agregar-email" requerido>
-              <Input
-                id="agregar-email"
-                type="email"
-                inputMode="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </Field>
-            <Field label="Teléfono" htmlFor="agregar-telefono">
-              <Input
-                id="agregar-telefono"
-                inputMode="tel"
-                value={telefono}
-                onChange={(e) => setTelefono(e.target.value)}
-              />
-            </Field>
-            <Field label="DNI" htmlFor="agregar-dni">
-              <Input id="agregar-dni" inputMode="numeric" value={dni} onChange={(e) => setDni(e.target.value)} />
-            </Field>
           </div>
+          <Field label="Email" htmlFor="agregar-email" requerido>
+            <Input
+              id="agregar-email"
+              type="email"
+              inputMode="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </Field>
+          <Field label="Teléfono" htmlFor="agregar-telefono">
+            <Input
+              id="agregar-telefono"
+              inputMode="tel"
+              value={telefono}
+              onChange={(e) => setTelefono(e.target.value)}
+            />
+          </Field>
 
           {error ? <p className="text-sm text-danger-700">{error}</p> : null}
 
@@ -162,14 +181,9 @@ export function AgregarVendedorDialog({ onCerrar, onCreado }: AgregarVendedorDia
             <SelectorEtiqueta id="agregar-etiqueta" valor={etiqueta} onCambio={setEtiqueta} />
           </Field>
 
-          <ResumenVendedor
-            nombre={nombre}
-            apellido={apellido}
-            email={email}
-            dni={dni}
-            telefono={telefono}
-            etiqueta={etiqueta}
-          />
+          <Field label="DNI" htmlFor="agregar-dni">
+            <Input id="agregar-dni" inputMode="numeric" value={dni} onChange={(e) => setDni(e.target.value)} />
+          </Field>
 
           {error ? <p className="text-sm text-danger-700">{error}</p> : null}
 
@@ -192,7 +206,32 @@ export function AgregarVendedorDialog({ onCerrar, onCreado }: AgregarVendedorDia
           </div>
         </form>
       )}
+        </>
+      )}
     </Dialog>
+  );
+}
+
+function PantallaExito({ email, onListo }: { email: string; onListo: () => void }) {
+  return (
+    <div className="flex flex-col items-center gap-4 py-2 text-center">
+      <span
+        aria-hidden="true"
+        className="inline-flex size-14 items-center justify-center rounded-pill bg-ok-50 text-ok-700 ring-1 ring-ok-500/30"
+      >
+        <MailCheck size={28} strokeWidth={1.75} />
+      </span>
+      <div>
+        <p className="font-display text-xl text-ink-950">Vendedor creado</p>
+        <p className="mt-1 text-sm text-ink-600">
+          Le enviamos un email a <strong className="font-medium text-ink-900">{email}</strong> con un
+          magic link para que acceda al panel.
+        </p>
+      </div>
+      <Button type="button" tamano="lg" onClick={onListo} className="mt-2 min-w-[140px]">
+        Listo
+      </Button>
+    </div>
   );
 }
 
@@ -211,7 +250,7 @@ function IndicadorPasos({ paso }: { paso: Paso }) {
                 completado
                   ? 'bg-marca-600 text-white'
                   : activo
-                    ? 'bg-marca-100 text-marca-800 ring-2 ring-marca-400'
+                    ? 'bg-marca-100 text-marca-800 ring-1 ring-marca-300'
                     : 'bg-ink-100 text-ink-500',
               ].join(' ')}
             >
@@ -233,45 +272,3 @@ function IndicadorPasos({ paso }: { paso: Paso }) {
   );
 }
 
-function ResumenVendedor({
-  nombre,
-  apellido,
-  email,
-  dni,
-  telefono,
-  etiqueta,
-}: {
-  nombre: string;
-  apellido: string;
-  email: string;
-  dni: string;
-  telefono: string;
-  etiqueta: string;
-}) {
-  return (
-    <dl className="grid gap-x-6 gap-y-2 rounded-campo bg-ink-50 p-4 text-sm sm:grid-cols-2">
-      <div className="flex justify-between gap-3">
-        <dt className="text-ink-500">Nombre</dt>
-        <dd className="truncate text-right text-ink-900">
-          {nombre} {apellido}
-        </dd>
-      </div>
-      <div className="flex justify-between gap-3">
-        <dt className="text-ink-500">Email</dt>
-        <dd className="truncate text-right text-ink-900">{email}</dd>
-      </div>
-      <div className="flex justify-between gap-3">
-        <dt className="text-ink-500">DNI</dt>
-        <dd className="truncate text-right text-ink-900">{dni || '—'}</dd>
-      </div>
-      <div className="flex justify-between gap-3">
-        <dt className="text-ink-500">Teléfono</dt>
-        <dd className="truncate text-right text-ink-900">{telefono || '—'}</dd>
-      </div>
-      <div className="flex justify-between gap-3 sm:col-span-2">
-        <dt className="text-ink-500">Etiqueta</dt>
-        <dd className="truncate text-right text-ink-900">{etiqueta || '—'}</dd>
-      </div>
-    </dl>
-  );
-}
