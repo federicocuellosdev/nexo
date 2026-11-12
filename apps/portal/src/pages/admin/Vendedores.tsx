@@ -4,7 +4,6 @@ import { supabase } from '@/lib/supabase';
 import { obtenerVendedoresAdmin, type VendedorAdmin } from '@/lib/api';
 import { landingUrl } from '@/lib/urls';
 import { Skeleton } from '@/ui/Skeleton';
-import { Chip } from '@/ui/Chip';
 import { EditarVendedorDialog } from '@/features/admin/EditarVendedorDialog';
 import { AgregarVendedorDialog } from '@/features/admin/AgregarVendedorDialog';
 
@@ -15,7 +14,10 @@ function nombreCompleto(v: VendedorAdmin): string {
 /** URL de atribución: si alguien hace alta entrando por ella, la venta
  *  queda referenciada a este vendedor. */
 function urlAtribucion(vendedor: VendedorAdmin): string {
-  return `${landingUrl()}/onboarding?ref=${vendedor.id}`;
+  // Usamos el código corto (6 chars) en lugar del UUID para que la URL sea
+  // compartible por WhatsApp / impresa en material físico. El backend
+  // resuelve el código → UUID en el POST /leads.
+  return `${landingUrl()}/onboarding?ref=${vendedor.codigo_corto}`;
 }
 
 function BotonCopiar({ valor, etiqueta }: { valor: string; etiqueta: string }) {
@@ -144,7 +146,13 @@ export function AdminVendedores() {
                       <td className="whitespace-nowrap px-4 py-3 font-medium text-ink-900">{nombre}</td>
                       <td className="whitespace-nowrap px-4 py-3 text-ink-700">{v.dni ?? '—'}</td>
                       <td className="whitespace-nowrap px-4 py-3">
-                        {v.etiqueta ? <Chip tono="marca">{v.etiqueta}</Chip> : <span className="text-ink-400">—</span>}
+                        {v.etiqueta ? (
+                          <span className="inline-flex items-center rounded-pill bg-marca-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-marca-700">
+                            {v.etiqueta}
+                          </span>
+                        ) : (
+                          <span className="text-ink-400">—</span>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">

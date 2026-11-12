@@ -361,6 +361,10 @@ export interface VendedorAdmin {
   dni: string | null;
   telefono: string | null;
   etiqueta: string | null;
+  /** Código corto único (6 chars A-Z0-9) para URL de atribución de ventas.
+   *  Se auto-genera al crear el vendedor; el admin lo ve en la tabla y lo
+   *  comparte como `?ref=ABC123` en vez del UUID largo. */
+  codigo_corto: string;
   fechaAlta: string;
 }
 
@@ -407,6 +411,24 @@ export interface AltaVendedor {
   dni?: string;
   telefono?: string;
   etiqueta?: string;
+}
+
+/**
+ * Lista de etiquetas distintas ya cargadas en v3.vendedores. El combobox
+ * del alta las usa para autocomplete: tipeás "previnca" y aparece la
+ * existente si matchea, si no aparece la opción "Crear etiqueta 'XYZ'"
+ * para normalizar y evitar duplicados.
+ */
+export async function obtenerEtiquetasAdmin(accessToken: string): Promise<string[]> {
+  const respuesta = await fetch(`${API_URL}/api/admin/etiquetas`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!respuesta.ok) {
+    const cuerpo = (await respuesta.json().catch(() => ({ ok: false, error: 'network' }))) as ErrorApi;
+    throw new ApiError(cuerpo, respuesta.status);
+  }
+  const data = (await respuesta.json()) as { ok: true; etiquetas: string[] };
+  return data.etiquetas;
 }
 
 export async function crearVendedorAdmin(accessToken: string, payload: AltaVendedor): Promise<string> {

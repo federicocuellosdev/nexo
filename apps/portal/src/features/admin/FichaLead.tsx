@@ -369,7 +369,15 @@ function ColumnaDatos({ leadId, lead, beneficiarios, vendedor }: ColumnaDatosPro
             <Dato etiqueta="DNI vendedor" valor={formatearValor(vendedor.dni)} />
             <Dato
               etiqueta="Etiqueta"
-              valor={vendedor.etiqueta ? <Chip tono="marca">{String(vendedor.etiqueta)}</Chip> : '—'}
+              valor={
+                vendedor.etiqueta ? (
+                  <span className="inline-flex items-center rounded-pill bg-marca-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-marca-700">
+                    {String(vendedor.etiqueta)}
+                  </span>
+                ) : (
+                  '—'
+                )
+              }
             />
           </>
         ) : (

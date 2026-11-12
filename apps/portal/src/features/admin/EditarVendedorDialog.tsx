@@ -6,6 +6,7 @@ import { Input } from '@/ui/Input';
 import { Button } from '@/ui/Button';
 import { supabase } from '@/lib/supabase';
 import { editarVendedorAdmin, type VendedorAdmin } from '@/lib/api';
+import { SelectorEtiqueta } from '@/features/admin/SelectorEtiqueta';
 
 export interface EditarVendedorDialogProps {
   vendedor: VendedorAdmin;
@@ -87,12 +88,7 @@ export function EditarVendedorDialog({ vendedor, onCerrar, onGuardado }: EditarV
             />
           </Field>
           <Field label="Etiqueta" htmlFor="editar-etiqueta">
-            <Input
-              id="editar-etiqueta"
-              placeholder="PREVINCA, Externos…"
-              value={etiqueta}
-              onChange={(e) => setEtiqueta(e.target.value)}
-            />
+            <SelectorEtiqueta id="editar-etiqueta" valor={etiqueta} onCambio={setEtiqueta} />
           </Field>
         </div>
 
