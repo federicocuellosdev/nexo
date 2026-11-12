@@ -313,35 +313,43 @@ export function Onboarding() {
         Cargá los datos del cliente. Al terminar te mostramos el {modoQR ? 'QR' : 'link'} para pagar.
       </p>
 
-      <Card className="mt-6 flex flex-col gap-5">
-        <Indicador paso={paso} />
-
-        {paso === 1 ? (
+      {/* Paso 1 (Plan) va fuera del Card + sin Indicador: es informativo
+          puro, una sola card cuadrada violeta/lila clickeable. Los pasos
+          siguientes mantienen el Card contenedor blanco + Indicador porque
+          son forms con múltiples campos. */}
+      {paso === 1 ? (
+        <div className="mt-6">
           <FormPlan onSubmit={avanzar} enviando={enviando} />
-        ) : paso === 2 ? (
-          <FormContacto datos={contacto} onCambio={setContacto} onAtras={volver} onSubmit={avanzar} error={error} enviando={enviando} pasoValido={pasoValido} />
-        ) : paso === 3 ? (
-          <FormDocumento datos={documento} onCambio={setDocumento} onAtras={volver} onSubmit={avanzar} error={error} enviando={enviando} pasoValido={pasoValido} />
-        ) : paso === 4 ? (
-          <FormDomicilio datos={domicilio} onCambio={setDomicilio} onAtras={volver} onSubmit={avanzar} error={error} enviando={enviando} pasoValido={pasoValido} />
-        ) : paso === 5 ? (
-          <FormFamiliares
-            beneficiarios={beneficiarios}
-            onAgregar={agregarBeneficiario}
-            onQuitar={quitarBeneficiario}
-            onActualizar={actualizarBeneficiario}
-            onAtras={volver}
-            onSubmit={avanzar}
-            error={error}
-            enviando={enviando}
-            pasoValido={pasoValido}
-            total={total}
-            familiaresCount={beneficiarios.length}
-          />
-        ) : resultado ? (
-          <Resumen contacto={contacto} total={total} familiaresCount={beneficiarios.length} resultado={resultado} modoQR={modoQR} />
-        ) : null}
-      </Card>
+        </div>
+      ) : (
+        <Card className="mt-6 flex flex-col gap-5">
+          <Indicador paso={paso} />
+
+          {paso === 2 ? (
+            <FormContacto datos={contacto} onCambio={setContacto} onAtras={volver} onSubmit={avanzar} error={error} enviando={enviando} pasoValido={pasoValido} />
+          ) : paso === 3 ? (
+            <FormDocumento datos={documento} onCambio={setDocumento} onAtras={volver} onSubmit={avanzar} error={error} enviando={enviando} pasoValido={pasoValido} />
+          ) : paso === 4 ? (
+            <FormDomicilio datos={domicilio} onCambio={setDomicilio} onAtras={volver} onSubmit={avanzar} error={error} enviando={enviando} pasoValido={pasoValido} />
+          ) : paso === 5 ? (
+            <FormFamiliares
+              beneficiarios={beneficiarios}
+              onAgregar={agregarBeneficiario}
+              onQuitar={quitarBeneficiario}
+              onActualizar={actualizarBeneficiario}
+              onAtras={volver}
+              onSubmit={avanzar}
+              error={error}
+              enviando={enviando}
+              pasoValido={pasoValido}
+              total={total}
+              familiaresCount={beneficiarios.length}
+            />
+          ) : resultado ? (
+            <Resumen contacto={contacto} total={total} familiaresCount={beneficiarios.length} resultado={resultado} modoQR={modoQR} />
+          ) : null}
+        </Card>
+      )}
     </div>
   );
 }
@@ -436,29 +444,34 @@ function FormContacto({ datos, onCambio, onAtras, onSubmit, error, enviando, pas
 function FormPlan({ onSubmit, enviando }: { onSubmit: (e: FormEvent<HTMLFormElement>) => void; enviando: boolean }) {
   return (
     <form onSubmit={onSubmit} noValidate>
-      <button
-        type="submit"
-        disabled={enviando}
-        aria-label={`Continuar con el plan ${PLAN.nombre}, ${PLAN.precio} pesos por mes`}
-        className={cn(
-          'group flex w-full cursor-pointer flex-col gap-4 rounded-card bg-marca-50/60 p-6 text-left ring-1 ring-marca-200 transition-colors',
-          'hover:bg-marca-50 hover:ring-marca-300',
-          'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca-500',
-          'disabled:cursor-not-allowed disabled:opacity-60',
-        )}
-      >
-        <div className="flex items-center gap-4">
-          <span
-            aria-hidden="true"
-            className="inline-flex size-12 shrink-0 items-center justify-center rounded-pill bg-marca-100 text-marca-700"
-          >
-            <ShieldCheck size={22} strokeWidth={1.75} />
-          </span>
-          <p className="font-display text-xl leading-tight text-ink-950">{PLAN.nombre}</p>
-        </div>
-        <div className="border-t border-marca-200/70" aria-hidden="true" />
-        <Money monto={PLAN.precio} periodo="por mes" tamano="md" />
-      </button>
+      <div className="mx-auto w-full max-w-[380px]">
+        <button
+          type="submit"
+          disabled={enviando}
+          aria-label={`Continuar con el plan ${PLAN.nombre}, ${PLAN.precio} pesos por mes`}
+          className={cn(
+            'flex aspect-square w-full cursor-pointer flex-col justify-between rounded-card p-7 text-left shadow-suave ring-1 ring-marca-500/30 transition-all',
+            'bg-gradient-to-br from-marca-100 to-marca-300',
+            'hover:from-marca-300 hover:to-marca-500 hover:shadow-card',
+            'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca-600',
+            'disabled:cursor-not-allowed disabled:opacity-60',
+          )}
+        >
+          <div className="flex flex-col gap-4">
+            <span
+              aria-hidden="true"
+              className="inline-flex size-14 items-center justify-center rounded-pill bg-marca-600 text-white shadow-suave"
+            >
+              <ShieldCheck size={26} strokeWidth={1.75} />
+            </span>
+            <p className="font-display text-2xl leading-tight text-marca-700">{PLAN.nombre}</p>
+          </div>
+          <div className="flex flex-col gap-4">
+            <div className="border-t border-marca-500/30" aria-hidden="true" />
+            <Money monto={PLAN.precio} periodo="por mes" tamano="md" />
+          </div>
+        </button>
+      </div>
     </form>
   );
 }
