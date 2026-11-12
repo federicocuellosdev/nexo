@@ -573,7 +573,7 @@ adminRouter.get('/admin/leads', requerirAdmin, async (_req, res) => {
     .schema('v3')
     .from('leads')
     .select(
-      'id, email, nombre, apellido, telefono, dni, fecha_nacimiento, item_nombre, mp_status, created_at, perfil, es_beneficiario, titular_lead_id',
+      'id, email, nombre, apellido, telefono, dni, fecha_nacimiento, item_nombre, mp_status, created_at, perfil, es_beneficiario, titular_lead_id, cobertura_pausada',
     )
     .order('created_at', { ascending: false })
     .limit(1000);
@@ -605,6 +605,9 @@ adminRouter.get('/admin/leads', requerirAdmin, async (_req, res) => {
       ...row,
       mp_status: titular.mp_status ?? null,
       item_nombre: titular.item_nombre ?? row.item_nombre,
+      // El beneficiario también hereda el flag de pausa del titular — no hay
+      // pausa individual: la cobertura se pausa a nivel de la suscripción.
+      cobertura_pausada: titular.cobertura_pausada ?? false,
     };
   });
 
