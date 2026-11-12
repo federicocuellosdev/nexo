@@ -5,6 +5,7 @@ import { supabaseAdmin } from '../lib/supabase.js';
 import { config } from '../config.js';
 import { emailClient } from '../lib/resend.js';
 import { asuntoVendedorBienvenida, htmlVendedorBienvenida } from '../emails/vendedorBienvenida.js';
+import { asuntoVendedorActualizado, htmlVendedorActualizado } from '../emails/vendedorActualizado.js';
 
 /**
  * Genera un código corto único de 6 chars (A-Z 0-9) para v3.vendedores.
@@ -413,17 +414,40 @@ adminRouter.get('/admin/vendedores', requerirAdmin, async (_req, res) => {
 });
 
 /**
- * Actualiza datos del vendedor (nombre, apellido, dni, telefono, etiqueta).
- * Email no se puede editar — es la clave única humana; si hay que cambiarlo,
- * se borra y se crea de nuevo.
+ * Actualiza datos del vendedor (nombre, apellido, email, dni, telefono, etiqueta).
+ *
+ * Email editable con validación anti-duplicado. Si el nuevo email coincide con
+ * otro vendedor, 409. Si cambia respecto del actual, sincronizamos también la
+ * cuenta de auth.users vía Admin API para que el próximo magic link se mande
+ * al nuevo email (si no, el vendedor queda con su login colgado del anterior).
+ *
+ * Tras guardar, se le manda al vendedor un mail con sus datos nuevos en forma
+ * de tabla. Al nuevo email si cambió; al existente si no. Fire-and-forget.
  */
 const EdicionVendedor = z.object({
   nombre: z.string().trim().min(1).optional(),
   apellido: z.string().trim().min(1).optional(),
+  email: z.string().email().optional(),
   dni: z.string().trim().optional(),
   telefono: z.string().trim().optional(),
   etiqueta: z.string().trim().optional(),
 });
+
+async function buscarAuthUserPorEmail(email: string): Promise<string | undefined> {
+  const emailLower = email.toLowerCase();
+  const porPagina = 1000;
+  for (let pagina = 1; pagina <= 50; pagina += 1) {
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page: pagina, perPage: porPagina });
+    if (error) {
+      console.warn('[buscarAuthUserPorEmail] listUsers error', error);
+      return undefined;
+    }
+    const match = (data?.users ?? []).find((u) => (u.email ?? '').toLowerCase() === emailLower);
+    if (match) return match.id;
+    if ((data?.users ?? []).length < porPagina) return undefined;
+  }
+  return undefined;
+}
 
 adminRouter.patch('/admin/vendedores/:id', requerirAdmin, async (req, res) => {
   const parsed = EdicionVendedor.safeParse(req.body);
@@ -435,12 +459,44 @@ adminRouter.patch('/admin/vendedores/:id', requerirAdmin, async (req, res) => {
     });
   }
 
+  // Traemos el estado actual del vendedor: lo necesitamos para (a) decidir si
+  // cambió el email, (b) mandar el mail de confirmación con los datos
+  // finales aunque el PATCH no los toque.
+  const { data: actual, error: errorActual } = await supabaseAdmin
+    .schema('v3')
+    .from('vendedores')
+    .select('id, nombre, apellido, email, dni, telefono, etiqueta')
+    .eq('id', req.params.id)
+    .maybeSingle();
+
+  if (errorActual || !actual) {
+    return res.status(404).json({ ok: false, error: 'vendedor_no_encontrado' });
+  }
+
   const patch: Record<string, string | null> = {};
   if (parsed.data.nombre !== undefined) patch.nombre = parsed.data.nombre;
   if (parsed.data.apellido !== undefined) patch.apellido = parsed.data.apellido;
   if (parsed.data.dni !== undefined) patch.dni = parsed.data.dni === '' ? null : parsed.data.dni;
   if (parsed.data.telefono !== undefined) patch.telefono = parsed.data.telefono === '' ? null : parsed.data.telefono;
   if (parsed.data.etiqueta !== undefined) patch.etiqueta = parsed.data.etiqueta === '' ? null : parsed.data.etiqueta;
+
+  // Email: normalizamos y validamos duplicado contra OTROS vendedores (no
+  // contra sí mismo, sino un PATCH idempotente devolvería 409).
+  const emailNuevo = parsed.data.email?.toLowerCase().trim();
+  const emailCambia = emailNuevo !== undefined && emailNuevo !== actual.email;
+  if (emailCambia) {
+    const { data: colision } = await supabaseAdmin
+      .schema('v3')
+      .from('vendedores')
+      .select('id')
+      .ilike('email', emailNuevo!)
+      .neq('id', req.params.id)
+      .maybeSingle();
+    if (colision) {
+      return res.status(409).json({ ok: false, error: 'email_ya_registrado', id: colision.id });
+    }
+    patch.email = emailNuevo!;
+  }
 
   if (Object.keys(patch).length === 0) {
     return res.status(400).json({ ok: false, error: 'sin_cambios' });
@@ -455,6 +511,56 @@ adminRouter.patch('/admin/vendedores/:id', requerirAdmin, async (req, res) => {
   if (error) {
     console.error('[PATCH /admin/vendedores/:id] db error', error);
     return res.status(500).json({ ok: false, error: 'db_error' });
+  }
+
+  // Sincronizamos auth.users si el email cambió. Fire-and-forget: si falla,
+  // el admin puede re-ejecutar el patch o resetear el vendedor; el dato en
+  // v3.vendedores ya está persistido.
+  if (emailCambia) {
+    try {
+      const userId = await buscarAuthUserPorEmail(actual.email);
+      if (userId) {
+        const { error: errorAuth } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+          email: emailNuevo!,
+          email_confirm: true,
+        });
+        if (errorAuth) {
+          console.warn('[PATCH /admin/vendedores/:id] no se pudo actualizar auth.users', errorAuth);
+        }
+      } else {
+        console.warn('[PATCH /admin/vendedores/:id] auth.user no encontrado para', actual.email);
+      }
+    } catch (err) {
+      console.warn('[PATCH /admin/vendedores/:id] excepción al sync auth.users', err);
+    }
+  }
+
+  // Mail de confirmación con los datos finales. Al nuevo email si cambió;
+  // sino al vigente.
+  const datosFinales = {
+    nombre: patch.nombre ?? actual.nombre,
+    apellido: patch.apellido ?? actual.apellido,
+    email: patch.email ?? actual.email,
+    dni: patch.dni !== undefined ? patch.dni : actual.dni,
+    telefono: patch.telefono !== undefined ? patch.telefono : actual.telefono,
+    etiqueta: patch.etiqueta !== undefined ? patch.etiqueta : actual.etiqueta,
+  };
+  try {
+    await emailClient.enviar({
+      to: datosFinales.email,
+      subject: asuntoVendedorActualizado(),
+      html: htmlVendedorActualizado({
+        nombre: datosFinales.nombre,
+        apellido: datosFinales.apellido,
+        email: datosFinales.email,
+        dni: datosFinales.dni,
+        telefono: datosFinales.telefono,
+        etiqueta: datosFinales.etiqueta,
+        logoUrl: config.emailLogoUrl,
+      }),
+    });
+  } catch (err) {
+    console.warn('[PATCH /admin/vendedores/:id] no se pudo enviar email de confirmación', err);
   }
 
   return res.status(200).json({ ok: true });
