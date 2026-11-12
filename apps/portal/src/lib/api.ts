@@ -406,6 +406,7 @@ export async function obtenerVendedoresAdmin(accessToken: string): Promise<Vende
 export interface EdicionVendedor {
   nombre?: string;
   apellido?: string;
+  email?: string;
   dni?: string;
   telefono?: string;
   etiqueta?: string;
