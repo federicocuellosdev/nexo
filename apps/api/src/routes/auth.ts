@@ -9,24 +9,43 @@ export const authRouter = Router();
 
 /**
  * ¿El email tiene un auth.user asociado? Lo usamos antes de disparar
- * generateLink para no crear usuarios "fantasma" en el flujo de LOGIN. La SDK
- * admin trae una API paginada `listUsers` que no filtra por email, así que
- * armamos el query directamente contra la tabla `auth.users` con el service
- * role. Si el lookup falla por cualquier motivo, asumimos "no existe" para
- * no mandar emails espúreos.
+ * generateLink para no crear usuarios "fantasma" en el flujo de LOGIN.
+ *
+ * Implementación: Supabase NO expone el schema `auth` vía PostgREST por
+ * default, así que la query `.schema('auth').from('users')` siempre erra
+ * y nos deja mandando cero emails. Usamos `auth.admin.listUsers`, que sí
+ * lee auth.users vía la API admin (service role). La SDK no acepta filtro
+ * por email → paginamos hasta encontrar o agotar (OK para el staging; si
+ * crece la base, migrar a un RPC SECURITY DEFINER en el schema public).
+ *
+ * Fail-OPEN: si el lookup falla por un motivo transitorio (red caída, 5xx
+ * de Supabase) asumimos que el user podría existir y dejamos pasar. Es
+ * preferible mandar un mail de más (que no genera cuenta — el flow ya tiene
+ * la red de contención del error "user not found" de generateLink más abajo)
+ * a bloquear a un usuario legítimo que no puede ingresar.
  */
 async function emailTieneCuenta(email: string): Promise<boolean> {
-  const { data, error } = await supabaseAdmin
-    .schema('auth' as never)
-    .from('users' as never)
-    .select('id')
-    .eq('email', email.toLowerCase())
-    .limit(1);
-  if (error) {
-    console.warn('[auth lookup] no se pudo leer auth.users', error);
+  const emailLower = email.toLowerCase();
+  const porPagina = 1000;
+  try {
+    for (let pagina = 1; pagina <= 50; pagina++) {
+      const { data, error } = await supabaseAdmin.auth.admin.listUsers({
+        page: pagina,
+        perPage: porPagina,
+      });
+      if (error) {
+        console.warn('[auth lookup] listUsers error, fail-open:', error);
+        return true;
+      }
+      const users = data?.users ?? [];
+      if (users.some((u) => (u.email ?? '').toLowerCase() === emailLower)) return true;
+      if (users.length < porPagina) return false;
+    }
     return false;
+  } catch (err) {
+    console.warn('[auth lookup] listUsers excepción, fail-open:', err);
+    return true;
   }
-  return Array.isArray(data) && data.length > 0;
 }
 
 // Payload mínimo: solo el email. No llevamos planId/planTipo porque este
