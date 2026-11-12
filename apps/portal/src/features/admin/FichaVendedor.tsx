@@ -201,7 +201,7 @@ export function FichaVendedor({ vendedorId, onVolver }: FichaVendedorProps) {
                 + magic link. Van acá debajo (y no en el top de la columna
                 derecha) para que queden pegadas al bloque de identidad del
                 vendedor sobre el que operan. */}
-            <div className="grid grid-cols-2 gap-2">
+            <div className="flex flex-col gap-2">
               <Button
                 type="button"
                 variante="primario"
