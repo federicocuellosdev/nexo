@@ -854,9 +854,6 @@ function Resumen({ contacto, total, familiaresCount, resultado }: ResumenProps) 
           Escaneá con la cámara del celular
         </div>
         <QR url={resultado.initPoint} lado={240} />
-        <p className="max-w-xs text-center text-xs text-ink-500">
-          Usá la <strong>cámara</strong> del teléfono (no el escáner de la app MercadoPago). Se abre el checkout en el navegador.
-        </p>
       </div>
 
       <div className="flex flex-col gap-3">
