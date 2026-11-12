@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Calendar, Search, X } from 'lucide-react';
+import { Calendar, Check, ChevronDown, Search, X } from 'lucide-react';
+import { Dialog } from '@/ui/Dialog';
+import { Button } from '@/ui/Button';
 import { cn } from '@/lib/cn';
 import { supabase } from '@/lib/supabase';
 import {
@@ -117,6 +119,7 @@ export function AdminNegocio({ fuente = 'admin' }: AdminNegocioProps = {}) {
   const [rango, setRango] = useState<Rango>('mes');
   const [desdeCustom, setDesdeCustom] = useState('');
   const [hastaCustom, setHastaCustom] = useState('');
+  const [dialogoRangoAbierto, setDialogoRangoAbierto] = useState(false);
 
   const cargar = useCallback(async () => {
     setCargando(true);
@@ -252,20 +255,7 @@ export function AdminNegocio({ fuente = 'admin' }: AdminNegocioProps = {}) {
             ) : null}
           </div>
 
-          {/* Filtro por estado (pegado al buscador). Nativo <select> con pill
-              styling para integrarse con el resto de la fila. */}
-          <select
-            aria-label="Filtrar por estado"
-            value={estadoFiltro}
-            onChange={(e) => setEstadoFiltro(e.target.value as EstadoCobertura | 'todos')}
-            className="inline-flex h-11 shrink-0 cursor-pointer appearance-none rounded-pill bg-white px-4 pr-9 text-sm font-medium text-ink-800 ring-1 ring-ink-200 hover:bg-ink-50 focus:outline-none focus:ring-marca-400 bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 20 20%22 fill=%22none%22 stroke=%22%23555%22 stroke-width=%221.5%22><path d=%22M6 8l4 4 4-4%22/></svg>')] bg-no-repeat bg-[right_0.75rem_center] bg-[length:14px_14px]"
-          >
-            {OPCIONES_ESTADO.map((opt) => (
-              <option key={opt.valor} value={opt.valor}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+          <FiltroEstado valor={estadoFiltro} onCambio={setEstadoFiltro} />
 
           <div role="group" aria-label="Rango temporal" className="flex flex-wrap gap-2">
             {OPCIONES_RANGO.map((opt) => {
@@ -274,65 +264,45 @@ export function AdminNegocio({ fuente = 'admin' }: AdminNegocioProps = {}) {
                 <button
                   key={opt.valor}
                   type="button"
-                  onClick={() => setRango(opt.valor)}
+                  onClick={() => {
+                    if (opt.valor === 'personalizado') {
+                      setDialogoRangoAbierto(true);
+                      return;
+                    }
+                    setRango(opt.valor);
+                  }}
                   aria-pressed={activo}
                   className={cn(
-                    'inline-flex h-11 shrink-0 cursor-pointer items-center whitespace-nowrap rounded-pill px-4 text-sm font-medium transition-colors duration-200',
+                    'inline-flex h-11 shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-pill px-4 text-sm font-medium transition-colors duration-200',
                     'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca-500',
                     activo
                       ? 'bg-marca-600 text-white shadow-suave'
                       : 'bg-white text-ink-700 ring-1 ring-ink-200 hover:bg-ink-50',
                   )}
                 >
-                  {opt.label}
+                  {opt.valor === 'personalizado' ? <Calendar size={14} aria-hidden="true" /> : null}
+                  {opt.valor === 'personalizado' && rango === 'personalizado' && (desdeCustom || hastaCustom)
+                    ? `${formatearRangoBreve(desdeCustom, hastaCustom)}`
+                    : opt.label}
                 </button>
               );
             })}
           </div>
         </div>
-
-        {rango === 'personalizado' ? (
-          <div
-            data-entrada
-            className="flex flex-wrap items-center gap-3 rounded-card bg-marca-50/50 px-4 py-3 ring-1 ring-marca-100"
-          >
-            <span className="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-marca-700">
-              <Calendar size={14} aria-hidden="true" />
-              Rango personalizado
-            </span>
-            <div className="flex flex-1 flex-wrap items-center gap-2">
-              <PickerFecha
-                id="neg-desde"
-                etiqueta="Desde"
-                valor={desdeCustom}
-                onChange={setDesdeCustom}
-                max={hastaCustom || undefined}
-              />
-              <span aria-hidden="true" className="text-ink-400">—</span>
-              <PickerFecha
-                id="neg-hasta"
-                etiqueta="Hasta"
-                valor={hastaCustom}
-                onChange={setHastaCustom}
-                min={desdeCustom || undefined}
-              />
-              {(desdeCustom || hastaCustom) ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDesdeCustom('');
-                    setHastaCustom('');
-                  }}
-                  className="inline-flex h-9 cursor-pointer items-center gap-1 rounded-pill px-3 text-xs font-medium text-ink-600 hover:bg-white hover:text-ink-900"
-                >
-                  <X size={12} />
-                  Limpiar
-                </button>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
       </div>
+
+      <DialogoRangoPersonalizado
+        abierto={dialogoRangoAbierto}
+        desdeInicial={desdeCustom}
+        hastaInicial={hastaCustom}
+        onCerrar={() => setDialogoRangoAbierto(false)}
+        onAplicar={(desde, hasta) => {
+          setDesdeCustom(desde);
+          setHastaCustom(hasta);
+          setRango('personalizado');
+          setDialogoRangoAbierto(false);
+        }}
+      />
 
       <Tabs valor={pestana} onCambio={setPestana} items={ITEMS} etiqueta="Negocio">
         <TabPanel<Pestana> valor="afiliados">
@@ -500,40 +470,196 @@ function BarraCompletitud({ porcentaje }: { porcentaje: number }) {
   );
 }
 
-/**
- * Date picker compacto pill-style. Envuelve un <input type="date"> nativo
- * (para heredar el calendar popover del navegador) con una etiqueta a la
- * izquierda y bordes redondeados — se integra al bloque de filtros.
- */
-interface PickerFechaProps {
-  id: string;
-  etiqueta: string;
-  valor: string;
-  onChange: (v: string) => void;
-  min?: string;
-  max?: string;
+
+// ───────────────────── Filtro de estado (dropdown custom) ─────────────────────
+
+const TONOS_DOT: Record<EstadoCobertura | 'todos', string> = {
+  todos: 'bg-ink-300',
+  activo: 'bg-ok-500',
+  pausado: 'bg-warn-500',
+  'sin-cobertura': 'bg-ink-400',
+};
+
+function FiltroEstado({
+  valor,
+  onCambio,
+}: {
+  valor: EstadoCobertura | 'todos';
+  onCambio: (v: EstadoCobertura | 'todos') => void;
+}) {
+  const [abierto, setAbierto] = useState(false);
+  const contenedor = useRef<HTMLDivElement>(null);
+  const labelActual = OPCIONES_ESTADO.find((o) => o.valor === valor)?.label ?? 'Estado';
+
+  useEffect(() => {
+    if (!abierto) return;
+    function cerrar(ev: MouseEvent) {
+      if (contenedor.current && !contenedor.current.contains(ev.target as Node)) setAbierto(false);
+    }
+    document.addEventListener('mousedown', cerrar);
+    return () => document.removeEventListener('mousedown', cerrar);
+  }, [abierto]);
+
+  return (
+    <div ref={contenedor} className="relative">
+      <button
+        type="button"
+        onClick={() => setAbierto((v) => !v)}
+        aria-haspopup="listbox"
+        aria-expanded={abierto}
+        className={cn(
+          'inline-flex h-11 shrink-0 cursor-pointer items-center gap-2 rounded-pill bg-white px-4 text-sm font-medium text-ink-800 ring-1 ring-ink-200 transition-colors hover:bg-ink-50',
+          abierto ? 'ring-marca-400' : '',
+        )}
+      >
+        <span aria-hidden="true" className={cn('inline-block size-2 rounded-pill', TONOS_DOT[valor])} />
+        {labelActual}
+        <ChevronDown size={14} className={cn('text-ink-500 transition-transform', abierto ? 'rotate-180' : '')} />
+      </button>
+      {abierto ? (
+        <ul
+          role="listbox"
+          className="absolute left-0 top-full z-20 mt-2 min-w-[200px] overflow-hidden rounded-card bg-white py-1 shadow-flotante ring-1 ring-ink-200"
+        >
+          {OPCIONES_ESTADO.map((opt) => {
+            const seleccionado = valor === opt.valor;
+            return (
+              <li key={opt.valor}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={seleccionado}
+                  onClick={() => {
+                    onCambio(opt.valor);
+                    setAbierto(false);
+                  }}
+                  className={cn(
+                    'flex w-full cursor-pointer items-center justify-between gap-3 px-3 py-2 text-left text-sm transition-colors',
+                    seleccionado ? 'bg-marca-50 text-marca-800' : 'text-ink-800 hover:bg-ink-50',
+                  )}
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <span aria-hidden="true" className={cn('inline-block size-2 rounded-pill', TONOS_DOT[opt.valor])} />
+                    {opt.label}
+                  </span>
+                  {seleccionado ? <Check size={14} className="text-marca-700" /> : null}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
+    </div>
+  );
 }
 
-function PickerFecha({ id, etiqueta, valor, onChange, min, max }: PickerFechaProps) {
+// ──────────── Rango personalizado (dialog con 2 date pickers) ────────────
+
+function formatearRangoBreve(desde: string, hasta: string): string {
+  const fmt = (iso: string) => {
+    if (!iso) return '…';
+    const [y, m, d] = iso.split('-');
+    return `${d}/${m}/${y?.slice(2)}`;
+  };
+  if (desde && hasta) return `${fmt(desde)} — ${fmt(hasta)}`;
+  if (desde) return `Desde ${fmt(desde)}`;
+  if (hasta) return `Hasta ${fmt(hasta)}`;
+  return 'Personalizado';
+}
+
+function DialogoRangoPersonalizado({
+  abierto,
+  desdeInicial,
+  hastaInicial,
+  onCerrar,
+  onAplicar,
+}: {
+  abierto: boolean;
+  desdeInicial: string;
+  hastaInicial: string;
+  onCerrar: () => void;
+  onAplicar: (desde: string, hasta: string) => void;
+}) {
+  const [desde, setDesde] = useState(desdeInicial);
+  const [hasta, setHasta] = useState(hastaInicial);
+
+  useEffect(() => {
+    if (abierto) {
+      setDesde(desdeInicial);
+      setHasta(hastaInicial);
+    }
+  }, [abierto, desdeInicial, hastaInicial]);
+
+  const invalido = desde && hasta && new Date(desde) > new Date(hasta);
+
   return (
-    <label
-      htmlFor={id}
-      className={cn(
-        'group inline-flex h-10 cursor-pointer items-center gap-2 rounded-pill bg-white px-3 ring-1 transition-colors',
-        valor ? 'ring-marca-300' : 'ring-ink-200 hover:ring-ink-300',
-      )}
+    <Dialog
+      abierto={abierto}
+      onCambio={(ab) => {
+        if (!ab) onCerrar();
+      }}
+      titulo="Rango personalizado"
+      descripcion="Elegí la fecha de inicio y la fecha de fin. Filtra por fecha de creación del alta."
     >
-      <span className="text-xs font-medium uppercase tracking-wide text-ink-500">{etiqueta}</span>
-      <input
-        id={id}
-        type="date"
-        value={valor}
-        min={min}
-        max={max}
-        onChange={(e) => onChange(e.target.value)}
-        className="cursor-pointer border-0 bg-transparent text-sm text-ink-900 focus:outline-none"
-      />
-    </label>
+      <div className="flex flex-col gap-5">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="flex flex-col gap-2">
+            <span className="text-xs font-medium uppercase tracking-wide text-marca-700">Desde</span>
+            <input
+              type="date"
+              value={desde}
+              max={hasta || undefined}
+              onChange={(e) => setDesde(e.target.value)}
+              className="h-11 rounded-campo border border-ink-200 bg-white px-3 text-base text-ink-900 focus:outline-none focus:ring-2 focus:ring-marca-400"
+            />
+          </label>
+          <label className="flex flex-col gap-2">
+            <span className="text-xs font-medium uppercase tracking-wide text-marca-700">Hasta</span>
+            <input
+              type="date"
+              value={hasta}
+              min={desde || undefined}
+              onChange={(e) => setHasta(e.target.value)}
+              className="h-11 rounded-campo border border-ink-200 bg-white px-3 text-base text-ink-900 focus:outline-none focus:ring-2 focus:ring-marca-400"
+            />
+          </label>
+        </div>
+
+        {invalido ? (
+          <p className="text-sm text-danger-700">La fecha "Desde" no puede ser posterior a "Hasta".</p>
+        ) : null}
+
+        <div className="flex flex-col gap-3 sm:flex-row-reverse">
+          <Button
+            type="button"
+            ancho="full"
+            tamano="lg"
+            className="sm:w-auto"
+            disabled={Boolean(invalido)}
+            onClick={() => onAplicar(desde, hasta)}
+          >
+            Aplicar rango
+          </Button>
+          <Button
+            type="button"
+            variante="secundario"
+            ancho="full"
+            tamano="lg"
+            className="sm:w-auto"
+            onClick={() => {
+              setDesde('');
+              setHasta('');
+              onAplicar('', '');
+            }}
+          >
+            Limpiar
+          </Button>
+          <Button type="button" variante="fantasma" ancho="full" tamano="lg" className="sm:w-auto" onClick={onCerrar}>
+            Cancelar
+          </Button>
+        </div>
+      </div>
+    </Dialog>
   );
 }
 
