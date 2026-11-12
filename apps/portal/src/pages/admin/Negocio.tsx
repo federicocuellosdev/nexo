@@ -797,7 +797,7 @@ function BotonDescargaCSV({
       )}
     >
       <Download size={14} aria-hidden="true" />
-      Descargar {nombreArchivo}
+      {nombreArchivo === 'leads' ? 'CSV LEADS' : 'CSV AFILIADO'}
     </button>
   );
 }
