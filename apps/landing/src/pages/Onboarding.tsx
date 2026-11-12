@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useSearchParams } from 'react-router';
-import { Copy, Check, CreditCard, QrCode, Trash2, Plus, ShieldCheck } from 'lucide-react';
+import { Copy, Check, QrCode, Trash2, Plus, ShieldCheck, MessageCircle } from 'lucide-react';
+import { Dialog } from '@/ui/Dialog';
 
 /** Filtra todo lo que no sea dígito. Lo usamos en onChange de campos
  *  estrictamente numéricos (DNI, teléfono, altura, CP) para evitar que el
@@ -120,7 +121,6 @@ interface ResultadoOnboarding {
 
 export function Onboarding() {
   const [parametros] = useSearchParams();
-  const modoQR = parametros.get('qr') === 'true';
   // Vendedor atribuido. Acepta UUID (36 chars con guiones) o codigo_corto
   // (6 chars A-Z0-9) — el backend resuelve ambos al UUID del vendedor
   // antes del insert. Cortamos acá los formatos obvios inválidos para no
@@ -310,7 +310,7 @@ export function Onboarding() {
     <div className="mx-auto max-w-[640px] px-4 pt-6 pb-16 lg:pt-10">
       <h1 className="text-2xl text-ink-950">Onboarding</h1>
       <p className="mt-2 text-sm text-ink-600">
-        Cargá los datos del cliente. Al terminar te mostramos el {modoQR ? 'QR' : 'link'} para pagar.
+        Cargá los datos del cliente. Al terminar te mostramos el QR y el link para pagar.
       </p>
 
       {/* Paso 1 (Plan) va fuera del Card + sin Indicador: es informativo
@@ -346,7 +346,7 @@ export function Onboarding() {
               familiaresCount={beneficiarios.length}
             />
           ) : resultado ? (
-            <Resumen contacto={contacto} total={total} familiaresCount={beneficiarios.length} resultado={resultado} modoQR={modoQR} />
+            <Resumen contacto={contacto} total={total} familiaresCount={beneficiarios.length} resultado={resultado} />
           ) : null}
         </Card>
       )}
@@ -730,15 +730,11 @@ interface ResumenProps {
   total: number;
   familiaresCount: number;
   resultado: ResultadoOnboarding;
-  modoQR: boolean;
 }
 
-function Resumen({ contacto, total, familiaresCount, resultado, modoQR }: ResumenProps) {
+function Resumen({ contacto, total, familiaresCount, resultado }: ResumenProps) {
   const [copiado, setCopiado] = useState(false);
-  // `modoQR` sigue existiendo para el acceso vía ?qr=true (vendedor en calle
-  // que arranca directo con el QR arriba). El botón "Generar QR" permite el
-  // mismo resultado desde el flujo normal sin cambiar la URL.
-  const [mostrandoQR, setMostrandoQR] = useState(modoQR);
+  const [dialogoWhatsapp, setDialogoWhatsapp] = useState(false);
 
   async function copiarLink() {
     try {
@@ -750,14 +746,10 @@ function Resumen({ contacto, total, familiaresCount, resultado, modoQR }: Resume
     }
   }
 
-  function pagarAhora() {
-    window.location.href = resultado.initPoint;
-  }
-
   return (
     <div className="flex flex-col gap-5">
       <div className="rounded-card bg-ok-50 px-4 py-3 ring-1 ring-ok-500/30">
-        <p className="text-sm font-medium text-ok-700">Alta creada correctamente.</p>
+        <p className="text-sm font-medium text-ok-700">Lead creado correctamente</p>
         <p className="mt-1 text-sm text-ok-700">El cliente queda en el sistema. Falta el pago para activar la cobertura.</p>
       </div>
 
@@ -775,31 +767,114 @@ function Resumen({ contacto, total, familiaresCount, resultado, modoQR }: Resume
         <Money monto={total} periodo="por mes" tamano="md" />
       </div>
 
+      {/* QR siempre visible: el flujo esperado del vendedor es que el cliente
+          escanee desde su propio celular. Debajo, acciones alternativas por
+          si prefiere pasar el link (copiar o mandarlo por WhatsApp). */}
+      <div className="flex flex-col items-center gap-4 rounded-card bg-white px-4 py-6 ring-1 ring-ink-200">
+        <div className="flex items-center gap-2 text-sm font-medium text-ink-700">
+          <QrCode size={16} aria-hidden="true" />
+          Escaneá para pagar
+        </div>
+        <QR url={resultado.initPoint} lado={240} />
+        <p className="max-w-xs text-center text-xs text-ink-500">El cliente escanea con la cámara del celular y completa el pago en MercadoPago.</p>
+      </div>
+
       <div className="flex flex-col gap-3">
-        <Button type="button" ancho="full" tamano="lg" onClick={pagarAhora}>
-          <CreditCard size={16} aria-hidden="true" />
-          Pagar ahora
-        </Button>
         <Button type="button" variante="secundario" ancho="full" onClick={copiarLink}>
           {copiado ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
           {copiado ? 'Link copiado' : 'Copiar link de pago'}
         </Button>
-        <Button type="button" variante="secundario" ancho="full" onClick={() => setMostrandoQR((v) => !v)}>
-          <QrCode size={16} aria-hidden="true" />
-          {mostrandoQR ? 'Ocultar QR' : 'Generar QR'}
+        <Button type="button" variante="secundario" ancho="full" onClick={() => setDialogoWhatsapp(true)}>
+          <MessageCircle size={16} aria-hidden="true" />
+          Enviar link por WhatsApp
         </Button>
       </div>
 
-      {mostrandoQR ? (
-        <div className="flex flex-col items-center gap-4 rounded-card bg-white px-4 py-6 ring-1 ring-ink-200">
-          <div className="flex items-center gap-2 text-sm font-medium text-ink-700">
-            <QrCode size={16} aria-hidden="true" />
-            Escaneá para pagar
-          </div>
-          <QR url={resultado.initPoint} lado={240} />
-          <p className="max-w-xs text-center text-xs text-ink-500">El cliente escanea con la cámara del celular y completa el pago en MercadoPago.</p>
-        </div>
-      ) : null}
+      <DialogoWhatsapp
+        abierto={dialogoWhatsapp}
+        onCerrar={() => setDialogoWhatsapp(false)}
+        cliente={contacto}
+        linkPago={resultado.initPoint}
+      />
     </div>
+  );
+}
+
+/**
+ * Dialog con input de teléfono del cliente. Al confirmar abre wa.me en el
+ * teléfono del asesor (nueva pestaña) con un mensaje pre-escrito: el vendedor
+ * solo tiene que apretar "enviar" en WhatsApp. NO manda WhatsApp desde el
+ * servidor — es un deep link que rellena el chat.
+ *
+ * Formato esperado: dígitos del cliente (AR móvil sin prefijo país, ej.
+ * 3411234567). Le anteponemos "549" (código AR + 9 obligatorio para móviles
+ * en wa.me). Si el vendedor quiere un número extranjero puede editar el
+ * texto en WhatsApp antes de mandar.
+ */
+function DialogoWhatsapp({
+  abierto,
+  onCerrar,
+  cliente,
+  linkPago,
+}: {
+  abierto: boolean;
+  onCerrar: () => void;
+  cliente: DatosContacto;
+  linkPago: string;
+}) {
+  const [telefono, setTelefono] = useState('');
+
+  useEffect(() => {
+    if (abierto) {
+      // Pre-cargamos con el teléfono del titular del paso 1 (ya validado 8-15
+      // dígitos) — el caso típico es mandarle al mismo cliente.
+      setTelefono(cliente.telefono);
+    }
+  }, [abierto, cliente.telefono]);
+
+  const telefonoValido = /^\d{8,15}$/.test(telefono);
+
+  function enviar() {
+    if (!telefonoValido) return;
+    const numero = telefono.startsWith('54') ? telefono : `549${telefono}`;
+    const nombre = cliente.nombre.trim() || 'Hola';
+    const mensaje = `Hola ${nombre}! Te paso el link para completar el pago de tu plan ${PLAN.nombre}: ${linkPago}`;
+    const url = `https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+    onCerrar();
+  }
+
+  return (
+    <Dialog
+      abierto={abierto}
+      onCambio={(ab) => {
+        if (!ab) onCerrar();
+      }}
+      titulo="Enviar link por WhatsApp"
+      descripcion="Ingresá el teléfono del cliente. Vamos a abrir WhatsApp con el mensaje ya escrito — solo tenés que apretar enviar."
+    >
+      <div className="flex flex-col gap-5">
+        <Field label="Teléfono del cliente" htmlFor="wa-tel" ayuda="Solo dígitos, sin 0 ni 15. Ej: 3411234567" requerido>
+          <Input
+            id="wa-tel"
+            inputMode="numeric"
+            maxLength={15}
+            placeholder="3411234567"
+            value={telefono}
+            onChange={(e) => setTelefono(soloDigitos(e.target.value))}
+          />
+        </Field>
+
+        <div className="flex flex-col gap-3 sm:flex-row-reverse">
+          <Button type="button" ancho="full" tamano="lg" className="sm:w-auto" onClick={enviar} disabled={!telefonoValido}>
+            <MessageCircle size={16} aria-hidden="true" />
+            Abrir WhatsApp
+          </Button>
+          <Button type="button" variante="fantasma" ancho="full" tamano="lg" className="sm:w-auto" onClick={onCerrar}>
+            Cancelar
+          </Button>
+        </div>
+      </div>
+    </Dialog>
   );
 }
