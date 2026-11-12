@@ -15,25 +15,10 @@ interface TarjetaMetricaProps {
 function TarjetaMetrica({ titulo, valor, descripcion, icono: Glifo, cargando }: TarjetaMetricaProps) {
   return (
     <div className="flex flex-col gap-4 rounded-card bg-white p-6 shadow-card ring-1 ring-ink-100">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-ink-600">{titulo}</p>
-          {/* El <p> siempre se renderiza para fijar el line-height (text-4xl
-              + font-display). Adentro va el numero cuando hay valor, o un
-              bloque skeleton con altura 1em (relativa al font-size del
-              parent) mientras carga — asi la card no se desplaza cuando
-              llega el dato. */}
-          <p className="mt-2 font-display text-4xl text-ink-950">
-            {cargando ? (
-              <span
-                aria-hidden="true"
-                className="inline-block h-[1em] w-24 animate-pulse rounded-campo bg-ink-100 align-middle"
-              />
-            ) : (
-              (valor?.toLocaleString('es-AR') ?? '—')
-            )}
-          </p>
-        </div>
+      {/* Fila título + ícono: items-center para que el glifo quede alineado
+          con la línea de texto del título, no flotando sobre el bloque entero. */}
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-medium text-ink-600">{titulo}</p>
         <span
           aria-hidden="true"
           className="inline-flex size-10 shrink-0 items-center justify-center rounded-pill bg-marca-50 text-marca-700"
@@ -41,6 +26,20 @@ function TarjetaMetrica({ titulo, valor, descripcion, icono: Glifo, cargando }: 
           <Glifo size={20} strokeWidth={1.75} />
         </span>
       </div>
+      {/* El <p> reserva altura fija para que la card no se "salte" cuando
+          llega el número. Antes el skeleton usaba h-[1em] (36px, font-size)
+          pero el line-height del text-4xl es 40px (h-10) → la card crecía
+          4px al renderizar el número. Con h-10 fijo quedan iguales. */}
+      <p className="font-display text-4xl text-ink-950 leading-10">
+        {cargando ? (
+          <span
+            aria-hidden="true"
+            className="inline-block h-10 w-24 animate-pulse rounded-campo bg-ink-100 align-middle"
+          />
+        ) : (
+          (valor?.toLocaleString('es-AR') ?? '—')
+        )}
+      </p>
       <p className="text-sm text-ink-600">{descripcion}</p>
     </div>
   );
