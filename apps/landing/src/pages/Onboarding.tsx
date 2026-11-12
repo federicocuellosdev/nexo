@@ -444,32 +444,30 @@ function FormContacto({ datos, onCambio, onAtras, onSubmit, error, enviando, pas
 function FormPlan({ onSubmit, enviando }: { onSubmit: (e: FormEvent<HTMLFormElement>) => void; enviando: boolean }) {
   return (
     <form onSubmit={onSubmit} noValidate>
-      <div className="mx-auto w-full max-w-[280px]">
+      <div className="w-full max-w-[280px]">
         <button
           type="submit"
           disabled={enviando}
           aria-label={`Continuar con el plan ${PLAN.nombre}, ${PLAN.precio} pesos por mes`}
           className={cn(
-            'flex aspect-square w-full cursor-pointer flex-col justify-between rounded-card p-5 text-left ring-1 ring-marca-300/50 transition-all',
+            'flex w-full cursor-pointer flex-col gap-3 rounded-card p-4 text-left ring-1 ring-marca-300/50 transition-all',
             'bg-gradient-to-br from-marca-50 to-marca-100',
             'hover:from-marca-100 hover:to-marca-300 hover:shadow-suave',
             'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca-500',
             'disabled:cursor-not-allowed disabled:opacity-60',
           )}
         >
-          <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-3">
             <span
               aria-hidden="true"
-              className="inline-flex size-11 items-center justify-center rounded-pill bg-marca-500/90 text-white"
+              className="inline-flex size-10 shrink-0 items-center justify-center rounded-pill bg-marca-500/90 text-white"
             >
-              <ShieldCheck size={20} strokeWidth={1.75} />
+              <ShieldCheck size={18} strokeWidth={1.75} />
             </span>
             <p className="font-display text-lg leading-tight text-marca-700">{PLAN.nombre}</p>
           </div>
-          <div className="flex flex-col gap-3">
-            <div className="border-t border-marca-300/60" aria-hidden="true" />
-            <Money monto={PLAN.precio} periodo="por mes" tamano="md" />
-          </div>
+          <div className="border-t border-marca-300/60" aria-hidden="true" />
+          <Money monto={PLAN.precio} periodo="por mes" tamano="md" />
         </button>
       </div>
     </form>
