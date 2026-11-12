@@ -233,11 +233,19 @@ export function Planes() {
                   {producto.detalle}
                 </p>
                 <div className={habilitado ? 'flex flex-wrap items-center gap-2' : 'flex flex-wrap items-center gap-2 text-ink-500'}>
-                  <Money
-                    monto={producto.precio}
-                    periodo={producto.periodo ?? 'por mes'}
-                    {...(habilitado ? {} : { className: '!text-ink-500' })}
-                  />
+                  {producto.proximamente ? (
+                    // Los productos "Próximamente" no tienen precio definido
+                    // (ej. Seguros del Hogar está pendiente de cierre con el
+                    // partner). Pintamos un placeholder discreto en vez de
+                    // dejar el card desbalanceado respecto al resto.
+                    <span className="text-sm text-ink-500">Precio a confirmar</span>
+                  ) : (
+                    <Money
+                      monto={producto.precio}
+                      periodo={producto.periodo ?? 'por mes'}
+                      {...(habilitado ? {} : { className: '!text-ink-500' })}
+                    />
+                  )}
                 </div>
                 <div className="mt-auto pt-1">
                   {yaLoTiene ? (

@@ -30,26 +30,26 @@ export interface Testimonio {
 export const TESTIMONIOS: Testimonio[] = [
   {
     id: 'denise-coletti',
-    // ABREVIADO. Transcripción literal de lo que aporta el cliente; la cita
-    // original sigue después de "to…". No se completa por inferencia: son
-    // palabras atribuidas a una persona con nombre y apellido.
+    // Cita truncada en la última oración COMPLETA. La parte original que
+    // seguía después ("En la mayoría de los casos to…") quedaba cortada a mitad
+    // de palabra y se leía como un error de layout. Cortar hasta el último
+    // punto preserva lo literal sin inventar ni mostrar "…" en pantalla.
     texto:
-      'Tengo el servicio desde que tengo uso de razón, con algunos cambios de por medio pero siempre con servicios asociado a mi familia. En la mayoría de los casos to…',
+      'Tengo el servicio desde que tengo uso de razón, con algunos cambios de por medio pero siempre con servicios asociado a mi familia.',
     autor: 'Denise Coletti',
     antiguedad: 'Socia desde hace años',
-    abreviado: true,
   },
   {
     id: 'felisa-albarran',
-    // ABREVIADO, igual que el anterior.
+    // Mismo criterio: la cita original continuaba con "…soluciono mis inquietud…".
+    // Truncamos a la oración completa anterior; cuando Previnca pase el texto
+    // íntegro se reemplaza esta línea.
     // "Soy social" va TAL CUAL el original (probablemente "socia"). Una cita
-    // textual no se corrige por criterio propio: si se arregla, se arregla
-    // contra la fuente y con el visto bueno de Previnca.
+    // textual no se corrige por criterio propio.
     texto:
-      'Soy social desde hace más de 40 años, me cuesta la tecnología pero la atención de los empleados es impecable y con su guía me comunico y soluciono mis inquietud…',
+      'Soy social desde hace más de 40 años, me cuesta la tecnología pero la atención de los empleados es impecable.',
     autor: 'Felisa Albarran',
     antiguedad: 'Socia desde hace más de 40 años',
-    abreviado: true,
   },
   {
     id: 'clau-dowling',

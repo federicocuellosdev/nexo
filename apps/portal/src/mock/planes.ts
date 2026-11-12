@@ -102,8 +102,11 @@ export const ON_DEMAND: Producto[] = [
   {
     id: 'seguro-hogar',
     nombre: 'Seguros del Hogar On Demand',
-    precio: 19000,
-    detalle: 'Desde $19.000 — Hasta 1er piso o 2do piso + · Incendio, Resp. Civil y más',
+    // El card va con botón "Próximamente" y ocultamos el precio en ese caso
+    // (ver Planes.tsx). El número queda acá porque Producto.precio es `number`
+    // requerido, pero no se renderiza mientras `proximamente: true`.
+    precio: 0,
+    detalle: 'Protección ante imprevistos del hogar · Incendio, Resp. Civil y más',
     proximamente: true,
   },
 ];
