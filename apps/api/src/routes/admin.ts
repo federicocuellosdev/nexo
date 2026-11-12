@@ -405,6 +405,7 @@ adminRouter.get('/admin/vendedores', requerirAdmin, async (_req, res) => {
     dni: row.dni,
     telefono: row.telefono,
     etiqueta: row.etiqueta,
+    codigo_corto: row.codigo_corto,
     fechaAlta: row.created_at,
   }));
 
