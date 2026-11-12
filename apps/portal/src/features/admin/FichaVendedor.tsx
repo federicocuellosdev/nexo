@@ -204,8 +204,9 @@ export function FichaVendedor({ vendedorId, onVolver }: FichaVendedorProps) {
             <div className="grid grid-cols-2 gap-2">
               <Button
                 type="button"
-                variante="secundario"
+                variante="primario"
                 tamano="sm"
+                ancho="full"
                 onClick={() => setEditando(true)}
                 className="justify-center"
               >
@@ -216,6 +217,7 @@ export function FichaVendedor({ vendedorId, onVolver }: FichaVendedorProps) {
                 type="button"
                 variante="secundario"
                 tamano="sm"
+                ancho="full"
                 onClick={reenviar}
                 disabled={estadoReenvio === 'enviando'}
                 className="justify-center"
