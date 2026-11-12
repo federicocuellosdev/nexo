@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useSearchParams } from 'react-router';
-import { Copy, Check, CreditCard, QrCode, Trash2, Plus } from 'lucide-react';
+import { Copy, Check, CreditCard, QrCode, Trash2, Plus, ShieldCheck } from 'lucide-react';
 
 /** Filtra todo lo que no sea dígito. Lo usamos en onChange de campos
  *  estrictamente numéricos (DNI, teléfono, altura, CP) para evitar que el
@@ -429,29 +429,36 @@ function FormContacto({ datos, onCambio, onAtras, onSubmit, error, enviando, pas
 }
 
 /**
- * Paso 1 "Plan". Hoy solo hay un plan — en vez de un selector, se muestra
- * una card cuadrada con nombre y precio del único producto disponible.
- * Es informativa: el onSubmit avanza al paso 2 (datos del titular).
+ * Paso 1 "Plan". Hoy solo hay un plan — toda la card es el CTA: click en
+ * cualquier parte submite el form y avanza al paso 2. Sin botón Continuar
+ * aparte porque la card ya ES el botón.
  */
 function FormPlan({ onSubmit, enviando }: { onSubmit: (e: FormEvent<HTMLFormElement>) => void; enviando: boolean }) {
   return (
-    <form onSubmit={onSubmit} noValidate className="flex flex-col gap-5">
-      <p className="text-sm text-ink-700">Este es el plan que vas a contratar:</p>
-      <div className="mx-auto w-full max-w-[280px]">
-        <div
-          className="flex aspect-square flex-col items-center justify-center gap-3 rounded-card bg-marca-50 p-6 text-center ring-1 ring-marca-200"
-          aria-label={`Plan ${PLAN.nombre}, ${PLAN.precio} pesos por mes`}
-        >
-          <p className="text-xs font-medium uppercase tracking-wide text-marca-700">Plan</p>
-          <p className="font-display text-2xl text-ink-950">{PLAN.nombre}</p>
-          <div className="mt-2">
-            <Money monto={PLAN.precio} periodo="por mes" tamano="md" />
-          </div>
+    <form onSubmit={onSubmit} noValidate>
+      <button
+        type="submit"
+        disabled={enviando}
+        aria-label={`Continuar con el plan ${PLAN.nombre}, ${PLAN.precio} pesos por mes`}
+        className={cn(
+          'group flex w-full cursor-pointer flex-col gap-4 rounded-card bg-marca-50/60 p-6 text-left ring-1 ring-marca-200 transition-colors',
+          'hover:bg-marca-50 hover:ring-marca-300',
+          'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca-500',
+          'disabled:cursor-not-allowed disabled:opacity-60',
+        )}
+      >
+        <div className="flex items-center gap-4">
+          <span
+            aria-hidden="true"
+            className="inline-flex size-12 shrink-0 items-center justify-center rounded-pill bg-marca-100 text-marca-700"
+          >
+            <ShieldCheck size={22} strokeWidth={1.75} />
+          </span>
+          <p className="font-display text-xl leading-tight text-ink-950">{PLAN.nombre}</p>
         </div>
-      </div>
-      <Button type="submit" ancho="full" tamano="lg" disabled={enviando}>
-        Continuar
-      </Button>
+        <div className="border-t border-marca-200/70" aria-hidden="true" />
+        <Money monto={PLAN.precio} periodo="por mes" tamano="md" />
+      </button>
     </form>
   );
 }
