@@ -314,25 +314,48 @@ export async function enviarInvitacion(payload: PayloadInvitacion): Promise<void
 
 // ──────────────────────────────── Admin ────────────────────────────────
 
-export type Rol = 'cliente' | 'admin';
+export type Rol = 'cliente' | 'admin' | 'vendedor';
+
+export interface PerfilRoles {
+  email: string;
+  roles: Rol[];
+  /** UUID en v3.vendedores si el email coincide con un vendedor. */
+  vendedorId: string | null;
+  /** Código corto 6 chars — shortcut para no re-fetchear al mostrar la URL
+   *  de atribución en el panel del vendedor. */
+  codigoCorto: string | null;
+}
 
 /**
- * Devuelve los roles del usuario autenticado. El backend valida el JWT que
- * mandamos en Authorization: Bearer. Si no hay sesión → 401 (devolvemos
- * ['cliente'] como fallback para no bloquear la UI si el token expiró).
+ * Devuelve los roles del usuario autenticado + info del vendedor si aplica.
+ * Degradamos grácilmente a `['cliente']` sin vendedor si algo falla.
  */
 export async function obtenerMisRoles(accessToken: string): Promise<Rol[]> {
+  const res = await obtenerPerfilRoles(accessToken);
+  return res.roles;
+}
+
+export async function obtenerPerfilRoles(accessToken: string): Promise<PerfilRoles> {
   const respuesta = await fetch(`${API_URL}/api/me/roles`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   if (!respuesta.ok) {
-    // No tiramos ApiError: el caller normal acá es el AuthCallback / layout,
-    // y queremos degradar grácilmente (cliente por default) si algo falla.
-    console.warn('[obtenerMisRoles] respuesta no ok', respuesta.status);
-    return ['cliente'];
+    console.warn('[obtenerPerfilRoles] respuesta no ok', respuesta.status);
+    return { email: '', roles: ['cliente'], vendedorId: null, codigoCorto: null };
   }
-  const data = (await respuesta.json()) as { ok: true; email: string; roles: Rol[] };
-  return data.roles;
+  const data = (await respuesta.json()) as {
+    ok: true;
+    email: string;
+    roles: Rol[];
+    vendedorId: string | null;
+    codigoCorto: string | null;
+  };
+  return {
+    email: data.email,
+    roles: data.roles,
+    vendedorId: data.vendedorId,
+    codigoCorto: data.codigoCorto,
+  };
 }
 
 export interface MetricasAdmin {
@@ -606,4 +629,71 @@ export async function actualizarCoberturaPausada(
     cobertura_pausada: data.lead.cobertura_pausada,
     cobertura_pausada_at: data.lead.cobertura_pausada_at,
   };
+}
+
+// ──────────────────── Vendedor (scope: datos propios) ────────────────────
+
+export async function obtenerPerfilVendedor(accessToken: string): Promise<VendedorAdmin> {
+  const respuesta = await fetch(`${API_URL}/api/vendedor/me`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!respuesta.ok) {
+    const cuerpo = (await respuesta.json().catch(() => ({ ok: false, error: 'network' }))) as ErrorApi;
+    throw new ApiError(cuerpo, respuesta.status);
+  }
+  const data = (await respuesta.json()) as { ok: true; vendedor: VendedorAdmin };
+  return data.vendedor;
+}
+
+export async function obtenerMetricasVendedor(accessToken: string): Promise<MetricasAdmin> {
+  const respuesta = await fetch(`${API_URL}/api/vendedor/me/metrics`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!respuesta.ok) {
+    const cuerpo = (await respuesta.json().catch(() => ({ ok: false, error: 'network' }))) as ErrorApi;
+    throw new ApiError(cuerpo, respuesta.status);
+  }
+  const data = (await respuesta.json()) as { ok: true; metricas: MetricasAdmin };
+  return data.metricas;
+}
+
+export async function obtenerLeadsVendedor(accessToken: string): Promise<LeadResumenAdmin[]> {
+  const respuesta = await fetch(`${API_URL}/api/vendedor/me/leads`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!respuesta.ok) {
+    const cuerpo = (await respuesta.json().catch(() => ({ ok: false, error: 'network' }))) as ErrorApi;
+    throw new ApiError(cuerpo, respuesta.status);
+  }
+  const data = (await respuesta.json()) as { ok: true; leads: LeadResumenAdmin[] };
+  return data.leads;
+}
+
+export async function obtenerLeadDetalleVendedor(accessToken: string, id: string): Promise<LeadDetalle> {
+  const respuesta = await fetch(`${API_URL}/api/vendedor/me/leads/${id}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!respuesta.ok) {
+    const cuerpo = (await respuesta.json().catch(() => ({ ok: false, error: 'network' }))) as ErrorApi;
+    throw new ApiError(cuerpo, respuesta.status);
+  }
+  const data = (await respuesta.json()) as {
+    ok: true;
+    lead: Record<string, unknown>;
+    beneficiarios: Array<Record<string, unknown>>;
+    vendedor: Record<string, unknown> | null;
+  };
+  return { lead: data.lead, beneficiarios: data.beneficiarios, vendedor: data.vendedor ?? null };
+}
+
+export async function obtenerPagosLeadVendedor(accessToken: string, leadId: string): Promise<PagoMp[]> {
+  const respuesta = await fetch(`${API_URL}/api/vendedor/me/leads/${leadId}/pagos`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!respuesta.ok) {
+    const cuerpo = (await respuesta.json().catch(() => ({ ok: false, error: 'network' }))) as ErrorApi;
+    throw new ApiError(cuerpo, respuesta.status);
+  }
+  const data = (await respuesta.json()) as { ok: true; pagos: PagoMp[] };
+  return data.pagos;
 }

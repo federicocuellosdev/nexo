@@ -21,6 +21,10 @@ import { AdminLayout } from '@/layouts/AdminLayout';
 import { AdminDashboard } from '@/pages/admin/Dashboard';
 import { AdminVendedores } from '@/pages/admin/Vendedores';
 import { AdminNegocio } from '@/pages/admin/Negocio';
+import { VendedorLayout } from '@/layouts/VendedorLayout';
+import { VendedorDashboard } from '@/pages/vendedor/Dashboard';
+import { VendedorNegocio } from '@/pages/vendedor/Negocio';
+import { VendedorOnboarding } from '@/pages/vendedor/Onboarding';
 
 /**
  * Se exporta el arreglo además del router para que los tests puedan montar
@@ -61,6 +65,22 @@ export const rutas: RouteObject[] = [
       { path: 'dashboard', element: <AdminDashboard /> },
       { path: 'negocio', element: <AdminNegocio /> },
       { path: 'vendedores', element: <AdminVendedores /> },
+    ],
+  },
+  // Rutas vendedor: mismo UI que admin pero scoped a sus propios leads.
+  // El VendedorLayout re-valida el rol 'vendedor' en cada cambio de ruta.
+  {
+    path: '/vendedor',
+    element: (
+      <RequiereUsuario>
+        <VendedorLayout />
+      </RequiereUsuario>
+    ),
+    children: [
+      { index: true, element: <Navigate to="/vendedor/dashboard" replace /> },
+      { path: 'dashboard', element: <VendedorDashboard /> },
+      { path: 'negocio', element: <VendedorNegocio /> },
+      { path: 'onboarding', element: <VendedorOnboarding /> },
     ],
   },
   {

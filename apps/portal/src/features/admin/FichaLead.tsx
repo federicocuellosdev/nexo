@@ -7,7 +7,14 @@ import { Button } from '@/ui/Button';
 import { Card } from '@/ui/Card';
 import { Dialog } from '@/ui/Dialog';
 import { supabase } from '@/lib/supabase';
-import { obtenerLeadDetalle, actualizarCoberturaPausada, obtenerPagosLead, type PagoMp } from '@/lib/api';
+import {
+  obtenerLeadDetalle,
+  obtenerLeadDetalleVendedor,
+  actualizarCoberturaPausada,
+  obtenerPagosLead,
+  obtenerPagosLeadVendedor,
+  type PagoMp,
+} from '@/lib/api';
 
 /**
  * Mapeo slug local → offerCode SF. Hoy los tres slugs resuelven al mismo
@@ -27,6 +34,10 @@ export interface FichaLeadProps {
   descripcion?: string;
   /** Vuelve al listado anterior. */
   onVolver: () => void;
+  /** admin ve todo; vendedor solo sus leads. Sirve para elegir el endpoint. */
+  fuente?: 'admin' | 'vendedor';
+  /** Oculta el switch de cobertura (solo admin puede pausar). */
+  sinAccionesAdmin?: boolean;
 }
 
 /**
@@ -35,7 +46,7 @@ export interface FichaLeadProps {
  * de cobertura, y a la derecha secciones apiladas (Contacto, Plan, MP,
  * Domicilio, Trazabilidad, Integraciones, Familiares).
  */
-export function FichaLead({ leadId, nombre, descripcion, onVolver }: FichaLeadProps) {
+export function FichaLead({ leadId, nombre, descripcion, onVolver, fuente = 'admin', sinAccionesAdmin = false }: FichaLeadProps) {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | undefined>(undefined);
   const [lead, setLead] = useState<Record<string, unknown> | null>(null);
@@ -50,7 +61,10 @@ export function FichaLead({ leadId, nombre, descripcion, onVolver }: FichaLeadPr
         const { data } = await supabase.auth.getSession();
         const token = data.session?.access_token;
         if (!token) throw new Error('sesión expirada');
-        const det = await obtenerLeadDetalle(token, leadId);
+        const det =
+          fuente === 'vendedor'
+            ? await obtenerLeadDetalleVendedor(token, leadId)
+            : await obtenerLeadDetalle(token, leadId);
         if (cancelado) return;
         setLead(det.lead);
         setBeneficiarios(det.beneficiarios);
@@ -65,7 +79,7 @@ export function FichaLead({ leadId, nombre, descripcion, onVolver }: FichaLeadPr
     return () => {
       cancelado = true;
     };
-  }, [leadId]);
+  }, [leadId, fuente]);
 
   const pausadaInicial = lead?.cobertura_pausada === true;
   // Afiliado = pagó + perfil completo. Solo para afiliados aplica el
@@ -85,7 +99,7 @@ export function FichaLead({ leadId, nombre, descripcion, onVolver }: FichaLeadPr
           <ArrowLeft size={16} aria-hidden="true" />
           Volver
         </Button>
-        {lead && tieneCobertura ? (
+        {lead && tieneCobertura && !sinAccionesAdmin ? (
           <SwitchCobertura
             leadId={leadId}
             pausadaInicial={pausadaInicial}
@@ -114,7 +128,7 @@ export function FichaLead({ leadId, nombre, descripcion, onVolver }: FichaLeadPr
       ) : lead ? (
         <div className="grid gap-6 lg:grid-cols-[320px_1fr] lg:items-start">
           <TarjetaIdentidad lead={lead} fallbackNombre={nombre} fallbackEmail={descripcion} />
-          <ColumnaDatos leadId={leadId} lead={lead} beneficiarios={beneficiarios} vendedor={vendedor} />
+          <ColumnaDatos leadId={leadId} lead={lead} beneficiarios={beneficiarios} vendedor={vendedor} fuente={fuente} />
         </div>
       ) : null}
     </div>
@@ -236,9 +250,10 @@ interface ColumnaDatosProps {
   lead: Record<string, unknown>;
   beneficiarios: Array<Record<string, unknown>>;
   vendedor: Record<string, unknown> | null;
+  fuente: 'admin' | 'vendedor';
 }
 
-function ColumnaDatos({ leadId, lead, beneficiarios, vendedor }: ColumnaDatosProps) {
+function ColumnaDatos({ leadId, lead, beneficiarios, vendedor, fuente }: ColumnaDatosProps) {
   const [pagos, setPagos] = useState<PagoMp[] | null>(null);
   const [cargandoPagos, setCargandoPagos] = useState(true);
   const [verTransacciones, setVerTransacciones] = useState(false);
@@ -251,7 +266,10 @@ function ColumnaDatos({ leadId, lead, beneficiarios, vendedor }: ColumnaDatosPro
         const { data } = await supabase.auth.getSession();
         const token = data.session?.access_token;
         if (!token) return;
-        const lista = await obtenerPagosLead(token, leadId);
+        const lista =
+          fuente === 'vendedor'
+            ? await obtenerPagosLeadVendedor(token, leadId)
+            : await obtenerPagosLead(token, leadId);
         if (!cancelado) setPagos(lista);
       } catch (err) {
         console.warn('[ColumnaDatos] pagos error', err);
@@ -263,7 +281,7 @@ function ColumnaDatos({ leadId, lead, beneficiarios, vendedor }: ColumnaDatosPro
     return () => {
       cancelado = true;
     };
-  }, [leadId]);
+  }, [leadId, fuente]);
 
   const ultimaTx = pagos && pagos.length > 0 ? pagos[0] : null;
   const primeraTx = pagos && pagos.length > 0 ? pagos[pagos.length - 1] : null;

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Users, CreditCard, ShieldCheck, ChevronRight } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { obtenerMetricasAdmin, type MetricasAdmin } from '@/lib/api';
+import { obtenerMetricasAdmin, obtenerMetricasVendedor, type MetricasAdmin } from '@/lib/api';
 
 interface TarjetaMetricaProps {
   titulo: string;
@@ -56,7 +56,14 @@ function TarjetaMetrica({ titulo, valor, descripcion, icono: Glifo, cargando }: 
  * falla queda '—' y se loguea; no mostramos error full-screen porque el
  * dashboard es informativo, no transaccional.
  */
-export function AdminDashboard() {
+export interface AdminDashboardProps {
+  /** `admin` ve el funnel global; `vendedor` solo los leads que él mismo
+   *  atribuyó. El shape de las métricas es idéntico — solo cambia el
+   *  endpoint y el subtítulo. */
+  fuente?: 'admin' | 'vendedor';
+}
+
+export function AdminDashboard({ fuente = 'admin' }: AdminDashboardProps = {}) {
   const [metricas, setMetricas] = useState<MetricasAdmin | undefined>(undefined);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | undefined>(undefined);
@@ -75,10 +82,12 @@ export function AdminDashboard() {
           setError('Sesión expirada');
           return;
         }
-        const resultado = await obtenerMetricasAdmin(token);
+        const resultado = fuente === 'vendedor'
+          ? await obtenerMetricasVendedor(token)
+          : await obtenerMetricasAdmin(token);
         if (!cancelado) setMetricas(resultado);
       } catch (err) {
-        console.error('[AdminDashboard] metrics error', err);
+        console.error('[Dashboard] metrics error', err);
         if (!cancelado) setError('No pudimos cargar las métricas');
       } finally {
         if (!cancelado) setCargando(false);
@@ -87,13 +96,17 @@ export function AdminDashboard() {
     return () => {
       cancelado = true;
     };
-  }, []);
+  }, [fuente]);
 
   return (
     <div data-entrada className="flex flex-col gap-8">
       <div>
         <h1 className="text-2xl text-ink-950">Dashboard</h1>
-        <p className="mt-1 text-sm text-ink-600">Resumen del funnel de alta de Previnca Nexo.</p>
+        <p className="mt-1 text-sm text-ink-600">
+          {fuente === 'vendedor'
+            ? 'Resumen de las altas que atribuiste.'
+            : 'Resumen del funnel de alta de Previnca Nexo.'}
+        </p>
       </div>
 
       {error ? (

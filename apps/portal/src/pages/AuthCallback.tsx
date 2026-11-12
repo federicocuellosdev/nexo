@@ -85,24 +85,29 @@ export function AuthCallback() {
           ...(dniPrevio === undefined && dniMeta ? { dniLead: dniMeta } : {}),
         });
 
-        // Resolver ruta destino según roles:
-        //   - ['cliente']            → /inicio (flujo clásico)
-        //   - ['cliente', 'admin']   → /elegir-vista (selector)
-        //   - ['admin'] sin cliente  → /admin/dashboard (no pasa hoy, pero
-        //                              dejamos previsto el caso)
-        // Si /me/roles falla por cualquier motivo, caemos a /inicio: el
-        // AdminLayout ya revalida y manda a cliente si no corresponde.
-        let destino = 'inicio';
-        try {
-          const token = data.session.access_token;
-          const roles = await obtenerMisRoles(token);
-          const esAdmin = roles.includes('admin');
-          const esCliente = roles.includes('cliente');
-          if (esAdmin && esCliente) destino = 'elegir-vista';
-          else if (esAdmin) destino = 'admin/dashboard';
-          else destino = 'inicio';
-        } catch (err) {
-          console.warn('[auth/callback] no se pudo leer roles, caigo a /inicio', err);
+        // Resolver ruta destino según roles. El selector `/elegir-vista`
+        // aparece cuando el usuario tiene 2+ roles con panel propio
+        // (cliente, admin, vendedor). Si vino con `?destino=` en el
+        // redirectTo del magic link (usado por el email del vendedor), lo
+        // respetamos directo. Si /me/roles falla caemos a /inicio.
+        const paramsRedirect = new URLSearchParams(window.location.search);
+        const destinoDirecto = paramsRedirect.get('destino');
+        let destino = destinoDirecto ? destinoDirecto.replace(/^\//, '') : 'inicio';
+        if (!destinoDirecto) {
+          try {
+            const token = data.session.access_token;
+            const roles = await obtenerMisRoles(token);
+            const esAdmin = roles.includes('admin');
+            const esCliente = roles.includes('cliente');
+            const esVendedor = roles.includes('vendedor');
+            const rolesConPanel = [esAdmin, esCliente, esVendedor].filter(Boolean).length;
+            if (rolesConPanel >= 2) destino = 'elegir-vista';
+            else if (esAdmin) destino = 'admin/dashboard';
+            else if (esVendedor) destino = 'vendedor/dashboard';
+            else destino = 'inicio';
+          } catch (err) {
+            console.warn('[auth/callback] no se pudo leer roles, caigo a /inicio', err);
+          }
         }
 
         // Hard navigate para que Supabase limpie el hash del URL.

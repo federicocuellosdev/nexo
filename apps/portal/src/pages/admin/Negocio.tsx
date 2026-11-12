@@ -2,7 +2,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Calendar, Search, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { supabase } from '@/lib/supabase';
-import { obtenerLeadsAdmin, esAfiliado, calcularCompletitud, type LeadResumenAdmin } from '@/lib/api';
+import {
+  obtenerLeadsAdmin,
+  obtenerLeadsVendedor,
+  esAfiliado,
+  calcularCompletitud,
+  type LeadResumenAdmin,
+} from '@/lib/api';
 import { Skeleton } from '@/ui/Skeleton';
 import { Chip } from '@/ui/Chip';
 import { Input } from '@/ui/Input';
@@ -88,7 +94,11 @@ function filtrar(lista: LeadResumenAdmin[], busqueda: string, desde: number | nu
  * filtro por rango de fecha de alta. Click en "Ver" abre la ficha
  * inline reemplazando el listado.
  */
-export function AdminNegocio() {
+export interface AdminNegocioProps {
+  fuente?: 'admin' | 'vendedor';
+}
+
+export function AdminNegocio({ fuente = 'admin' }: AdminNegocioProps = {}) {
   const [pestana, setPestana] = useState<Pestana>('afiliados');
   const [leads, setLeads] = useState<LeadResumenAdmin[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -109,7 +119,9 @@ export function AdminNegocio() {
       const { data } = await supabase.auth.getSession();
       const token = data.session?.access_token;
       if (!token) throw new Error('sesión expirada');
-      const lista = await obtenerLeadsAdmin(token);
+      const lista = fuente === 'vendedor'
+        ? await obtenerLeadsVendedor(token)
+        : await obtenerLeadsAdmin(token);
       setLeads(lista);
     } catch (err) {
       console.error('[AdminNegocio] fetch error', err);
@@ -117,7 +129,7 @@ export function AdminNegocio() {
     } finally {
       setCargando(false);
     }
-  }, []);
+  }, [fuente]);
 
   useEffect(() => {
     void cargar();
@@ -142,6 +154,8 @@ export function AdminNegocio() {
         nombre={nombreCompleto(seleccionado)}
         descripcion={seleccionado.email}
         onVolver={() => setSeleccionado(null)}
+        fuente={fuente}
+        sinAccionesAdmin={fuente === 'vendedor'}
       />
     );
   }
