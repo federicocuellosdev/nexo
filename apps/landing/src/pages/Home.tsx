@@ -112,14 +112,23 @@ export function Home() {
             Telemedicina, emergencias médicas, guardia odontológica y descuentos en farmacias — todo en una cuota
             mensual que contratás en minutos.
           </p>
-          <p className="mt-8 text-lg text-white">
-            Plan Previnca Nexo{' '}
-            <strong className="font-semibold">a {formatearPrecio(desde)} por mes</strong>
-          </p>
+          {/* Precio como ancla visual del hero: gran titular en línea con
+              el nombre del plan. Antes era una línea más del párrafo gris —
+              se perdía entre la bajada y el botón. Ahora domina el espacio
+              entre bajada y CTA y responde a "cuánto cuesta" sin scroll. */}
+          <div className="mt-10">
+            <p className="text-xs font-medium uppercase tracking-wide text-marca-100">
+              Plan Previnca Nexo
+            </p>
+            <p className="mt-1 flex items-baseline gap-2 text-white">
+              <span className="font-display text-5xl font-semibold lg:text-6xl">{formatearPrecio(desde)}</span>
+              <span className="text-lg font-medium text-white/80 lg:text-xl">/mes</span>
+            </p>
+          </div>
           {/* CTA del hero: oculto en mobile porque la acción principal vive
               en la barra flotante inferior (PublicLayout). En desktop (sm+)
               aparece acá como único CTA del hero. */}
-          <div className="mt-8 hidden sm:block">
+          <div className="mt-6 hidden sm:block">
             <Link to="/catalogo" className={clasesBoton({ tamano: 'lg' })}>
               Quiero mi cobertura
             </Link>
