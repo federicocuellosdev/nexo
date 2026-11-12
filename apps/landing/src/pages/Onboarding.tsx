@@ -2,6 +2,12 @@ import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useSearchParams } from 'react-router';
 import { Copy, Check, CreditCard, QrCode, Trash2, Plus } from 'lucide-react';
+
+/** Filtra todo lo que no sea dígito. Lo usamos en onChange de campos
+ *  estrictamente numéricos (DNI, teléfono, altura, CP) para evitar que el
+ *  usuario tipee letras, espacios o puntos. Preferimos esto sobre `type="number"`
+ *  para no mostrar los spinners nativos del browser. */
+const soloDigitos = (s: string): string => s.replace(/\D/g, '');
 import { Card } from '@/ui/Card';
 import { Field } from '@/ui/Field';
 import { Input } from '@/ui/Input';
@@ -397,7 +403,7 @@ function FormContacto({ datos, onCambio, onSubmit, error, enviando, pasoValido }
         <Input id="onb-email" type="email" inputMode="email" placeholder="tu@email.com" value={datos.email} onChange={(e) => onCambio({ ...datos, email: e.target.value })} />
       </Field>
       <Field label="Teléfono" htmlFor="onb-telefono" requerido>
-        <Input id="onb-telefono" inputMode="tel" placeholder="+54 9 341 1234 5678" value={datos.telefono} onChange={(e) => onCambio({ ...datos, telefono: e.target.value })} />
+        <Input id="onb-telefono" inputMode="numeric" maxLength={15} placeholder="3411234567" value={datos.telefono} onChange={(e) => onCambio({ ...datos, telefono: soloDigitos(e.target.value) })} />
       </Field>
       {error ? <p className="text-sm text-danger-700">{error}</p> : null}
       <Button type="submit" ancho="full" tamano="lg" disabled={enviando || !pasoValido}>
@@ -419,7 +425,7 @@ function FormDocumento({ datos, onCambio, onAtras, onSubmit, error, enviando, pa
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="DNI" htmlFor="onb-dni" ayuda="Sin puntos ni espacios" requerido>
-          <Input id="onb-dni" inputMode="numeric" placeholder="40123456" value={datos.dni} onChange={(e) => onCambio({ ...datos, dni: e.target.value })} />
+          <Input id="onb-dni" inputMode="numeric" maxLength={8} placeholder="40123456" value={datos.dni} onChange={(e) => onCambio({ ...datos, dni: soloDigitos(e.target.value) })} />
         </Field>
         <Field label="Sexo" htmlFor="onb-sexo" requerido>
           <Select
@@ -473,7 +479,7 @@ function FormDomicilio({ datos, onCambio, onAtras, onSubmit, error, enviando, pa
           />
         </Field>
         <Field label="Número" htmlFor="onb-numero" requerido>
-          <Input id="onb-numero" inputMode="numeric" placeholder="1234" value={datos.numero} onChange={(e) => onCambio({ ...datos, numero: e.target.value })} />
+          <Input id="onb-numero" inputMode="numeric" maxLength={6} placeholder="1234" value={datos.numero} onChange={(e) => onCambio({ ...datos, numero: soloDigitos(e.target.value) })} />
         </Field>
       </div>
 
@@ -517,7 +523,7 @@ function FormDomicilio({ datos, onCambio, onAtras, onSubmit, error, enviando, pa
           />
         </Field>
         <Field label="Código postal" htmlFor="onb-cp" requerido>
-          <Input id="onb-cp" inputMode="numeric" autoComplete="postal-code" placeholder="2000" value={datos.cp} onChange={(e) => onCambio({ ...datos, cp: e.target.value })} />
+          <Input id="onb-cp" inputMode="numeric" maxLength={5} autoComplete="postal-code" placeholder="2000" value={datos.cp} onChange={(e) => onCambio({ ...datos, cp: soloDigitos(e.target.value) })} />
         </Field>
       </div>
 
@@ -591,7 +597,7 @@ function FormFamiliares({
               <Input id={`fam-${idx}-apellido`} placeholder="García" value={b.apellido} onChange={(e) => onActualizar(idx, 'apellido', e.target.value)} />
             </Field>
             <Field label="DNI" htmlFor={`fam-${idx}-dni`} ayuda="Sin puntos ni espacios" requerido>
-              <Input id={`fam-${idx}-dni`} inputMode="numeric" placeholder="40123456" value={b.numeroDocumento} onChange={(e) => onActualizar(idx, 'numeroDocumento', e.target.value)} />
+              <Input id={`fam-${idx}-dni`} inputMode="numeric" maxLength={8} placeholder="40123456" value={b.numeroDocumento} onChange={(e) => onActualizar(idx, 'numeroDocumento', soloDigitos(e.target.value))} />
             </Field>
             <Field label="Sexo" htmlFor={`fam-${idx}-sexo`} requerido>
               <Select
@@ -666,6 +672,10 @@ interface ResumenProps {
 
 function Resumen({ contacto, total, familiaresCount, resultado, modoQR }: ResumenProps) {
   const [copiado, setCopiado] = useState(false);
+  // `modoQR` sigue existiendo para el acceso vía ?qr=true (vendedor en calle
+  // que arranca directo con el QR arriba). El botón "Generar QR" permite el
+  // mismo resultado desde el flujo normal sin cambiar la URL.
+  const [mostrandoQR, setMostrandoQR] = useState(modoQR);
 
   async function copiarLink() {
     try {
@@ -702,7 +712,22 @@ function Resumen({ contacto, total, familiaresCount, resultado, modoQR }: Resume
         <Money monto={total} periodo="por mes" tamano="md" />
       </div>
 
-      {modoQR ? (
+      <div className="flex flex-col gap-3">
+        <Button type="button" ancho="full" tamano="lg" onClick={pagarAhora}>
+          <CreditCard size={16} aria-hidden="true" />
+          Pagar ahora
+        </Button>
+        <Button type="button" variante="secundario" ancho="full" onClick={copiarLink}>
+          {copiado ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
+          {copiado ? 'Link copiado' : 'Copiar link de pago'}
+        </Button>
+        <Button type="button" variante="secundario" ancho="full" onClick={() => setMostrandoQR((v) => !v)}>
+          <QrCode size={16} aria-hidden="true" />
+          {mostrandoQR ? 'Ocultar QR' : 'Generar QR'}
+        </Button>
+      </div>
+
+      {mostrandoQR ? (
         <div className="flex flex-col items-center gap-4 rounded-card bg-white px-4 py-6 ring-1 ring-ink-200">
           <div className="flex items-center gap-2 text-sm font-medium text-ink-700">
             <QrCode size={16} aria-hidden="true" />
@@ -710,23 +735,8 @@ function Resumen({ contacto, total, familiaresCount, resultado, modoQR }: Resume
           </div>
           <QR url={resultado.initPoint} lado={240} />
           <p className="max-w-xs text-center text-xs text-ink-500">El cliente escanea con la cámara del celular y completa el pago en MercadoPago.</p>
-          <Button type="button" variante="secundario" ancho="full" onClick={copiarLink}>
-            {copiado ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
-            {copiado ? 'Copiado' : 'Compartir link de pago'}
-          </Button>
         </div>
-      ) : (
-        <div className="flex flex-col gap-3">
-          <Button type="button" ancho="full" tamano="lg" onClick={pagarAhora}>
-            <CreditCard size={16} aria-hidden="true" />
-            Pagar ahora
-          </Button>
-          <Button type="button" variante="secundario" ancho="full" onClick={copiarLink}>
-            {copiado ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
-            {copiado ? 'Link copiado' : 'Copiar link de pago'}
-          </Button>
-        </div>
-      )}
+      ) : null}
     </div>
   );
 }

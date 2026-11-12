@@ -40,6 +40,10 @@ export function PublicLayout() {
   // no leyendo el sitio. Sin pie (links a servicios/contacto distraen del
   // "andá al mail") ni CTA flotante de mobile (ya tiene una acción en curso).
   const esperandoMail = pathname === '/revisa-tu-mail';
+  // Onboarding de vendedor: el header se simplifica a un único "Ingresar al
+  // portal". "Hablar con un vendedor" y "Crear cuenta" no aplican — el que
+  // opera la pantalla ES el vendedor.
+  const enOnboarding = pathname === '/onboarding';
 
   return (
     <div className="flex min-h-dvh flex-col bg-app">
@@ -68,6 +72,17 @@ export function PublicLayout() {
             >
               Ver catálogo
             </Link>
+          ) : enOnboarding ? (
+            <a
+              href={`${portalUrl()}/ingresar`}
+              className={clasesBoton({
+                variante: 'secundario',
+                tamano: 'sm',
+                className: !solida ? 'border-white/40 bg-white/0 text-white hover:bg-white/10' : undefined,
+              })}
+            >
+              Ingresar al portal
+            </a>
           ) : (
           // Mobile: solo "Ingresar". El CTA "Crear cuenta" vive en la barra
           // flotante inferior, y "Hablar con un vendedor" se oculta para
@@ -141,11 +156,11 @@ export function PublicLayout() {
           nowrap o ancho mínimo mayor que el viewport genere scroll horizontal
           en mobile — más seguro que `overflow-hidden` porque no crea un
           stacking context nuevo. */}
-      <main className={cn('flex-1 overflow-x-clip sm:pb-0', !enFicha && !esperandoMail && 'pb-24')}>
+      <main className={cn('flex-1 overflow-x-clip sm:pb-0', !enFicha && !esperandoMail && !enOnboarding && 'pb-24')}>
         <Outlet />
       </main>
 
-      {esperandoMail ? null : <PieDeSitio />}
+      {esperandoMail || enOnboarding ? null : <PieDeSitio />}
 
       {/* CTA flotante mobile — "Ver planes de salud". Es el acceso principal
           al catálogo desde cualquier pantalla. Se oculta en sm+ porque allá
@@ -154,7 +169,7 @@ export function PublicLayout() {
           propio CTA contextual ("Contratar Nexo I") que abre el alta directo,
           y en /revisa-tu-mail porque el usuario ya tiene una acción en curso.
           Safe-area para iPhones con home indicator. */}
-      {enFicha || esperandoMail ? null : (
+      {enFicha || esperandoMail || enOnboarding ? null : (
         <div
           className="fixed inset-x-0 bottom-0 z-20 border-t border-ink-100 bg-white/90 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-md sm:hidden"
           role="region"
