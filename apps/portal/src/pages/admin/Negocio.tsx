@@ -15,6 +15,7 @@ import { Chip } from '@/ui/Chip';
 import { Input } from '@/ui/Input';
 import { Tabs, TabPanel, type ItemTab } from '@/ui/Tabs';
 import { FichaLead } from '@/features/admin/FichaLead';
+import { FichaFamiliar } from '@/features/admin/FichaFamiliar';
 
 type Pestana = 'afiliados' | 'leads';
 type Rango = '7' | '14' | '30' | 'mes' | 'personalizado' | 'todo';
@@ -106,6 +107,9 @@ export function AdminNegocio({ fuente = 'admin' }: AdminNegocioProps = {}) {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | undefined>(undefined);
   const [seleccionado, setSeleccionado] = useState<LeadResumenAdmin | null>(null);
+  // Si estamos viendo un familiar del titular seleccionado (link desde la
+  // card de Familiares en la ficha del lead), guardamos su UUID acá.
+  const [familiarSeleccionado, setFamiliarSeleccionado] = useState<string | null>(null);
 
   // Filtros
   const [busqueda, setBusqueda] = useState('');
@@ -149,6 +153,18 @@ export function AdminNegocio({ fuente = 'admin' }: AdminNegocioProps = {}) {
   }, [leads, busqueda, rango, desdeCustom, hastaCustom]);
 
   // Vista ficha: full-section, sin tabla ni filtros.
+  // Prioridad: si hay un familiar seleccionado (abierto desde la lista de
+  // familiares del titular), mostramos su ficha. "Volver" ahí regresa a la
+  // ficha del titular.
+  if (familiarSeleccionado) {
+    return (
+      <FichaFamiliar
+        beneficiarioId={familiarSeleccionado}
+        onVolver={() => setFamiliarSeleccionado(null)}
+        onVerTitular={() => setFamiliarSeleccionado(null)}
+      />
+    );
+  }
   if (seleccionado) {
     return (
       <FichaLead
@@ -163,6 +179,7 @@ export function AdminNegocio({ fuente = 'admin' }: AdminNegocioProps = {}) {
             ? (vendedorId: string) => navegar(`/admin/vendedores?ver=${vendedorId}`)
             : undefined
         }
+        onVerFamiliar={(beneficiarioId) => setFamiliarSeleccionado(beneficiarioId)}
       />
     );
   }

@@ -42,6 +42,8 @@ export interface FichaLeadProps {
    *  dispara esto. Sirve para navegar de la ficha del lead a la del
    *  vendedor atribuido. */
   onVerVendedor?: (vendedorId: string) => void;
+  /** Click en el link "Ver ficha" de un familiar. */
+  onVerFamiliar?: (beneficiarioId: string) => void;
 }
 
 /**
@@ -50,7 +52,7 @@ export interface FichaLeadProps {
  * de cobertura, y a la derecha secciones apiladas (Contacto, Plan, MP,
  * Domicilio, Trazabilidad, Integraciones, Familiares).
  */
-export function FichaLead({ leadId, nombre, descripcion, onVolver, fuente = 'admin', sinAccionesAdmin = false, onVerVendedor }: FichaLeadProps) {
+export function FichaLead({ leadId, nombre, descripcion, onVolver, fuente = 'admin', sinAccionesAdmin = false, onVerVendedor, onVerFamiliar }: FichaLeadProps) {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | undefined>(undefined);
   const [lead, setLead] = useState<Record<string, unknown> | null>(null);
@@ -132,7 +134,7 @@ export function FichaLead({ leadId, nombre, descripcion, onVolver, fuente = 'adm
       ) : lead ? (
         <div className="grid gap-6 lg:grid-cols-[320px_1fr] lg:items-start">
           <TarjetaIdentidad lead={lead} fallbackNombre={nombre} fallbackEmail={descripcion} />
-          <ColumnaDatos leadId={leadId} lead={lead} beneficiarios={beneficiarios} vendedor={vendedor} fuente={fuente} onVerVendedor={onVerVendedor} />
+          <ColumnaDatos leadId={leadId} lead={lead} beneficiarios={beneficiarios} vendedor={vendedor} fuente={fuente} onVerVendedor={onVerVendedor} onVerFamiliar={onVerFamiliar} />
         </div>
       ) : null}
     </div>
@@ -256,9 +258,10 @@ interface ColumnaDatosProps {
   vendedor: Record<string, unknown> | null;
   fuente: 'admin' | 'vendedor';
   onVerVendedor?: (vendedorId: string) => void;
+  onVerFamiliar?: (beneficiarioId: string) => void;
 }
 
-function ColumnaDatos({ leadId, lead, beneficiarios, vendedor, fuente, onVerVendedor }: ColumnaDatosProps) {
+function ColumnaDatos({ leadId, lead, beneficiarios, vendedor, fuente, onVerVendedor, onVerFamiliar }: ColumnaDatosProps) {
   const [pagos, setPagos] = useState<PagoMp[] | null>(null);
   const [cargandoPagos, setCargandoPagos] = useState(true);
   const [verTransacciones, setVerTransacciones] = useState(false);
@@ -446,7 +449,7 @@ function ColumnaDatos({ leadId, lead, beneficiarios, vendedor, fuente, onVerVend
         <Dato etiqueta="Pedido creado" valor={formatearFecha(lead.sale_sent_at)} />
       </Seccion>
 
-      {familiaresCount > 0 ? <SeccionFamiliares beneficiarios={beneficiarios} /> : null}
+      {familiaresCount > 0 ? <SeccionFamiliares beneficiarios={beneficiarios} onVerFamiliar={onVerFamiliar} /> : null}
 
       {verTransacciones ? (
         <DialogoTransacciones
@@ -593,14 +596,24 @@ function Dato({
 
 // ───────────────────────────── Familiares ─────────────────────────────
 
-function SeccionFamiliares({ beneficiarios }: { beneficiarios: Array<Record<string, unknown>> }) {
+function SeccionFamiliares({
+  beneficiarios,
+  onVerFamiliar,
+}: {
+  beneficiarios: Array<Record<string, unknown>>;
+  onVerFamiliar?: (beneficiarioId: string) => void;
+}) {
   return (
     <section aria-label="Familiares">
       <Card className="flex flex-col gap-3">
         <h2 className="text-base font-medium text-ink-900">Familiares ({beneficiarios.length})</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           {beneficiarios.map((b, i) => (
-            <CardFamiliar key={String(b.id ?? i)} beneficiario={b} />
+            <CardFamiliar
+              key={String(b.id ?? i)}
+              beneficiario={b}
+              onVerFamiliar={onVerFamiliar}
+            />
           ))}
         </div>
       </Card>
@@ -608,25 +621,33 @@ function SeccionFamiliares({ beneficiarios }: { beneficiarios: Array<Record<stri
   );
 }
 
-function CardFamiliar({ beneficiario }: { beneficiario: Record<string, unknown> }) {
-  const perfilB =
-    beneficiario.perfil && typeof beneficiario.perfil === 'object'
-      ? (beneficiario.perfil as Record<string, unknown>)
-      : null;
-  const relacion = perfilB?.relacion;
+function CardFamiliar({
+  beneficiario,
+  onVerFamiliar,
+}: {
+  beneficiario: Record<string, unknown>;
+  onVerFamiliar?: (beneficiarioId: string) => void;
+}) {
   const nombre = `${formatearValor(beneficiario.nombre)} ${formatearValor(beneficiario.apellido)}`.trim();
+  const id = typeof beneficiario.id === 'string' ? beneficiario.id : null;
 
   return (
     <div className="flex flex-col gap-2 rounded-campo bg-ink-50 p-4 ring-1 ring-ink-100">
-      <div className="flex items-start justify-between gap-2">
-        <p className="min-w-0 truncate text-sm font-medium text-ink-900">{nombre || '—'}</p>
-        {relacion ? <Chip tono="marca">{String(relacion)}</Chip> : null}
-      </div>
+      <p className="min-w-0 truncate text-sm font-medium text-ink-900">{nombre || '—'}</p>
       <div className="flex flex-col gap-1 text-xs text-ink-600">
         <span>DNI {formatearValor(beneficiario.dni)}</span>
         <span>Nacimiento {formatearFecha(beneficiario.fecha_nacimiento, false)}</span>
         {beneficiario.email ? <span className="truncate">{formatearValor(beneficiario.email)}</span> : null}
       </div>
+      {id && onVerFamiliar ? (
+        <button
+          type="button"
+          onClick={() => onVerFamiliar(id)}
+          className="mt-1 self-start cursor-pointer text-xs font-medium text-marca-700 underline-offset-2 hover:underline"
+        >
+          Ver ficha →
+        </button>
+      ) : null}
     </div>
   );
 }

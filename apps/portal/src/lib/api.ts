@@ -437,6 +437,32 @@ export interface AltaVendedor {
 }
 
 /**
+ * Ficha de un beneficiario (familiar). El backend devuelve la fila completa
+ * del beneficiario + un resumen del titular al que está vinculado (nombre,
+ * mp_preapproval_id, canal, etc.) para mostrar el link de vuelta.
+ */
+export interface FichaBeneficiario {
+  beneficiario: Record<string, unknown>;
+  titular: Record<string, unknown> | null;
+}
+
+export async function obtenerBeneficiarioAdmin(accessToken: string, id: string): Promise<FichaBeneficiario> {
+  const respuesta = await fetch(`${API_URL}/api/admin/beneficiarios/${id}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!respuesta.ok) {
+    const cuerpo = (await respuesta.json().catch(() => ({ ok: false, error: 'network' }))) as ErrorApi;
+    throw new ApiError(cuerpo, respuesta.status);
+  }
+  const data = (await respuesta.json()) as {
+    ok: true;
+    beneficiario: Record<string, unknown>;
+    titular: Record<string, unknown> | null;
+  };
+  return { beneficiario: data.beneficiario, titular: data.titular };
+}
+
+/**
  * Ficha de un vendedor específico (para el admin).
  */
 export async function obtenerVendedorAdmin(accessToken: string, id: string): Promise<VendedorAdmin> {
