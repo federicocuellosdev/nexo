@@ -630,8 +630,6 @@ adminRouter.post('/admin/vendedores/:id/reenviar-email', requerirAdmin, async (r
     return res.status(502).json({ ok: false, error: 'magic_link_error' });
   }
 
-  const urlOnboarding = `${config.landingUrl}/onboarding?ref=${vendedor.codigo_corto}`;
-
   try {
     await emailClient.enviar({
       to: vendedor.email,
@@ -643,9 +641,7 @@ adminRouter.post('/admin/vendedores/:id/reenviar-email', requerirAdmin, async (r
         dni: vendedor.dni,
         telefono: vendedor.telefono,
         etiqueta: vendedor.etiqueta,
-        codigo: vendedor.codigo_corto,
         magicLink: linkData.properties.action_link,
-        urlOnboarding,
         logoUrl: config.emailLogoUrl,
       }),
     });
@@ -737,7 +733,6 @@ adminRouter.post('/admin/vendedores', requerirAdmin, async (req, res) => {
     if (errorLink || !linkData.properties?.action_link) {
       console.warn('[POST /admin/vendedores] magic link falló', errorLink);
     } else {
-      const urlOnboarding = `${config.landingUrl}/onboarding?ref=${nuevo.codigo_corto}`;
       await emailClient.enviar({
         to: nuevo.email,
         subject: asuntoVendedorBienvenida(),
@@ -745,8 +740,6 @@ adminRouter.post('/admin/vendedores', requerirAdmin, async (req, res) => {
           nombre: nuevo.nombre,
           magicLink: linkData.properties.action_link,
           logoUrl: config.emailLogoUrl,
-          codigo: nuevo.codigo_corto,
-          urlOnboarding,
         }),
       });
     }

@@ -11,14 +11,12 @@ export interface DatosEmailReenvio {
   dni: string | null;
   telefono: string | null;
   etiqueta: string | null;
-  codigo: string;
   magicLink: string;
-  urlOnboarding: string;
   logoUrl: string;
 }
 
 export function asuntoVendedorReenvio(): string {
-  return 'Tu acceso a Previnca Nexo';
+  return 'Tu acceso como vendedor de Nexo';
 }
 
 function fila(etiqueta: string, valor: string | null): string {
@@ -36,9 +34,7 @@ export function htmlVendedorReenvio({
   dni,
   telefono,
   etiqueta,
-  codigo,
   magicLink,
-  urlOnboarding,
   logoUrl,
 }: DatosEmailReenvio): string {
   const primerNombre = (nombre ?? '').trim().split(/\s+/)[0] ?? '';
@@ -56,7 +52,7 @@ export function htmlVendedorReenvio({
 <tr><td style="padding:36px 36px 28px;">
   <h1 style="margin:0 0 16px;font-family:'DM Serif Display',Georgia,'Times New Roman',serif;font-style:italic;font-weight:400;font-size:26px;line-height:1.2;color:#111827;">${saludo}</h1>
   <p style="margin:0 0 20px;color:#374151;font-size:15px;line-height:1.5;">
-    Te reenviamos el acceso al panel de <strong>Previnca Nexo</strong>. Primero revisá que tus datos sean correctos:
+    Te reenviamos el acceso al panel de <strong>Nexo</strong>. Primero revisá que tus datos sean correctos:
   </p>
   <table cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 24px;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
     ${fila('Nombre', nombre)}
@@ -66,21 +62,11 @@ export function htmlVendedorReenvio({
     ${fila('Teléfono', telefono)}
     ${fila('Etiqueta', etiqueta)}
   </table>
-  <p style="margin:0 0 20px;color:#374151;font-size:15px;line-height:1.5;">
-    Hacé clic en el botón para entrar al panel. El link es de un solo uso.
-  </p>
-  <table cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
+  <table cellpadding="0" cellspacing="0" style="margin:0;">
     <tr><td style="border-radius:999px;background:#8660EF;">
       <a href="${magicLink}" style="display:inline-block;padding:12px 28px;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;border-radius:999px;">Ingresar al panel</a>
     </td></tr>
   </table>
-  <p style="margin:0 0 12px;color:#6b7280;font-size:13px;line-height:1.5;">
-    <strong>Tu URL para atribuir ventas:</strong><br/>
-    <a href="${urlOnboarding}" style="color:#8660EF;text-decoration:none;">${urlOnboarding}</a>
-  </p>
-  <p style="margin:0;color:#6b7280;font-size:13px;line-height:1.5;">
-    Cada alta que entre por esa URL queda registrada a tu nombre (código <strong>${codigo}</strong>).
-  </p>
 </td></tr>
 <tr><td style="background:#f9fafb;padding:16px 36px;border-top:1px solid #e5e7eb;">
   <p style="margin:0;color:#9ca3af;font-size:12px;line-height:1.5;">Previnca Salud · Si no esperabas este email, ignoralo.</p>

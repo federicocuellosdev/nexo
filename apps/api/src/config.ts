@@ -24,7 +24,7 @@ export const config = {
   supabaseUrl: requerido('SUPABASE_URL'),
   supabaseServiceRoleKey: requerido('SUPABASE_SERVICE_ROLE_KEY'),
   resendApiKey: process.env.RESEND_API_KEY ?? '',
-  resendFrom: opcional('RESEND_FROM', 'Previnca Nexo <onboarding@resend.dev>'),
+  resendFrom: opcional('RESEND_FROM', 'Nexo <onboarding@resend.dev>'),
   // URL del portal privado (donde vive /inicio, /cuenta, /admin/*).
   //  - dev local standalone: http://localhost:5174
   //  - deploy unificado (landing+portal en un dominio): https://<host>/app
