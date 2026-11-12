@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Users, CreditCard, ShieldCheck, Copy, Check, Pencil, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Users, CreditCard, ShieldCheck, Copy, Check, Pencil, ChevronRight, Mail } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { supabase } from '@/lib/supabase';
@@ -7,6 +7,7 @@ import { landingUrl } from '@/lib/urls';
 import {
   obtenerVendedorAdmin,
   obtenerMetricasVendedorAdmin,
+  reenviarEmailVendedor,
   type VendedorAdmin,
   type MetricasAdmin,
 } from '@/lib/api';
@@ -85,6 +86,9 @@ export function FichaVendedor({ vendedorId, onVolver }: FichaVendedorProps) {
   const [hastaCustom, setHastaCustom] = useState('');
   const [copiado, setCopiado] = useState(false);
   const [editando, setEditando] = useState(false);
+  // 'idle' | 'enviando' | 'ok' | 'error'. 'ok' se auto-vuelve a 'idle' tras 2.5s
+  // para que el usuario vea el check de confirmación sin dejar el botón bloqueado.
+  const [estadoReenvio, setEstadoReenvio] = useState<'idle' | 'enviando' | 'ok' | 'error'>('idle');
 
   // Carga perfil (se hace una sola vez al montar).
   useEffect(() => {
@@ -152,6 +156,24 @@ export function FichaVendedor({ vendedorId, onVolver }: FichaVendedorProps) {
     }
   }
 
+  async function reenviar() {
+    if (estadoReenvio === 'enviando' || !vendedor) return;
+    setEstadoReenvio('enviando');
+    try {
+      if (!supabase) throw new Error('supabase no configurado');
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) throw new Error('sesión expirada');
+      await reenviarEmailVendedor(token, vendedor.id);
+      setEstadoReenvio('ok');
+      setTimeout(() => setEstadoReenvio('idle'), 2500);
+    } catch (err) {
+      console.error('[FichaVendedor] reenviar email', err);
+      setEstadoReenvio('error');
+      setTimeout(() => setEstadoReenvio('idle'), 2500);
+    }
+  }
+
   return (
     <div data-entrada className="flex flex-col gap-6">
       <Button type="button" variante="secundario" tamano="sm" className="self-start" onClick={onVolver}>
@@ -173,10 +195,50 @@ export function FichaVendedor({ vendedorId, onVolver }: FichaVendedorProps) {
         </div>
       ) : (
         <div className="grid gap-6 lg:grid-cols-[320px_1fr] lg:items-start">
-          <TarjetaIdentidadVendedor vendedor={vendedor} />
+          <div className="flex flex-col gap-3 lg:sticky lg:top-20 lg:self-start">
+            <TarjetaIdentidadVendedor vendedor={vendedor} />
+            {/* Acciones de la ficha: editar perfil + reenviar email con datos
+                + magic link. Van acá debajo (y no en el top de la columna
+                derecha) para que queden pegadas al bloque de identidad del
+                vendedor sobre el que operan. */}
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                type="button"
+                variante="secundario"
+                tamano="sm"
+                onClick={() => setEditando(true)}
+                className="justify-center"
+              >
+                <Pencil size={14} aria-hidden="true" />
+                Editar perfil
+              </Button>
+              <Button
+                type="button"
+                variante="secundario"
+                tamano="sm"
+                onClick={reenviar}
+                disabled={estadoReenvio === 'enviando'}
+                className="justify-center"
+              >
+                {estadoReenvio === 'ok' ? (
+                  <>
+                    <Check size={14} aria-hidden="true" className="text-ok-700" />
+                    Enviado
+                  </>
+                ) : estadoReenvio === 'error' ? (
+                  'Reintentar'
+                ) : (
+                  <>
+                    <Mail size={14} aria-hidden="true" />
+                    {estadoReenvio === 'enviando' ? 'Enviando…' : 'Reenviar email'}
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
 
           <div className="flex flex-col gap-6">
-            {/* Filtros temporales full-width + botón editar separado por | */}
+            {/* Filtros temporales full-width. */}
             <div className="flex w-full items-center gap-3">
               <div role="group" aria-label="Rango temporal" className="flex flex-1 flex-wrap gap-2">
                 {OPCIONES_RANGO.map((opt) => {
@@ -199,15 +261,6 @@ export function FichaVendedor({ vendedorId, onVolver }: FichaVendedorProps) {
                   );
                 })}
               </div>
-              <span aria-hidden="true" className="h-8 w-px shrink-0 bg-ink-200" />
-              <button
-                type="button"
-                onClick={() => setEditando(true)}
-                aria-label="Editar vendedor"
-                className="inline-flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-pill bg-marca-100/60 text-marca-700 ring-1 ring-marca-400 transition-colors hover:bg-marca-200/60 hover:text-marca-800"
-              >
-                <Pencil size={16} />
-              </button>
             </div>
 
             {rango === 'personalizado' ? (
@@ -335,7 +388,7 @@ export function FichaVendedor({ vendedorId, onVolver }: FichaVendedorProps) {
 function TarjetaIdentidadVendedor({ vendedor }: { vendedor: VendedorAdmin }) {
   const nombreCompleto = `${vendedor.nombre} ${vendedor.apellido}`.trim();
   return (
-    <section aria-label="Identidad" className="lg:sticky lg:top-20 lg:self-start">
+    <section aria-label="Identidad">
       <Card className="flex flex-col items-center gap-4 text-center">
         <span
           aria-hidden="true"

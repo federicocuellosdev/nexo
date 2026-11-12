@@ -534,6 +534,18 @@ export async function crearVendedorAdmin(accessToken: string, payload: AltaVende
   return data.id;
 }
 
+/** Reenvía al vendedor el mail de acceso (tabla de datos + magic link nuevo). */
+export async function reenviarEmailVendedor(accessToken: string, id: string): Promise<void> {
+  const respuesta = await fetch(`${API_URL}/api/admin/vendedores/${id}/reenviar-email`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!respuesta.ok) {
+    const cuerpo = (await respuesta.json().catch(() => ({ ok: false, error: 'network' }))) as ErrorApi;
+    throw new ApiError(cuerpo, respuesta.status);
+  }
+}
+
 // ─────────────── Negocio (admin: afiliados + leads del funnel) ───────────────
 
 export interface LeadResumenAdmin {
