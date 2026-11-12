@@ -711,6 +711,41 @@ adminRouter.get('/admin/vendedores/:id/metrics', requerirAdmin, async (req, res)
 });
 
 /**
+ * Ficha de un familiar/beneficiario. Devuelve la fila del beneficiario +
+ * un resumen del titular al que está vinculado (para mostrar el link de
+ * vuelta sin re-fetchear la ficha completa). La atribución del vendedor
+ * se hereda del titular, al igual que el canal y los pagos MP.
+ */
+adminRouter.get('/admin/beneficiarios/:id', requerirAdmin, async (req, res) => {
+  const id = req.params.id ?? '';
+  if (!/^[0-9a-f-]{36}$/i.test(id)) {
+    return res.status(400).json({ ok: false, error: 'id_invalido' });
+  }
+  const { data: beneficiario, error } = await supabaseAdmin
+    .schema('v3')
+    .from('leads')
+    .select('*')
+    .eq('id', id)
+    .eq('es_beneficiario', true)
+    .maybeSingle();
+  if (error || !beneficiario) {
+    return res.status(404).json({ ok: false, error: 'no_encontrado' });
+  }
+  const titularId = (beneficiario as Record<string, unknown>).titular_lead_id;
+  let titular: Record<string, unknown> | null = null;
+  if (typeof titularId === 'string') {
+    const { data } = await supabaseAdmin
+      .schema('v3')
+      .from('leads')
+      .select('id, nombre, apellido, email, dni, mp_preapproval_id, mp_status, canal, vendedor_id, created_at')
+      .eq('id', titularId)
+      .maybeSingle();
+    titular = data;
+  }
+  return res.status(200).json({ ok: true, beneficiario, titular });
+});
+
+/**
  * Transacciones MercadoPago del titular. Lee v3.pagos por lead_id y
  * devuelve todo ordenado desde la más reciente. La ficha admin la usa
  * para mostrar el "último pago" (summary) y el popup con el historial
