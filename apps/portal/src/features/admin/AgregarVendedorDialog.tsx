@@ -7,7 +7,11 @@ import { Input } from '@/ui/Input';
 import { Button } from '@/ui/Button';
 import { supabase } from '@/lib/supabase';
 import { crearVendedorAdmin, ApiError } from '@/lib/api';
-import { SelectorEtiqueta } from '@/features/admin/SelectorEtiqueta';
+
+// Todos los vendedores quedan en el canal PREVINCA por default. Cuando aparezca
+// otro canal (externos, partners, etc.), traer de vuelta el SelectorEtiqueta en
+// un paso aparte en vez de pedirlo en cada alta.
+const ETIQUETA_DEFAULT = 'PREVINCA';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -23,13 +27,13 @@ type Paso = 1 | 2;
  * Alta de un vendedor desde el admin, dividida en dos pasos + una pantalla
  * de confirmación:
  *   1. Datos personales (nombre, apellido, email, teléfono).
- *   2. Etiqueta (combobox) + DNI.
+ *   2. DNI.
  *   Éxito: se muestra una pantalla con ícono + mensaje de confirmación.
  *     El onCreado se dispara recién cuando el usuario toca "Listo", así ve
  *     el feedback de que la acción terminó y que salió el email.
  *
- * El backend genera `codigo_corto` + manda email de bienvenida con magic
- * link al vendedor automáticamente.
+ * La etiqueta se hardcodea a PREVINCA (único canal hoy). El backend genera
+ * `codigo_corto` + manda email de bienvenida con magic link al vendedor.
  */
 export function AgregarVendedorDialog({ onCerrar, onCreado }: AgregarVendedorDialogProps) {
   const [paso, setPaso] = useState<Paso>(1);
@@ -38,7 +42,6 @@ export function AgregarVendedorDialog({ onCerrar, onCreado }: AgregarVendedorDia
   const [email, setEmail] = useState('');
   const [dni, setDni] = useState('');
   const [telefono, setTelefono] = useState('');
-  const [etiqueta, setEtiqueta] = useState('');
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
   // Cuando el POST termina OK, en vez de cerrar directo guardamos el id acá
@@ -78,7 +81,7 @@ export function AgregarVendedorDialog({ onCerrar, onCreado }: AgregarVendedorDia
         email: email.trim(),
         dni: dni.trim() || undefined,
         telefono: telefono.trim() || undefined,
-        etiqueta: etiqueta.trim() || undefined,
+        etiqueta: ETIQUETA_DEFAULT,
       });
       setCreadoId(id);
     } catch (err) {
@@ -114,7 +117,7 @@ export function AgregarVendedorDialog({ onCerrar, onCreado }: AgregarVendedorDia
           ? undefined
           : paso === 1
             ? 'Paso 1 de 2 — Datos personales del partner comercial.'
-            : 'Paso 2 de 2 — Etiqueta y DNI. Le vamos a mandar un email con un magic link para que acceda al panel.'
+            : 'Paso 2 de 2 — DNI opcional. Le vamos a mandar un email con un magic link para que acceda al panel.'
       }
     >
       {enExito ? (
@@ -173,14 +176,6 @@ export function AgregarVendedorDialog({ onCerrar, onCreado }: AgregarVendedorDia
         </form>
       ) : (
         <form onSubmit={crear} noValidate className="flex flex-col gap-4">
-          <Field
-            label="Etiqueta"
-            htmlFor="agregar-etiqueta"
-            ayuda="Agrupá vendedores por canal (ej. PREVINCA, Externos). Si no existe, podés crearla acá mismo."
-          >
-            <SelectorEtiqueta id="agregar-etiqueta" valor={etiqueta} onCambio={setEtiqueta} />
-          </Field>
-
           <Field label="DNI" htmlFor="agregar-dni">
             <Input id="agregar-dni" inputMode="numeric" value={dni} onChange={(e) => setDni(e.target.value)} />
           </Field>
@@ -189,7 +184,7 @@ export function AgregarVendedorDialog({ onCerrar, onCreado }: AgregarVendedorDia
 
           <div className="mt-2 flex flex-col gap-3 sm:flex-row-reverse">
             <Button type="submit" ancho="full" tamano="lg" className="sm:w-auto" disabled={guardando}>
-              {guardando ? 'Creando…' : 'Crear vendedor y mandar email'}
+              {guardando ? 'Creando…' : 'Crear vendedor'}
             </Button>
             <Button
               type="button"
