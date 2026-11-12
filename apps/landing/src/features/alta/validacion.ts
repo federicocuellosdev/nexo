@@ -30,9 +30,20 @@ export const DATOS_ALTA_VACIOS: DatosAlta = {
  */
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const DNI = /^\d{7,8}$/;
-// Teléfono AR: entre 8 y 15 dígitos para dejar pasar formatos con/sin
-// característica. SF normaliza después — acá sólo queremos descartar tipeos.
-const TELEFONO = /^\d{8,15}$/;
+
+/**
+ * Normaliza un teléfono tipeado por humano a algo listo para backend:
+ * strip de espacios, guiones, puntos y paréntesis; preserva un `+` inicial
+ * si el usuario lo tipeó (código internacional). Así `+54 343 698-7030`
+ * y `+543436987030` y `3436987030` quedan todos como forma canónica
+ * (con o sin `+`) sin que la validación falle por el formato.
+ */
+export function normalizarTelefono(valor: string): string {
+  const limpio = valor.trim().replace(/[\s()\-.]/g, '');
+  // Solo preservamos `+` si está al inicio — cualquier otro char no-dígito
+  // ya fue strippeado arriba, así que lo que queda es `+?\d+` o algo inválido.
+  return limpio;
+}
 
 export function validarEmail(email: string): string | undefined {
   const valor = email.trim();
@@ -44,7 +55,9 @@ export function validarEmail(email: string): string | undefined {
 export function validarTelefono(telefono: string): string | undefined {
   const valor = telefono.trim();
   if (valor === '') return 'Ingresá tu teléfono';
-  if (!TELEFONO.test(valor)) return 'Entre 8 y 15 dígitos, sin espacios';
+  const normalizado = normalizarTelefono(valor);
+  // Acepta `+` opcional al inicio + 8-15 dígitos. SF normaliza después.
+  if (!/^\+?\d{8,15}$/.test(normalizado)) return 'Entre 8 y 15 dígitos (el +54 es opcional)';
   return undefined;
 }
 

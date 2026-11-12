@@ -15,6 +15,7 @@ import { buscarPlan, buscarProducto } from '@/mock/planes';
 import {
   DATOS_ALTA_VACIOS,
   hayErrores,
+  normalizarTelefono,
   validarAlta,
   validarPaso1,
   type DatosAlta,
@@ -149,7 +150,9 @@ function AltaCard({ item }: AltaCardProps) {
       nombre: datos.nombre.trim(),
       apellido: datos.apellido.trim(),
       email: datos.email.trim(),
-      telefono: datos.telefono.trim(),
+      // Normalizo: strip espacios/guiones/paréntesis. Preserva un `+` inicial
+      // si el usuario tipeó el código de país. Backend/SF reciben forma canónica.
+      telefono: normalizarTelefono(datos.telefono),
       dni: datos.dni.trim(),
     };
 
