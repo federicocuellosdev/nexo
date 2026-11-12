@@ -652,6 +652,65 @@ adminRouter.get('/admin/leads/:id', requerirAdmin, async (req, res) => {
 });
 
 /**
+ * Ficha de un vendedor para el admin: perfil + KPIs filtrados por rango
+ * temporal opcional (`?desde=YYYY-MM-DD&hasta=YYYY-MM-DD`). Los KPIs son
+ * los mismos del dashboard global pero scoped a `vendedor_id = :id`.
+ */
+adminRouter.get('/admin/vendedores/:id', requerirAdmin, async (req, res) => {
+  const id = req.params.id ?? '';
+  if (!/^[0-9a-f-]{36}$/i.test(id)) {
+    return res.status(400).json({ ok: false, error: 'id_invalido' });
+  }
+  const { data: vendedor, error } = await supabaseAdmin
+    .schema('v3')
+    .from('vendedores')
+    .select('id, nombre, apellido, email, dni, telefono, etiqueta, codigo_corto, created_at')
+    .eq('id', id)
+    .maybeSingle();
+  if (error || !vendedor) {
+    return res.status(404).json({ ok: false, error: 'no_encontrado' });
+  }
+  return res.status(200).json({ ok: true, vendedor });
+});
+
+adminRouter.get('/admin/vendedores/:id/metrics', requerirAdmin, async (req, res) => {
+  const id = req.params.id ?? '';
+  if (!/^[0-9a-f-]{36}$/i.test(id)) {
+    return res.status(400).json({ ok: false, error: 'id_invalido' });
+  }
+  const desde = typeof req.query.desde === 'string' ? req.query.desde : null;
+  const hasta = typeof req.query.hasta === 'string' ? req.query.hasta : null;
+
+  const base = () => {
+    let q = supabaseAdmin
+      .schema('v3')
+      .from('leads')
+      .select('id', { count: 'exact', head: true })
+      .eq('es_beneficiario', false)
+      .eq('vendedor_id', id);
+    if (desde) q = q.gte('created_at', desde);
+    if (hasta) q = q.lte('created_at', hasta);
+    return q;
+  };
+
+  const { count: leadsCount } = await base();
+  const { count: pagaronCount } = await base().eq('mp_status', 'authorized');
+  const { count: conCoberturaCount } = await base()
+    .eq('mp_status', 'authorized')
+    .not('dni', 'is', null)
+    .not('fecha_nacimiento', 'is', null);
+
+  return res.status(200).json({
+    ok: true,
+    metricas: {
+      leads: leadsCount ?? 0,
+      pagaron: pagaronCount ?? 0,
+      conCobertura: conCoberturaCount ?? 0,
+    },
+  });
+});
+
+/**
  * Transacciones MercadoPago del titular. Lee v3.pagos por lead_id y
  * devuelve todo ordenado desde la más reciente. La ficha admin la usa
  * para mostrar el "último pago" (summary) y el popup con el historial
