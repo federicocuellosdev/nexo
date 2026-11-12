@@ -235,7 +235,7 @@ export function Planes() {
                 <div className={habilitado ? 'flex flex-wrap items-center gap-2' : 'flex flex-wrap items-center gap-2 text-ink-500'}>
                   <Money
                     monto={producto.precio}
-                    periodo="por mes"
+                    periodo={producto.periodo ?? 'por mes'}
                     {...(habilitado ? {} : { className: '!text-ink-500' })}
                   />
                 </div>
@@ -244,6 +244,24 @@ export function Planes() {
                     <Chip tono="ok" icono={Check}>
                       Ya contratado
                     </Chip>
+                  ) : producto.proximamente ? (
+                    <Button variante="secundario" ancho="full" disabled>
+                      Próximamente
+                    </Button>
+                  ) : producto.href ? (
+                    // Producto con URL externa (ej. Psicología → autogestión
+                    // Doc24). Es navegación de verdad (puede abrirse en pestaña
+                    // nueva), así que va como `<a>` con las clases del Button
+                    // secundario — no como CTA de alta.
+                    <a
+                      href={producto.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-disabled={!habilitado ? true : undefined}
+                      className={clasesBoton({ variante: 'secundario', ancho: 'full' })}
+                    >
+                      Ir al servicio
+                    </a>
                   ) : (
                     <Button
                       variante="secundario"

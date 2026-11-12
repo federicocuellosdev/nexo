@@ -45,7 +45,17 @@ export interface Producto {
   nombre: string;
   precio: number;
   detalle: string;
+  /** Unidad de cobro que acompaña al precio. Default `'por mes'`. Psicología
+   *  usa `'por sesión'` porque se cobra por uso, no por mensualidad. */
+  periodo?: string;
   pendiente?: boolean;
+  /** URL externa a la que lleva el botón del card (ej. autogestión del
+   *  profesional). Cuando está, el CTA deja de disparar el flujo de contratar
+   *  y abre el link en una pestaña nueva. */
+  href?: string;
+  /** El servicio todavía no está disponible para contratar: la card se pinta
+   *  con chip "Próximamente" y el botón queda deshabilitado. */
+  proximamente?: boolean;
 }
 
 export const PLANES: Plan[] = [
@@ -85,13 +95,16 @@ export const ON_DEMAND: Producto[] = [
     id: 'psicologia',
     nombre: 'Psicología On Demand',
     precio: 30000,
+    periodo: 'por sesión',
     detalle: '1ra sesión del mes bonificada a $15.000 · siguientes a $30.000',
+    href: 'https://doctorprevinca.videoconsultas.app/paciente/autogestion',
   },
   {
     id: 'seguro-hogar',
     nombre: 'Seguros del Hogar On Demand',
     precio: 19000,
     detalle: 'Desde $19.000 — Hasta 1er piso o 2do piso + · Incendio, Resp. Civil y más',
+    proximamente: true,
   },
 ];
 

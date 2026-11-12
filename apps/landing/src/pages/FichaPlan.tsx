@@ -75,7 +75,7 @@ export function FichaPlan() {
           >
             ← Volver al catálogo
           </Link>
-          <p className="mt-6 font-display text-lg text-marca-100 italic lg:text-xl">(Plan mensual)</p>
+          <p className="mt-6 font-display text-lg text-marca-100 italic lg:text-xl">Plan mensual</p>
           <h1 className="mt-2 font-display text-4xl text-white italic lg:text-5xl">{plan.nombre}</h1>
           <p className="mt-4 max-w-[46ch] text-lg text-white/85">{plan.bajada}</p>
           {/* El precio vive en la portada y no debajo: suelto en la columna de

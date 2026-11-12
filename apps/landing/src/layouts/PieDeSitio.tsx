@@ -23,14 +23,11 @@ const REDES = [
 /**
  * Los enlaces de servicios apuntan a RUTAS, no a anclas.
  *
- * El sitio de referencia es de una sola página, así que ahí "Nexo I" es
- * `#plan-nexo-1`. Acá cada plan tiene su propia ficha, que es mejor destino:
- * lleva a la información completa en vez de a un bloque de la home.
+ * Hoy el catálogo tiene un único plan (Previnca Nexo). La ficha del plan
+ * es el destino con la información completa, en vez del bloque de home.
  */
 const SERVICIOS = [
-  { texto: 'Nexo I', a: '/planes/nexo-1' },
-  { texto: 'Nexo II', a: '/planes/nexo-2' },
-  { texto: 'Nexo III', a: '/planes/nexo-3' },
+  { texto: 'Previnca Nexo', a: '/planes/nexo-1' },
   { texto: 'Productos on demand', a: '/catalogo?tab=productos' },
   { texto: 'Cómo funciona', a: '/#como-funciona' },
 ] as const;

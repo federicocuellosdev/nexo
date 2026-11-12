@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { ChevronDown, CreditCard, MousePointerClick, UserPlus } from 'lucide-react';
+import { ChevronDown, CreditCard, MessageCircle, MousePointerClick, ShieldCheck, UserPlus, XCircle } from 'lucide-react';
 import { PLANES } from '@/mock/planes';
 import { FAQ } from '@/mock/faq';
 import { TESTIMONIOS } from '@/mock/testimonios';
@@ -109,15 +109,12 @@ export function Home() {
           <p className="font-display text-lg text-marca-100 italic lg:text-xl">Previnca Salud</p>
           <h1 className="mt-4 max-w-[14ch] text-4xl text-white lg:text-6xl">Tu salud, resuelta desde el celular</h1>
           <p className="mt-6 max-w-[46ch] text-base text-white/80 lg:text-lg">
-            {/* Telemedicina (Doc24 · Clínica) es la única prestación en los TRES
-                planes (src/mock/planes.ts): emergencias, farmacia, guardia
-                odontológica y óptica varían según cuál elijas, así que acá no se
-                promete el combo completo para cualquier plan. */}
-            Telemedicina en los tres planes, más emergencias, guardia odontológica, farmacia u óptica según el que
-            elijas — todo en una cuota mensual que contratás en minutos.
+            Telemedicina, emergencias médicas, guardia odontológica y descuentos en farmacias — todo en una cuota
+            mensual que contratás en minutos.
           </p>
           <p className="mt-8 text-lg text-white">
-            Planes <strong className="font-semibold">desde {formatearPrecio(desde)} por mes</strong>
+            Plan Previnca Nexo{' '}
+            <strong className="font-semibold">a {formatearPrecio(desde)} por mes</strong>
           </p>
           {/* CTA del hero: oculto en mobile porque la acción principal vive
               en la barra flotante inferior (PublicLayout). En desktop (sm+)
@@ -181,6 +178,51 @@ export function Home() {
                 </Revelar>
               ))}
             </ol>
+          </div>
+        </div>
+      </section>
+
+      {/* Tira de confianza — contesta las 3 dudas típicas del visitante que
+          ya entendió el flujo y mira el botón de arriba: ¿me ata un contrato?
+          ¿cuándo empiezo? ¿a quién le pregunto? Bajarlas acá evita que tenga
+          que ir hasta el FAQ para resolverlas. Mismo fondo blanco que "Cómo
+          funciona" para que se lean como un cierre de esa sección, no como
+          un bloque aparte. */}
+      <section aria-label="Lo que necesitás saber" className="bg-white">
+        <div className="mx-auto max-w-[1200px] px-4 pb-16 lg:px-8 lg:pb-20">
+          <div className="grid gap-4 sm:grid-cols-3 sm:gap-5">
+            <div className="flex items-start gap-4 rounded-card bg-ink-50 p-5 ring-1 ring-ink-100">
+              <span aria-hidden="true" className="inline-flex size-10 shrink-0 items-center justify-center rounded-pill bg-marca-50 text-marca-700">
+                <XCircle size={20} strokeWidth={1.75} />
+              </span>
+              <div>
+                <p className="text-base font-medium text-ink-950">Cancelás cuando quieras</p>
+                <p className="mt-1 text-sm text-ink-600">Sin permanencia mínima ni penalidades.</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-4 rounded-card bg-ink-50 p-5 ring-1 ring-ink-100">
+              <span aria-hidden="true" className="inline-flex size-10 shrink-0 items-center justify-center rounded-pill bg-marca-50 text-marca-700">
+                <ShieldCheck size={20} strokeWidth={1.75} />
+              </span>
+              <div>
+                <p className="text-base font-medium text-ink-950">Se activa al pagar</p>
+                <p className="mt-1 text-sm text-ink-600">Credencial digital por mail y teleconsulta activa en 24 hs hábiles.</p>
+              </div>
+            </div>
+            <a
+              href="https://wa.me/5493415056130"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-start gap-4 rounded-card bg-ink-50 p-5 ring-1 ring-ink-100 transition-colors hover:bg-marca-50 hover:ring-marca-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca-500"
+            >
+              <span aria-hidden="true" className="inline-flex size-10 shrink-0 items-center justify-center rounded-pill bg-marca-50 text-marca-700 group-hover:bg-white">
+                <MessageCircle size={20} strokeWidth={1.75} />
+              </span>
+              <div>
+                <p className="text-base font-medium text-ink-950">¿Dudas? Escribinos por WhatsApp</p>
+                <p className="mt-1 text-sm text-ink-600">Te respondemos al toque — 341 505 6130.</p>
+              </div>
+            </a>
           </div>
         </div>
       </section>
