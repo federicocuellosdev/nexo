@@ -77,8 +77,11 @@ authRouter.get('/leads/by-email', async (req, res) => {
   const { data, error } = await supabaseAdmin
     .schema('v3')
     .from('leads')
-    .select('item_tipo, item_id, item_nombre, nombre, apellido, dni, telefono')
+    .select(
+      'id, item_tipo, item_id, item_nombre, nombre, apellido, dni, telefono, fecha_nacimiento, perfil, mp_status, mp_preapproval_id, familiares_count',
+    )
     .eq('email', email)
+    .eq('es_beneficiario', false)
     .order('created_at', { ascending: false })
     .limit(1);
 
@@ -90,21 +93,32 @@ authRouter.get('/leads/by-email', async (req, res) => {
   const lead = data?.[0];
   return res.status(200).json({
     ok: true,
-    // Devolvemos el plan y los datos del titular (nombre + apellido + dni +
-    // telefono). `titular` lo usa el portal para hidratar sesion.usuario y
-    // precargar el documento / telefono en /cuenta y en el PerfilWizard — así
-    // quien entró por login ve sus datos del alta sin tener que re-ingresarlos.
+    // Devolvemos plan + datos del titular + perfil (jsonb) + estado MP. El
+    // portal usa todo esto en PortalLayout para hidratar sesion.usuario,
+    // sesion.perfil y sesion.ordenes — así quien pagó y completó datos en el
+    // onboarding del vendedor entra al portal ya como `activo` (sin ver
+    // "Completá tu perfil" ni "Terminar compra") en vez de tener que rehacer
+    // todo desde cero.
     lead: lead
       ? {
+          // `id` sigue siendo el slug del plan (contrato existente: lo usa el
+          // portal para armar `sesion.intent.id`). El UUID del lead viaja en
+          // `leadId` para que el portal pueda llamar endpoints que lo requieren.
           tipo: lead.item_tipo as 'plan' | 'producto',
           id: lead.item_id,
+          leadId: lead.id,
           nombre: lead.item_nombre,
           titular: {
             nombre: lead.nombre,
             apellido: lead.apellido,
             dni: lead.dni,
             ...(lead.telefono ? { telefono: lead.telefono } : {}),
+            ...(lead.fecha_nacimiento ? { fechaNacimiento: lead.fecha_nacimiento } : {}),
           },
+          perfil: lead.perfil ?? null,
+          mpStatus: lead.mp_status ?? null,
+          preapprovalId: lead.mp_preapproval_id ?? null,
+          familiaresCount: lead.familiares_count ?? 0,
         }
       : null,
   });
