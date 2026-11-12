@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Users, CreditCard, ShieldCheck, Copy, Check } from 'lucide-react';
+import { ArrowLeft, Users, CreditCard, ShieldCheck, Copy, Check, Pencil, ChevronRight } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { supabase } from '@/lib/supabase';
@@ -13,21 +13,41 @@ import {
 import { Button } from '@/ui/Button';
 import { Card } from '@/ui/Card';
 import { Skeleton } from '@/ui/Skeleton';
+import { EditarVendedorDialog } from '@/features/admin/EditarVendedorDialog';
 
-type Rango = '7' | '14' | '30' | 'mes' | 'todo';
+type Rango = '7' | '14' | '30' | 'mes' | 'personalizado' | 'todo';
 
 const OPCIONES_RANGO: Array<{ valor: Rango; label: string }> = [
   { valor: 'mes', label: 'Este mes' },
   { valor: '7', label: '7 días' },
   { valor: '14', label: '14 días' },
   { valor: '30', label: '30 días' },
+  { valor: 'personalizado', label: 'Personalizado' },
   { valor: 'todo', label: 'Todo' },
 ];
 
+function isoAStart(iso: string): string | null {
+  if (!iso) return null;
+  const t = new Date(`${iso}T00:00:00`);
+  return Number.isNaN(t.getTime()) ? null : t.toISOString();
+}
+function isoAEnd(iso: string): string | null {
+  if (!iso) return null;
+  const t = new Date(`${iso}T23:59:59.999`);
+  return Number.isNaN(t.getTime()) ? null : t.toISOString();
+}
+
 /** Deriva `{desde, hasta}` ISO strings del rango seleccionado para pasar
  *  como query al endpoint de métricas. `null` significa "sin cota". */
-function derivarRango(rango: Rango): { desde: string | null; hasta: string | null } {
+function derivarRango(
+  rango: Rango,
+  desdeCustom: string,
+  hastaCustom: string,
+): { desde: string | null; hasta: string | null } {
   if (rango === 'todo') return { desde: null, hasta: null };
+  if (rango === 'personalizado') {
+    return { desde: isoAStart(desdeCustom), hasta: isoAEnd(hastaCustom) };
+  }
   if (rango === 'mes') {
     const hoy = new Date();
     const primer = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
@@ -61,7 +81,10 @@ export function FichaVendedor({ vendedorId, onVolver }: FichaVendedorProps) {
   const [cargandoMetricas, setCargandoMetricas] = useState(true);
   const [error, setError] = useState<string | undefined>(undefined);
   const [rango, setRango] = useState<Rango>('mes');
+  const [desdeCustom, setDesdeCustom] = useState('');
+  const [hastaCustom, setHastaCustom] = useState('');
   const [copiado, setCopiado] = useState(false);
+  const [editando, setEditando] = useState(false);
 
   // Carga perfil (se hace una sola vez al montar).
   useEffect(() => {
@@ -96,7 +119,7 @@ export function FichaVendedor({ vendedorId, onVolver }: FichaVendedorProps) {
         const { data } = await supabase.auth.getSession();
         const token = data.session?.access_token;
         if (!token) return;
-        const { desde, hasta } = derivarRango(rango);
+        const { desde, hasta } = derivarRango(rango, desdeCustom, hastaCustom);
         const m = await obtenerMetricasVendedorAdmin(token, vendedorId, {
           ...(desde ? { desde } : {}),
           ...(hasta ? { hasta } : {}),
@@ -111,7 +134,7 @@ export function FichaVendedor({ vendedorId, onVolver }: FichaVendedorProps) {
     return () => {
       cancelado = true;
     };
-  }, [vendedorId, rango]);
+  }, [vendedorId, rango, desdeCustom, hastaCustom]);
 
   const urlRef = useMemo(
     () => (vendedor ? `${landingUrl()}/onboarding?ref=${vendedor.codigo_corto}` : ''),
@@ -153,49 +176,93 @@ export function FichaVendedor({ vendedorId, onVolver }: FichaVendedorProps) {
           <TarjetaIdentidadVendedor vendedor={vendedor} />
 
           <div className="flex flex-col gap-6">
-            {/* Filtros temporales */}
-            <div role="group" aria-label="Rango temporal" className="flex flex-wrap gap-2">
-              {OPCIONES_RANGO.map((opt) => {
-                const activo = rango === opt.valor;
-                return (
-                  <button
-                    key={opt.valor}
-                    type="button"
-                    onClick={() => setRango(opt.valor)}
-                    aria-pressed={activo}
-                    className={cn(
-                      'inline-flex h-10 cursor-pointer items-center rounded-pill px-4 text-sm font-medium transition-colors',
-                      activo
-                        ? 'bg-marca-600 text-white shadow-suave'
-                        : 'bg-white text-ink-700 ring-1 ring-ink-200 hover:bg-ink-50',
-                    )}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })}
+            {/* Filtros temporales full-width + botón editar separado por | */}
+            <div className="flex w-full items-center gap-3">
+              <div role="group" aria-label="Rango temporal" className="flex flex-1 flex-wrap gap-2">
+                {OPCIONES_RANGO.map((opt) => {
+                  const activo = rango === opt.valor;
+                  return (
+                    <button
+                      key={opt.valor}
+                      type="button"
+                      onClick={() => setRango(opt.valor)}
+                      aria-pressed={activo}
+                      className={cn(
+                        'inline-flex h-10 flex-1 cursor-pointer items-center justify-center rounded-pill px-4 text-sm font-medium transition-colors whitespace-nowrap',
+                        activo
+                          ? 'bg-marca-600 text-white shadow-suave'
+                          : 'bg-white text-ink-700 ring-1 ring-ink-200 hover:bg-ink-50',
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <span aria-hidden="true" className="h-8 w-px shrink-0 bg-ink-200" />
+              <button
+                type="button"
+                onClick={() => setEditando(true)}
+                aria-label="Editar vendedor"
+                className="inline-flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-pill bg-marca-100/60 text-marca-700 ring-1 ring-marca-400 transition-colors hover:bg-marca-200/60 hover:text-marca-800"
+              >
+                <Pencil size={16} />
+              </button>
             </div>
 
-            {/* 3 KPI cards */}
-            <div className="grid gap-3 sm:grid-cols-3">
-              <TarjetaMetrica
-                titulo="Leads"
-                valor={metricas?.leads}
-                icono={Users}
-                cargando={cargandoMetricas}
+            {rango === 'personalizado' ? (
+              <div className="grid gap-3 rounded-card bg-marca-50/50 p-4 ring-1 ring-marca-100 sm:grid-cols-2">
+                <label className="flex flex-col gap-1 text-xs font-medium uppercase tracking-wide text-marca-700">
+                  Desde
+                  <input
+                    type="date"
+                    value={desdeCustom}
+                    max={hastaCustom || undefined}
+                    onChange={(e) => setDesdeCustom(e.target.value)}
+                    className="rounded-pill bg-white px-3 py-2 text-sm text-ink-900 ring-1 ring-ink-200 focus:outline-none focus:ring-marca-400"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-xs font-medium uppercase tracking-wide text-marca-700">
+                  Hasta
+                  <input
+                    type="date"
+                    value={hastaCustom}
+                    min={desdeCustom || undefined}
+                    onChange={(e) => setHastaCustom(e.target.value)}
+                    className="rounded-pill bg-white px-3 py-2 text-sm text-ink-900 ring-1 ring-ink-200 focus:outline-none focus:ring-marca-400"
+                  />
+                </label>
+              </div>
+            ) : null}
+
+            {/* 3 KPI cards con chevrons entre ellas indicando el flujo. En
+                mobile se apilan y la chevron rota 90° para seguir leyendo
+                como progresion vertical. */}
+            <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
+              <div className="flex-1">
+                <TarjetaMetrica titulo="Leads" valor={metricas?.leads} icono={Users} cargando={cargandoMetricas} />
+              </div>
+              <ChevronRight
+                size={24}
+                aria-hidden="true"
+                className="mx-auto shrink-0 rotate-90 text-ink-300 sm:rotate-0"
               />
-              <TarjetaMetrica
-                titulo="Pagos"
-                valor={metricas?.pagaron}
-                icono={CreditCard}
-                cargando={cargandoMetricas}
+              <div className="flex-1">
+                <TarjetaMetrica titulo="Pagos" valor={metricas?.pagaron} icono={CreditCard} cargando={cargandoMetricas} />
+              </div>
+              <ChevronRight
+                size={24}
+                aria-hidden="true"
+                className="mx-auto shrink-0 rotate-90 text-ink-300 sm:rotate-0"
               />
-              <TarjetaMetrica
-                titulo="Con cobertura"
-                valor={metricas?.conCobertura}
-                icono={ShieldCheck}
-                cargando={cargandoMetricas}
-              />
+              <div className="flex-1">
+                <TarjetaMetrica
+                  titulo="Con cobertura"
+                  valor={metricas?.conCobertura}
+                  icono={ShieldCheck}
+                  cargando={cargandoMetricas}
+                />
+              </div>
             </div>
 
             {/* Datos del vendedor */}
@@ -238,6 +305,29 @@ export function FichaVendedor({ vendedorId, onVolver }: FichaVendedorProps) {
           </div>
         </div>
       )}
+
+      {editando && vendedor ? (
+        <EditarVendedorDialog
+          vendedor={vendedor}
+          onCerrar={() => setEditando(false)}
+          onGuardado={() => {
+            setEditando(false);
+            // Re-fetch del perfil para refrescar los campos editados.
+            void (async () => {
+              if (!supabase) return;
+              const { data } = await supabase.auth.getSession();
+              const token = data.session?.access_token;
+              if (!token) return;
+              try {
+                const v = await obtenerVendedorAdmin(token, vendedorId);
+                setVendedor(v);
+              } catch (err) {
+                console.warn('[FichaVendedor] refetch error', err);
+              }
+            })();
+          }}
+        />
+      ) : null}
     </div>
   );
 }

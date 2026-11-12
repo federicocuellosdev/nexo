@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router';
-import { Copy, Pencil, Plus, Check, Eye } from 'lucide-react';
+import { Copy, Plus, Check, Eye } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { obtenerVendedoresAdmin, type VendedorAdmin } from '@/lib/api';
 import { landingUrl } from '@/lib/urls';
 import { Skeleton } from '@/ui/Skeleton';
-import { EditarVendedorDialog } from '@/features/admin/EditarVendedorDialog';
 import { AgregarVendedorDialog } from '@/features/admin/AgregarVendedorDialog';
 import { FichaVendedor } from '@/features/admin/FichaVendedor';
 
@@ -56,7 +55,6 @@ export function AdminVendedores() {
   const [vendedores, setVendedores] = useState<VendedorAdmin[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | undefined>(undefined);
-  const [editando, setEditando] = useState<VendedorAdmin | null>(null);
   const [agregando, setAgregando] = useState(false);
   const [viendo, setViendo] = useState<VendedorAdmin | null>(null);
 
@@ -178,34 +176,24 @@ export function AdminVendedores() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <code
-                            className="max-w-[280px] truncate text-xs text-ink-600"
+                            className="font-mono text-xs text-ink-700"
                             title={url}
                           >
-                            {url.replace(/^https?:\/\//, '')}
+                            /onboarding?ref={v.codigo_corto}
                           </code>
                           <BotonCopiar valor={url} etiqueta={`Copiar URL de ${nombre}`} />
                         </div>
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-right">
-                        <div className="inline-flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => setViendo(v)}
-                            aria-label={`Ver ficha de ${nombre}`}
-                            className="inline-flex cursor-pointer items-center gap-1 rounded-pill bg-marca-50 px-3 py-1 text-xs font-medium text-marca-700 transition-colors hover:bg-marca-100"
-                          >
-                            <Eye size={12} />
-                            Ver
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setEditando(v)}
-                            aria-label={`Editar ${nombre}`}
-                            className="inline-flex size-8 cursor-pointer items-center justify-center rounded-pill text-ink-500 transition-colors hover:bg-ink-100 hover:text-ink-800"
-                          >
-                            <Pencil size={14} />
-                          </button>
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setViendo(v)}
+                          aria-label={`Ver ficha de ${nombre}`}
+                          className="inline-flex cursor-pointer items-center gap-1 rounded-pill bg-marca-50 px-3 py-1 text-xs font-medium text-marca-700 transition-colors hover:bg-marca-100"
+                        >
+                          <Eye size={12} />
+                          Ver
+                        </button>
                       </td>
                     </tr>
                   );
@@ -215,17 +203,6 @@ export function AdminVendedores() {
           </div>
         </div>
       )}
-
-      {editando ? (
-        <EditarVendedorDialog
-          vendedor={editando}
-          onCerrar={() => setEditando(null)}
-          onGuardado={() => {
-            setEditando(null);
-            void cargar();
-          }}
-        />
-      ) : null}
 
       {agregando ? (
         <AgregarVendedorDialog
