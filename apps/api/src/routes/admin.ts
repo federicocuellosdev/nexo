@@ -462,11 +462,12 @@ adminRouter.patch('/admin/vendedores/:id', requerirAdmin, async (req, res) => {
 
   // Traemos el estado actual del vendedor: lo necesitamos para (a) decidir si
   // cambió el email, (b) mandar el mail de confirmación con los datos
-  // finales aunque el PATCH no los toque.
+  // finales aunque el PATCH no los toque, (c) regenerar el magic link que
+  // incluye el codigo_corto en el user_metadata.
   const { data: actual, error: errorActual } = await supabaseAdmin
     .schema('v3')
     .from('vendedores')
-    .select('id, nombre, apellido, email, dni, telefono, etiqueta')
+    .select('id, nombre, apellido, email, dni, telefono, etiqueta, codigo_corto')
     .eq('id', req.params.id)
     .maybeSingle();
 
@@ -536,8 +537,9 @@ adminRouter.patch('/admin/vendedores/:id', requerirAdmin, async (req, res) => {
     }
   }
 
-  // Mail de confirmación con los datos finales. Al nuevo email si cambió;
-  // sino al vigente.
+  // Mail de confirmación con los datos finales + magic link para que el
+  // vendedor pueda entrar al panel directo desde el email (mismo pattern que
+  // bienvenida y reenvío). Al nuevo email si cambió; sino al vigente.
   const datosFinales = {
     nombre: patch.nombre ?? actual.nombre,
     apellido: patch.apellido ?? actual.apellido,
@@ -547,6 +549,26 @@ adminRouter.patch('/admin/vendedores/:id', requerirAdmin, async (req, res) => {
     etiqueta: patch.etiqueta !== undefined ? patch.etiqueta : actual.etiqueta,
   };
   try {
+    const { data: linkData, error: errorLink } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'magiclink',
+      email: datosFinales.email,
+      options: {
+        data: {
+          nombre: datosFinales.nombre,
+          apellido: datosFinales.apellido,
+          rol: 'vendedor',
+          vendedorId: actual.id,
+          codigoCorto: actual.codigo_corto,
+        },
+        redirectTo: `${config.portalUrl}/auth/callback?destino=/vendedor/dashboard`,
+      },
+    });
+    if (errorLink || !linkData.properties?.action_link) {
+      // Si el link falla igual mandamos el mail con los datos, pero sin botón.
+      // Preferimos un mail incompleto a no notificar nada: el admin siempre
+      // puede usar "Reenviar email" desde la ficha para completar el acceso.
+      console.warn('[PATCH /admin/vendedores/:id] magic link falló', errorLink);
+    }
     await emailClient.enviar({
       to: datosFinales.email,
       subject: asuntoVendedorActualizado(),
@@ -557,6 +579,7 @@ adminRouter.patch('/admin/vendedores/:id', requerirAdmin, async (req, res) => {
         dni: datosFinales.dni,
         telefono: datosFinales.telefono,
         etiqueta: datosFinales.etiqueta,
+        magicLink: linkData?.properties?.action_link ?? '',
         logoUrl: config.emailLogoUrl,
       }),
     });

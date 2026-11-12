@@ -12,6 +12,9 @@ export interface DatosEmailActualizado {
   dni: string | null;
   telefono: string | null;
   etiqueta: string | null;
+  /** Magic link de un solo uso para que el vendedor entre al panel directo
+   *  desde este mail. Se re-genera en cada envío. */
+  magicLink: string;
   logoUrl: string;
 }
 
@@ -34,6 +37,7 @@ export function htmlVendedorActualizado({
   dni,
   telefono,
   etiqueta,
+  magicLink,
   logoUrl,
 }: DatosEmailActualizado): string {
   const primerNombre = (nombre ?? '').trim().split(/\s+/)[0] ?? '';
@@ -60,6 +64,14 @@ export function htmlVendedorActualizado({
     ${fila('DNI', dni)}
     ${fila('Teléfono', telefono)}
     ${fila('Etiqueta', etiqueta)}
+  </table>
+  <p style="margin:0 0 20px;color:#374151;font-size:15px;line-height:1.5;">
+    Hacé clic en el botón para entrar al panel. El link es de un solo uso.
+  </p>
+  <table cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+    <tr><td style="border-radius:999px;background:#8660EF;">
+      <a href="${magicLink}" style="display:inline-block;padding:12px 28px;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;border-radius:999px;">Ingresar al panel</a>
+    </td></tr>
   </table>
   <p style="margin:0;color:#6b7280;font-size:13px;line-height:1.5;">
     Si alguno de estos datos no es correcto, respondé este mail y lo ajustamos.
