@@ -113,6 +113,7 @@ export function AdminNegocio({ fuente = 'admin' }: AdminNegocioProps = {}) {
 
   // Filtros
   const [busqueda, setBusqueda] = useState('');
+  const [estadoFiltro, setEstadoFiltro] = useState<EstadoCobertura | 'todos'>('todos');
   const [rango, setRango] = useState<Rango>('mes');
   const [desdeCustom, setDesdeCustom] = useState('');
   const [hastaCustom, setHastaCustom] = useState('');
@@ -146,11 +147,12 @@ export function AdminNegocio({ fuente = 'admin' }: AdminNegocioProps = {}) {
     const afi: LeadResumenAdmin[] = [];
     const fun: LeadResumenAdmin[] = [];
     for (const l of filtrar(leads, busqueda, desde, hasta)) {
+      if (estadoFiltro !== 'todos' && estadoDe(l) !== estadoFiltro) continue;
       if (esAfiliado(l)) afi.push(l);
       else fun.push(l);
     }
     return { afiliados: afi, enFunnel: fun };
-  }, [leads, busqueda, rango, desdeCustom, hastaCustom]);
+  }, [leads, busqueda, rango, desdeCustom, hastaCustom, estadoFiltro]);
 
   // Vista ficha: full-section, sin tabla ni filtros.
   // Prioridad: si hay un familiar seleccionado (abierto desde la lista de
@@ -249,6 +251,21 @@ export function AdminNegocio({ fuente = 'admin' }: AdminNegocioProps = {}) {
               </button>
             ) : null}
           </div>
+
+          {/* Filtro por estado (pegado al buscador). Nativo <select> con pill
+              styling para integrarse con el resto de la fila. */}
+          <select
+            aria-label="Filtrar por estado"
+            value={estadoFiltro}
+            onChange={(e) => setEstadoFiltro(e.target.value as EstadoCobertura | 'todos')}
+            className="inline-flex h-11 shrink-0 cursor-pointer appearance-none rounded-pill bg-white px-4 pr-9 text-sm font-medium text-ink-800 ring-1 ring-ink-200 hover:bg-ink-50 focus:outline-none focus:ring-marca-400 bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 20 20%22 fill=%22none%22 stroke=%22%23555%22 stroke-width=%221.5%22><path d=%22M6 8l4 4 4-4%22/></svg>')] bg-no-repeat bg-[right_0.75rem_center] bg-[length:14px_14px]"
+          >
+            {OPCIONES_ESTADO.map((opt) => (
+              <option key={opt.valor} value={opt.valor}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
 
           <div role="group" aria-label="Rango temporal" className="flex flex-wrap gap-2">
             {OPCIONES_RANGO.map((opt) => {
@@ -366,7 +383,8 @@ function Tabla({ lista, vacio, modo, onAbrir }: TablaProps) {
               {modo === 'lead' ? (
                 <th scope="col" className="px-4 py-3">Completitud</th>
               ) : null}
-              <th scope="col" className="px-4 py-3">{modo === 'afiliado' ? 'Alta' : 'Estado'}</th>
+              {modo === 'afiliado' ? <th scope="col" className="px-4 py-3">Alta</th> : null}
+              <th scope="col" className="px-4 py-3">Estado</th>
               <th scope="col" className="px-4 py-3 text-right">Ficha</th>
             </tr>
           </thead>
@@ -379,16 +397,7 @@ function Tabla({ lista, vacio, modo, onAbrir }: TablaProps) {
                   className="cursor-pointer hover:bg-ink-50/60"
                   onClick={() => onAbrir(l)}
                 >
-                  <td className="whitespace-nowrap px-4 py-3 font-medium text-ink-900">
-                    <div className="flex items-center gap-2">
-                      <span>{nombre}</span>
-                      {l.es_beneficiario ? (
-                        <span className="inline-flex items-center rounded-pill bg-ink-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-ink-600">
-                          Beneficiario
-                        </span>
-                      ) : null}
-                    </div>
-                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 font-medium text-ink-900">{nombre}</td>
                   <td className="whitespace-nowrap px-4 py-3 text-ink-700">{l.dni ?? '—'}</td>
                   <td className="whitespace-nowrap px-4 py-3 text-ink-700">{l.email}</td>
                   <td className="whitespace-nowrap px-4 py-3 text-ink-700">{l.item_nombre ?? '—'}</td>
@@ -397,14 +406,11 @@ function Tabla({ lista, vacio, modo, onAbrir }: TablaProps) {
                       <BarraCompletitud porcentaje={calcularCompletitud(l)} />
                     </td>
                   ) : null}
+                  {modo === 'afiliado' ? (
+                    <td className="whitespace-nowrap px-4 py-3 text-ink-700">{formatearFecha(l.created_at)}</td>
+                  ) : null}
                   <td className="whitespace-nowrap px-4 py-3">
-                    {modo === 'afiliado' ? (
-                      <span className="text-ink-700">{formatearFecha(l.created_at)}</span>
-                    ) : l.mp_status === 'authorized' ? (
-                      <Chip tono="warn">Pagó · falta perfil</Chip>
-                    ) : (
-                      <Chip tono="neutro">Sin pagar</Chip>
-                    )}
+                    <ChipEstado lead={l} modo={modo} />
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-right">
                     <button
@@ -425,6 +431,49 @@ function Tabla({ lista, vacio, modo, onAbrir }: TablaProps) {
         </table>
       </div>
     </div>
+  );
+}
+
+type EstadoCobertura = 'activo' | 'pausado' | 'sin-cobertura';
+
+function estadoDe(l: LeadResumenAdmin): EstadoCobertura {
+  if (esAfiliado(l)) return l.cobertura_pausada ? 'pausado' : 'activo';
+  return 'sin-cobertura';
+}
+
+const OPCIONES_ESTADO: Array<{ valor: EstadoCobertura | 'todos'; label: string }> = [
+  { valor: 'todos', label: 'Todos los estados' },
+  { valor: 'activo', label: 'Activo' },
+  { valor: 'pausado', label: 'Pausado' },
+  { valor: 'sin-cobertura', label: 'Sin cobertura' },
+];
+
+/** Chip de estado para la tabla. Verde = activo, amarillo = pausado,
+ *  gris = sin cobertura (lead que no pagó o sin perfil completo). */
+function ChipEstado({ lead, modo }: { lead: LeadResumenAdmin; modo: 'afiliado' | 'lead' }) {
+  const estado = estadoDe(lead);
+  if (estado === 'activo') {
+    return (
+      <span className="inline-flex items-center rounded-pill bg-ok-100 px-2.5 py-0.5 text-xs font-medium text-ok-800 ring-1 ring-ok-300">
+        Activo
+      </span>
+    );
+  }
+  if (estado === 'pausado') {
+    return (
+      <span className="inline-flex items-center rounded-pill bg-warn-100 px-2.5 py-0.5 text-xs font-medium text-warn-800 ring-1 ring-warn-300">
+        Pausado
+      </span>
+    );
+  }
+  // sin-cobertura — para leads diferenciamos "pagó / falta perfil" vs "sin pagar"
+  if (modo === 'lead' && lead.mp_status === 'authorized') {
+    return <Chip tono="warn">Pagó · falta perfil</Chip>;
+  }
+  return (
+    <span className="inline-flex items-center rounded-pill bg-ink-100 px-2.5 py-0.5 text-xs font-medium text-ink-700 ring-1 ring-ink-200">
+      Sin cobertura
+    </span>
   );
 }
 

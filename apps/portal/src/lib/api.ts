@@ -557,6 +557,9 @@ export interface LeadResumenAdmin {
   /** FK al titular si `es_beneficiario = true`. Permite abrir la ficha
    *  de familiar al clickear en el listado. */
   titular_lead_id?: string | null;
+  /** Para beneficiarios el backend lo propaga del titular. Lo usamos
+   *  para pintar el chip Pausado en la tabla. */
+  cobertura_pausada?: boolean;
 }
 
 /**
