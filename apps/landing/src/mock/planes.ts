@@ -73,11 +73,38 @@ export const PLANES: Plan[] = [
   },
 ];
 
-/** Servicios que se contratan y pagan por fuera de la cuota. Hoy no hay
- *  ninguno publicado en producción: el catálogo solo expone el plan Previnca
- *  Nexo. El array queda definido para que los consumidores (PortalLayout,
- *  Inicio, Catalogo) no rompan al iterar sobre undefined. */
-export const ON_DEMAND: Producto[] = [];
+/** Servicios que se contratan y se pagan por fuera de la cuota del plan.
+ *  Se muestran en /planes bajo el bloque "Productos" solo cuando el usuario
+ *  tiene cobertura activa. Algunos quedan `pendiente: true` hasta que el
+ *  cliente confirme el precio final. */
+export const ON_DEMAND: Producto[] = [
+  {
+    id: 'salud-1',
+    nombre: 'Seguro de Salud I',
+    precio: 6000,
+    detalle: 'Alta complejidad, internación y trasplante',
+  },
+  {
+    id: 'arbol-de-vida',
+    nombre: 'Árbol de Vida',
+    precio: 5000,
+    detalle: 'Sepelio, cremación ecológica y parcela con árbol',
+    pendiente: true,
+  },
+  {
+    id: 'hogar-1',
+    nombre: 'Seguro de Hogar · hasta 1er piso',
+    precio: 19000,
+    detalle: 'Casas, PB y 1er piso · Solo en Rosario',
+  },
+  {
+    id: 'hogar-2',
+    nombre: 'Seguro de Hogar · 2do piso +',
+    precio: 22000,
+    detalle: 'Dentro y fuera de Rosario',
+  },
+  { id: 'vida', nombre: 'Seguro de Vida', precio: 2750, detalle: 'Suma asegurada $3.162.500', pendiente: true },
+];
 
 export function buscarPlan(slug: string): Plan | undefined {
   return PLANES.find((plan) => plan.slug === slug);
