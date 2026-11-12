@@ -572,17 +572,43 @@ adminRouter.get('/admin/leads', requerirAdmin, async (_req, res) => {
   const { data, error } = await supabaseAdmin
     .schema('v3')
     .from('leads')
-    .select('id, email, nombre, apellido, telefono, dni, fecha_nacimiento, item_nombre, mp_status, created_at, perfil')
-    .eq('es_beneficiario', false)
+    .select(
+      'id, email, nombre, apellido, telefono, dni, fecha_nacimiento, item_nombre, mp_status, created_at, perfil, es_beneficiario, titular_lead_id',
+    )
     .order('created_at', { ascending: false })
-    .limit(500);
+    .limit(1000);
 
   if (error) {
     console.error('[GET /admin/leads] db error', error);
     return res.status(500).json({ ok: false, error: 'db_error' });
   }
 
-  return res.status(200).json({ ok: true, leads: data ?? [] });
+  // Los beneficiarios heredan mp_status del titular (no pagan directo). Hacemos
+  // el enrich en memoria para que el frontend pueda derivar "con cobertura"
+  // igual que un titular.
+  const todos = data ?? [];
+  const titularesPorId = new Map<string, Record<string, unknown>>();
+  for (const l of todos) {
+    const row = l as Record<string, unknown>;
+    if (row.es_beneficiario === false && typeof row.id === 'string') {
+      titularesPorId.set(row.id, row);
+    }
+  }
+  const enriquecidos = todos.map((l) => {
+    const row = l as Record<string, unknown>;
+    if (row.es_beneficiario !== true) return row;
+    const titularId = row.titular_lead_id;
+    if (typeof titularId !== 'string') return row;
+    const titular = titularesPorId.get(titularId);
+    if (!titular) return row;
+    return {
+      ...row,
+      mp_status: titular.mp_status ?? null,
+      item_nombre: titular.item_nombre ?? row.item_nombre,
+    };
+  });
+
+  return res.status(200).json({ ok: true, leads: enriquecidos });
 });
 
 /**
