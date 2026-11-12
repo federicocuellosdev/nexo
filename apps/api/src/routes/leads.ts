@@ -25,7 +25,7 @@ const PayloadLead = z.object({
   // propagarlo como user_metadata.telefono y tenerlo listo en el perfil
   // sin pedírselo de nuevo. Opcional para no romper clientes viejos que
   // no mandaban el campo — hasta que el frontend migre a v2 del payload.
-  telefono: z.string().regex(/^\d{8,15}$/).optional(),
+  telefono: z.string().regex(/^\+?\d{8,15}$/).optional(),
   dni: z.string().regex(/^\d{7,8}$/),
   // true = no hacer POST a Salesforce /leads. Lo usa el /onboarding (vendedores
   // en calle) para que el ensayo no inyecte leads crudos en la cuenta SF
