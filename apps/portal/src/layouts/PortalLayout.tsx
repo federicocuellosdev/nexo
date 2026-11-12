@@ -10,6 +10,7 @@ import { landingUrl } from '@/lib/urls';
 import { LogoNexo, ETIQUETA_MARCA } from '@/ui/LogoNexo';
 import { iniciales, nombreVisible } from '@/lib/identidad';
 import { obtenerUltimoLead } from '@/lib/api';
+import { buscarPlan, buscarProducto } from '@/mock/planes';
 import { rutaDeshabilitada } from '@/lib/navDisponibilidad';
 import { supabase } from '@/lib/supabase';
 
@@ -221,6 +222,13 @@ export function PortalLayout() {
         // vendedor, y el portal muestra "Terminar compra".
         const tienePagadaLocal = sesionActual.ordenes.some((o) => o.estado === 'pagada');
         if (!tienePagadaLocal && lead.mpStatus === 'authorized' && lead.preapprovalId) {
+          // Monto = precio del plan × (1 + familiares). Matchea la cuenta
+          // del onboarding (`total = PLAN.precio * (1 + beneficiarios.length)`)
+          // y lo que MP realmente cobra via preapproval.
+          const item = lead.tipo === 'plan' ? buscarPlan(lead.id) : buscarProducto(lead.id);
+          const familiares = lead.familiaresCount ?? 0;
+          const factor = lead.tipo === 'plan' ? 1 + familiares : 1;
+          const monto = item ? item.precio * factor : 0;
           patch.ordenes = [
             {
               id: `ord-${lead.preapprovalId}`,
@@ -228,7 +236,7 @@ export function PortalLayout() {
               tipo: lead.tipo,
               itemId: lead.id,
               concepto: `${lead.nombre} · cuota mensual`,
-              monto: 0, // monto real viene del back/MP, 0 como placeholder hasta sync
+              monto,
               estado: 'pagada',
             },
             ...sesionActual.ordenes,
