@@ -36,7 +36,9 @@ const PayloadLead = z.object({
   // vendedor que atribuyó la venta (si vino con ?ref= en /onboarding). Ambos
   // opcionales — se persisten como-son en v3.leads para la ficha admin.
   canal: z.string().min(1).optional(),
-  vendedorId: z.string().uuid().optional(),
+  // Acepta UUID de v3.vendedores o código corto (6 chars A-Z0-9). Si viene
+  // código corto, se resuelve al UUID antes del insert.
+  vendedorId: z.string().regex(/^[0-9a-f-]{36}$|^[A-Z0-9]{6}$/i).optional(),
   // Marketing attribution. Se capturan del URL de la landing (utm_*) y del
   // referrer del browser. Son `.optional()` para no romper callers que no los
   // mandan (ej. /onboarding manual). Cada campo es libre porque los valores
@@ -65,6 +67,24 @@ leadsRouter.post('/leads', async (req, res) => {
   }
   const datos = parsed.data;
 
+  // Si el `vendedorId` no es UUID, es un código corto: lo resolvemos antes
+  // de insertar. Si no matchea ningún vendedor registrado, lo tratamos como
+  // ausente (el admin lo verá en la ficha como "Sin atribución").
+  let vendedorIdResuelto: string | undefined;
+  if (datos.vendedorId) {
+    if (/^[0-9a-f-]{36}$/i.test(datos.vendedorId)) {
+      vendedorIdResuelto = datos.vendedorId;
+    } else {
+      const { data: vendedorRow } = await supabaseAdmin
+        .schema('v3')
+        .from('vendedores')
+        .select('id')
+        .eq('codigo_corto', datos.vendedorId.toUpperCase())
+        .maybeSingle();
+      vendedorIdResuelto = vendedorRow?.id;
+    }
+  }
+
   // 1. Insertamos el lead en v3.leads. Usamos service_role → se salta RLS.
   //    El select('id') recupera el ID autogenerado para después asociarlo al
   //    magic link.
@@ -86,7 +106,7 @@ leadsRouter.post('/leads', async (req, res) => {
       skip_sf: datos.skipSf ?? false,
       // Trazabilidad opcional.
       ...(datos.canal ? { canal: datos.canal } : {}),
-      ...(datos.vendedorId ? { vendedor_id: datos.vendedorId } : {}),
+      ...(vendedorIdResuelto ? { vendedor_id: vendedorIdResuelto } : {}),
       // Marketing attribution. Guardo cada campo solo si vino, para que la
       // columna siga en NULL en casos sin data (evitamos la ambigüedad entre
       // "no se capturó" y "string vacío").

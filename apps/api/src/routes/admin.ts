@@ -2,6 +2,33 @@ import { Router } from 'express';
 import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { supabaseAdmin } from '../lib/supabase.js';
+import { config } from '../config.js';
+import { emailClient } from '../lib/resend.js';
+import { asuntoVendedorBienvenida, htmlVendedorBienvenida } from '../emails/vendedorBienvenida.js';
+
+/**
+ * Genera un código corto único de 6 chars (A-Z 0-9) para v3.vendedores.
+ * Hace lookup para evitar colisiones — retry hasta 10 veces, en la práctica
+ * basta con una iteración (36^6 ≈ 2B combinaciones vs. decenas de filas).
+ */
+async function generarCodigoCorto(): Promise<string> {
+  const alfabeto = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  for (let intento = 0; intento < 10; intento += 1) {
+    let cod = '';
+    for (let i = 0; i < 6; i += 1) {
+      cod += alfabeto.charAt(Math.floor(Math.random() * alfabeto.length));
+    }
+    const { data } = await supabaseAdmin
+      .schema('v3')
+      .from('vendedores')
+      .select('id')
+      .eq('codigo_corto', cod)
+      .maybeSingle();
+    if (!data) return cod;
+  }
+  // Fallback: timestamp-derived; extremely unlikely to collide.
+  return Date.now().toString(36).slice(-6).toUpperCase();
+}
 
 export const adminRouter = Router();
 
@@ -170,7 +197,7 @@ adminRouter.get('/admin/vendedores', requerirAdmin, async (_req, res) => {
   const { data, error } = await supabaseAdmin
     .schema('v3')
     .from('vendedores')
-    .select('id, nombre, apellido, email, dni, telefono, etiqueta, created_at')
+    .select('id, nombre, apellido, email, dni, telefono, etiqueta, codigo_corto, created_at')
     .order('created_at', { ascending: false })
     .limit(200);
 
@@ -278,6 +305,8 @@ adminRouter.post('/admin/vendedores', requerirAdmin, async (req, res) => {
     return res.status(409).json({ ok: false, error: 'email_ya_registrado', id: existente.id });
   }
 
+  const codigoCorto = await generarCodigoCorto();
+
   const { data: nuevo, error } = await supabaseAdmin
     .schema('v3')
     .from('vendedores')
@@ -288,8 +317,9 @@ adminRouter.post('/admin/vendedores', requerirAdmin, async (req, res) => {
       dni: parsed.data.dni ?? null,
       telefono: parsed.data.telefono ?? null,
       etiqueta: parsed.data.etiqueta ?? null,
+      codigo_corto: codigoCorto,
     })
-    .select('id')
+    .select('id, codigo_corto, nombre, email')
     .single();
 
   if (error || !nuevo) {
@@ -297,7 +327,45 @@ adminRouter.post('/admin/vendedores', requerirAdmin, async (req, res) => {
     return res.status(500).json({ ok: false, error: 'db_error' });
   }
 
-  return res.status(201).json({ ok: true, id: nuevo.id });
+  // Generamos magic link + mandamos email de bienvenida. Fire-and-forget:
+  // si falla el email, el vendedor queda creado igual. El admin puede
+  // reenviar el link después con un botón dedicado.
+  try {
+    const { data: linkData, error: errorLink } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'magiclink',
+      email: nuevo.email,
+      options: {
+        data: {
+          nombre: parsed.data.nombre,
+          apellido: parsed.data.apellido,
+          rol: 'vendedor',
+          vendedorId: nuevo.id,
+          codigoCorto: nuevo.codigo_corto,
+        },
+        redirectTo: `${config.portalUrl}/auth/callback?destino=/vendedor/dashboard`,
+      },
+    });
+    if (errorLink || !linkData.properties?.action_link) {
+      console.warn('[POST /admin/vendedores] magic link falló', errorLink);
+    } else {
+      const urlOnboarding = `${config.landingUrl}/onboarding?ref=${nuevo.codigo_corto}`;
+      await emailClient.enviar({
+        to: nuevo.email,
+        subject: asuntoVendedorBienvenida(),
+        html: htmlVendedorBienvenida({
+          nombre: nuevo.nombre,
+          magicLink: linkData.properties.action_link,
+          logoUrl: config.emailLogoUrl,
+          codigo: nuevo.codigo_corto,
+          urlOnboarding,
+        }),
+      });
+    }
+  } catch (err) {
+    console.warn('[POST /admin/vendedores] no se pudo enviar email de bienvenida', err);
+  }
+
+  return res.status(201).json({ ok: true, id: nuevo.id, codigoCorto: nuevo.codigo_corto });
 });
 
 /**
