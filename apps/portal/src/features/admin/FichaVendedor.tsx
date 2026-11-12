@@ -194,8 +194,8 @@ export function FichaVendedor({ vendedorId, onVolver }: FichaVendedorProps) {
           </div>
         </div>
       ) : (
-        <div className="grid gap-6 lg:grid-cols-[320px_1fr] lg:items-start">
-          <div className="flex flex-col gap-3 lg:sticky lg:top-20 lg:self-start">
+        <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
+          <div className="flex flex-col gap-3">
             <TarjetaIdentidadVendedor vendedor={vendedor} />
             {/* Acciones de la ficha: editar perfil + reenviar email con datos
                 + magic link. Van acá debajo (y no en el top de la columna
@@ -390,8 +390,8 @@ export function FichaVendedor({ vendedorId, onVolver }: FichaVendedorProps) {
 function TarjetaIdentidadVendedor({ vendedor }: { vendedor: VendedorAdmin }) {
   const nombreCompleto = `${vendedor.nombre} ${vendedor.apellido}`.trim();
   return (
-    <section aria-label="Identidad">
-      <Card className="flex flex-col items-center gap-4 text-center">
+    <section aria-label="Identidad" className="flex flex-1 flex-col">
+      <Card className="flex h-full flex-col items-center gap-4 text-center">
         <span
           aria-hidden="true"
           className="inline-flex size-24 items-center justify-center rounded-pill bg-marca-600 text-2xl font-semibold text-white shadow-suave"
@@ -445,9 +445,9 @@ function TarjetaMetrica({ titulo, valor, icono: Glifo, cargando }: TarjetaMetric
           <Glifo size={16} strokeWidth={1.75} />
         </span>
       </div>
-      <p className="font-display text-3xl text-ink-950">
+      <p className="flex h-9 items-center font-display text-3xl leading-none text-ink-950">
         {cargando ? (
-          <span aria-hidden="true" className="inline-block h-[1em] w-14 animate-pulse rounded-campo bg-ink-100 align-middle" />
+          <span aria-hidden="true" className="inline-block h-5 w-14 animate-pulse rounded-campo bg-ink-100" />
         ) : (
           (valor?.toLocaleString('es-AR') ?? '—')
         )}

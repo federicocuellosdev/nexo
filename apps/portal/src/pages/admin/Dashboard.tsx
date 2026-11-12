@@ -27,14 +27,15 @@ function TarjetaMetrica({ titulo, valor, descripcion, icono: Glifo, cargando }: 
         </span>
       </div>
       {/* El <p> reserva altura fija para que la card no se "salte" cuando
-          llega el número. Antes el skeleton usaba h-[1em] (36px, font-size)
-          pero el line-height del text-4xl es 40px (h-10) → la card crecía
-          4px al renderizar el número. Con h-10 fijo quedan iguales. */}
-      <p className="font-display text-4xl text-ink-950 leading-10">
+          llega el número. `leading-none + h-10 + flex items-center` neutraliza
+          la variación de line-height al cargar `font-display`: el bloque
+          siempre mide 40px aunque el texto todavía esté con la fuente fallback
+          o el skeleton. */}
+      <p className="flex h-10 items-center font-display text-4xl leading-none text-ink-950">
         {cargando ? (
           <span
             aria-hidden="true"
-            className="inline-block h-10 w-24 animate-pulse rounded-campo bg-ink-100 align-middle"
+            className="inline-block h-6 w-24 animate-pulse rounded-campo bg-ink-100"
           />
         ) : (
           (valor?.toLocaleString('es-AR') ?? '—')
