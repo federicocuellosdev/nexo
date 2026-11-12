@@ -3,8 +3,13 @@ import type { Orden } from '@/mock/session';
 import { formatearFecha } from '@/features/cobertura/contrataciones';
 import { Icon } from '@/ui/Icon';
 import { Chip } from '@/ui/Chip';
-import { Money } from '@/ui/Money';
 import { EmptyState } from '@/ui/EmptyState';
+
+/** Formato compacto para tabla: `$15.000` sin decimales. El `Money` con
+ *  superíndice es para hero/pricing; acá roba ancho sin aportar info. */
+function formatearMonto(monto: number): string {
+  return `$${Math.round(monto).toLocaleString('es-AR')}`;
+}
 
 export type FiltroMovimientos = 'todos' | 'pagos' | 'contrataciones';
 
@@ -64,7 +69,7 @@ export function MovimientosList({ ordenes }: MovimientosListProps) {
             <th scope="col" className="w-[5rem] px-2 pb-3 pt-4 font-medium sm:w-[8rem] sm:px-5">
               Estado
             </th>
-            <th scope="col" className="w-[7.5rem] px-2 pb-3 pt-4 text-right font-medium sm:w-[10rem] sm:px-5">
+            <th scope="col" className="w-[6rem] px-2 pb-3 pt-4 text-right font-medium sm:w-[8rem] sm:px-5">
               Monto
             </th>
           </tr>
@@ -104,10 +109,8 @@ export function MovimientosList({ ordenes }: MovimientosListProps) {
                       : 'Pendiente'}
                 </Chip>
               </td>
-              {/* text-base en mobile para que \$15.000 entre; vuelve al text-xl
-                  natural de Money en sm+ cuando el ancho ya sobra. */}
-              <td className="whitespace-nowrap px-2 py-4 text-right sm:px-5">
-                <Money monto={orden.monto} className="text-base sm:text-xl" />
+              <td className="whitespace-nowrap px-2 py-4 text-right text-sm font-semibold text-ok-700 tabular-nums sm:px-5">
+                {formatearMonto(orden.monto)}
               </td>
             </tr>
           ))}
