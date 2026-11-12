@@ -64,7 +64,7 @@ export function MovimientosList({ ordenes }: MovimientosListProps) {
             <th scope="col" className="w-[5rem] px-2 pb-3 pt-4 font-medium sm:w-[8rem] sm:px-5">
               Estado
             </th>
-            <th scope="col" className="w-[7.5rem] px-2 pb-3 pt-4 text-right font-medium sm:w-[8rem] sm:px-5">
+            <th scope="col" className="w-[7.5rem] px-2 pb-3 pt-4 text-right font-medium sm:w-[10rem] sm:px-5">
               Monto
             </th>
           </tr>

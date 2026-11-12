@@ -73,41 +73,26 @@ export const PLANES: Plan[] = [
   },
 ];
 
-/** Servicios que se contratan y se pagan por fuera de la cuota del plan.
+/** Servicios on-demand que están hoy en producción. Se contratan y se pagan
+ *  por fuera de la cuota del plan. Se corresponden con los 2 productCodes
+ *  del catálogo SF (Copayment-API):
+ *    - 'psicologia'   → COB-OTR-020 (UVP ambulatoria)
+ *    - 'seguro-hogar' → COB-OTR-019 (UVP domiciliaria)
  *  Se muestran en /planes bajo el bloque "Productos" solo cuando el usuario
- *  tiene cobertura activa. Algunos quedan `pendiente: true` hasta que el
- *  cliente confirme el precio final. */
+ *  tiene cobertura activa. */
 export const ON_DEMAND: Producto[] = [
   {
-    id: 'salud-1',
-    nombre: 'Seguro de Salud I',
-    precio: 6000,
-    detalle: 'Alta complejidad, internación y trasplante',
-  },
-  // Discrepancia sin resolver: el documento del cliente publica $5.000 y el
-  // portal de Nexo 2.0 cobra $4.500. La define el cliente, no nosotros.
-  {
-    id: 'arbol-de-vida',
-    nombre: 'Árbol de Vida',
-    precio: 5000,
-    detalle: 'Sepelio, cremación ecológica y parcela con árbol',
-    pendiente: true,
+    id: 'psicologia',
+    nombre: 'Psicología On Demand',
+    precio: 15000,
+    detalle: 'Sesiones online con profesionales — pago por sesión',
   },
   {
-    id: 'hogar-1',
-    nombre: 'Seguro de Hogar · hasta 1er piso',
+    id: 'seguro-hogar',
+    nombre: 'Seguros del Hogar On Demand',
     precio: 19000,
-    detalle: 'Casas, PB y 1er piso · Solo en Rosario',
+    detalle: 'Protección ante imprevistos del hogar — pago aparte',
   },
-  {
-    id: 'hogar-2',
-    nombre: 'Seguro de Hogar · 2do piso +',
-    precio: 22000,
-    detalle: 'Dentro y fuera de Rosario',
-  },
-  // El precio venía con un comentario interno pegado: "chequear lista de
-  // precio de vendedores me parece q esta mal". Sin confirmar.
-  { id: 'vida', nombre: 'Seguro de Vida', precio: 2750, detalle: 'Suma asegurada $3.162.500', pendiente: true },
 ];
 
 export function buscarPlan(slug: string): Plan | undefined {
