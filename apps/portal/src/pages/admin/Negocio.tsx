@@ -449,19 +449,22 @@ const OPCIONES_ESTADO: Array<{ valor: EstadoCobertura | 'todos'; label: string }
 ];
 
 /** Chip de estado para la tabla. Verde = activo, amarillo = pausado,
- *  gris = sin cobertura (lead que no pagó o sin perfil completo). */
+ *  gris = sin cobertura. Usa los tokens que sí existen en el design
+ *  system (ok/warn tienen solo 50/500/700; ink va de 50 a 950). */
 function ChipEstado({ lead, modo }: { lead: LeadResumenAdmin; modo: 'afiliado' | 'lead' }) {
   const estado = estadoDe(lead);
   if (estado === 'activo') {
     return (
-      <span className="inline-flex items-center rounded-pill bg-ok-100 px-2.5 py-0.5 text-xs font-medium text-ok-800 ring-1 ring-ok-300">
+      <span className="inline-flex items-center gap-1.5 rounded-pill bg-ok-50 px-2.5 py-1 text-xs font-medium text-ok-700 ring-1 ring-ok-500/40">
+        <span aria-hidden="true" className="inline-block size-1.5 rounded-pill bg-ok-500" />
         Activo
       </span>
     );
   }
   if (estado === 'pausado') {
     return (
-      <span className="inline-flex items-center rounded-pill bg-warn-100 px-2.5 py-0.5 text-xs font-medium text-warn-800 ring-1 ring-warn-300">
+      <span className="inline-flex items-center gap-1.5 rounded-pill bg-warn-50 px-2.5 py-1 text-xs font-medium text-warn-700 ring-1 ring-warn-500/40">
+        <span aria-hidden="true" className="inline-block size-1.5 rounded-pill bg-warn-500" />
         Pausado
       </span>
     );
@@ -471,7 +474,8 @@ function ChipEstado({ lead, modo }: { lead: LeadResumenAdmin; modo: 'afiliado' |
     return <Chip tono="warn">Pagó · falta perfil</Chip>;
   }
   return (
-    <span className="inline-flex items-center rounded-pill bg-ink-100 px-2.5 py-0.5 text-xs font-medium text-ink-700 ring-1 ring-ink-200">
+    <span className="inline-flex items-center gap-1.5 rounded-pill bg-ink-100 px-2.5 py-1 text-xs font-medium text-ink-600 ring-1 ring-ink-300">
+      <span aria-hidden="true" className="inline-block size-1.5 rounded-pill bg-ink-400" />
       Sin cobertura
     </span>
   );
