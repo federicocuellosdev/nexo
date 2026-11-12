@@ -354,7 +354,7 @@ function Tabla({ lista, vacio, modo, onAbrir }: TablaProps) {
                 <th scope="col" className="px-4 py-3">Completitud</th>
               ) : null}
               {modo === 'afiliado' ? <th scope="col" className="px-4 py-3">Alta</th> : null}
-              <th scope="col" className="px-4 py-3">Estado</th>
+              {modo === 'afiliado' ? <th scope="col" className="px-4 py-3">Estado</th> : null}
               <th scope="col" className="px-4 py-3 text-right">Ficha</th>
             </tr>
           </thead>
@@ -379,9 +379,11 @@ function Tabla({ lista, vacio, modo, onAbrir }: TablaProps) {
                   {modo === 'afiliado' ? (
                     <td className="whitespace-nowrap px-4 py-3 text-ink-700">{formatearFecha(l.created_at)}</td>
                   ) : null}
-                  <td className="whitespace-nowrap px-4 py-3">
-                    <ChipEstado lead={l} modo={modo} />
-                  </td>
+                  {modo === 'afiliado' ? (
+                    <td className="whitespace-nowrap px-4 py-3">
+                      <ChipEstado lead={l} modo={modo} />
+                    </td>
+                  ) : null}
                   <td className="whitespace-nowrap px-4 py-3 text-right">
                     <button
                       type="button"
@@ -458,15 +460,10 @@ function ChipEstado({ lead, modo }: { lead: LeadResumenAdmin; modo: 'afiliado' |
  * carga (ignora sf_*, mp_*, utm_*, familiares).
  */
 function BarraCompletitud({ porcentaje }: { porcentaje: number }) {
-  const tono =
-    porcentaje >= 80 ? 'bg-ok-500' : porcentaje >= 40 ? 'bg-warn-500' : 'bg-danger-500';
+  const color =
+    porcentaje >= 80 ? 'text-ok-700' : porcentaje >= 40 ? 'text-warn-700' : 'text-danger-700';
   return (
-    <div className="flex min-w-[140px] items-center gap-2">
-      <div className="h-1.5 flex-1 overflow-hidden rounded-pill bg-ink-100">
-        <div className={cn('h-full rounded-pill transition-all', tono)} style={{ width: `${porcentaje}%` }} />
-      </div>
-      <span className="tabular-nums text-xs font-medium text-ink-700">{porcentaje}%</span>
-    </div>
+    <span className={cn('tabular-nums text-sm font-semibold', color)}>{porcentaje}%</span>
   );
 }
 

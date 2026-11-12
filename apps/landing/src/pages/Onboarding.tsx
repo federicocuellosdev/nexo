@@ -115,12 +115,21 @@ interface ResultadoOnboarding {
 export function Onboarding() {
   const [parametros] = useSearchParams();
   const modoQR = parametros.get('qr') === 'true';
-  // Vendedor atribuido (viene como ?ref=<uuid>). Si no tiene formato UUID
-  // lo ignoramos — el back valida igual, pero cortarlo acá evita un 400
-  // con el payload entero por un ref malformado en el link compartido.
+  // Vendedor atribuido. Acepta UUID (36 chars con guiones) o codigo_corto
+  // (6 chars A-Z0-9) — el backend resuelve ambos al UUID del vendedor
+  // antes del insert. Cortamos acá los formatos obvios inválidos para no
+  // mandar un 400 por un ref mal copiado del link compartido.
   const refParam = parametros.get('ref');
-  const vendedorId =
-    refParam && /^[0-9a-f-]{36}$/i.test(refParam) ? refParam : undefined;
+  let vendedorId: string | undefined;
+  if (refParam) {
+    if (/^[0-9a-f-]{36}$/i.test(refParam)) {
+      vendedorId = refParam;
+    } else if (/^[A-Z0-9]{6}$/i.test(refParam)) {
+      // Normalizo a mayúsculas: el backend compara con `.eq('codigo_corto')`
+      // sobre la columna persistida en uppercase.
+      vendedorId = refParam.toUpperCase();
+    }
+  }
 
   const [paso, setPaso] = useState<Paso>(1);
   const [contacto, setContacto] = useState<DatosContacto>(CONTACTO_VACIO);
