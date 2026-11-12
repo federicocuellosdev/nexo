@@ -145,6 +145,7 @@ authRouter.post('/auth/magic-link', async (req, res) => {
     .from('leads')
     .select('id, item_tipo, item_id, nombre, apellido, dni, telefono')
     .eq('email', email)
+    .eq('es_beneficiario', false)
     .order('created_at', { ascending: false })
     .limit(1);
 
@@ -233,12 +234,22 @@ authRouter.post('/auth/magic-link', async (req, res) => {
     }
   }
 
+  // Nombre para el saludo "Hola, {nombre}". Prioridad:
+  //  1. v3.leads.nombre (titular más reciente del email)
+  //  2. user_metadata.nombre que viene en linkData.user (seteado al alta)
+  // Fallback a '' solo si ninguno está — el template cae a "Hola" sin nombre.
+  const metaNombre =
+    typeof linkData.user?.user_metadata?.nombre === 'string'
+      ? (linkData.user.user_metadata.nombre as string)
+      : '';
+  const nombreParaSaludo = (ultimoLead?.nombre || metaNombre || '').trim();
+
   try {
     await emailClient.enviar({
       to: email,
       subject: asuntoBienvenida(),
       html: htmlBienvenida({
-        nombre: ultimoLead?.nombre ?? '',
+        nombre: nombreParaSaludo,
         magicLink,
         logoUrl: config.emailLogoUrl,
         nombrePlan: '',
