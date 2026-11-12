@@ -249,7 +249,6 @@ export function Coberturas() {
                   label="Psicología"
                   descripcion="1° Sesión a $15.000"
                   href="https://doctorprevinca.videoconsultas.app/paciente/autogestion"
-                  copago
                 />
                 <AccesoCobertura
                   icono={Siren}
