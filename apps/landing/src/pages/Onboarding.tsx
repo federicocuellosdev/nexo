@@ -362,11 +362,18 @@ function Indicador({ paso }: { paso: Paso }) {
     : paso === 4 ? 'Domicilio'
     : paso === 5 ? 'Familiares'
     : 'Listo';
+  // Paso 5 (Familiares) es opcional: el usuario puede confirmar sin cargar
+  // ninguno. Marcamos el estado al lado del título en vez de usar otro bloque
+  // explicativo dentro del form (así la consigna del paso queda más limpia).
+  const opcional = paso === 5;
   return (
     <div>
       <div className="flex items-baseline justify-between gap-3">
         <span className="text-sm font-medium text-ink-500">{`Paso ${paso} de 6`}</span>
-        <span className="text-sm text-ink-600">{titulo}</span>
+        <span className="text-sm text-ink-600">
+          {titulo}
+          {opcional ? <span className="ml-1.5 text-ink-400">(opcional)</span> : null}
+        </span>
       </div>
       <div
         role="progressbar"
@@ -630,12 +637,7 @@ function FormFamiliares({
 }: FormFamiliaresProps) {
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
-      <div>
-        <p className="text-sm text-ink-700">
-          Sumá familiares al plan. Cada uno paga su cuota ({PLAN.nombre} · ${PLAN.precio.toLocaleString('es-AR')}/mes).
-        </p>
-        <p className="mt-1 text-xs text-ink-500">Opcional — podés continuar sin agregar ninguno.</p>
-      </div>
+      <p className="text-sm text-ink-700">Agregá familiares — cada uno suma su cuota al total.</p>
 
       {beneficiarios.map((b, idx) => (
         <div key={idx} className="rounded-card bg-ink-50 p-4 ring-1 ring-ink-200">
