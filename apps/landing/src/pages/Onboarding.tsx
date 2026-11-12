@@ -780,10 +780,7 @@ function FormEmailMp({
   }, []);
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
-      <p className="text-sm text-ink-700">
-        Ingresá el email de la cuenta de MercadoPago que va a pagar. Puede ser distinto al del titular.
-      </p>
-      <Field label="Email de MercadoPago" htmlFor="onb-emailmp" ayuda="A ese email le va a llegar la suscripción de MP." requerido>
+      <Field label="Email de MercadoPago" htmlFor="onb-emailmp" ayuda="Puede ser distinto al del titular." requerido>
         <Input
           id="onb-emailmp"
           type="email"
