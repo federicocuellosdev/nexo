@@ -382,7 +382,10 @@ export function Inicio() {
             cobertura activa: la visibilidad por estado vive en ese helper y no
             se decide acá. */}
         {credencial ? (
-          <div className="flex h-full w-full max-w-[420px] flex-col">
+          // En mobile full-width (matchea el ancho del bloque "Tu cobertura"
+          // de arriba). En lg se limita a 420px porque ahí vive en la grid
+          // 1fr+420px como columna derecha.
+          <div className="flex h-full w-full flex-col lg:max-w-[420px]">
             <div className="flex-1">
               <CredencialCard
                 ref={credDownload.ref}
