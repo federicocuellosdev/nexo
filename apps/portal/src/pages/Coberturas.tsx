@@ -61,19 +61,30 @@ function AccesoCobertura({
   label,
   descripcion,
   href,
+  copago = false,
 }: {
   icono: typeof Stethoscope;
   label: string;
   descripcion?: string;
   href?: string;
+  /** Marca el servicio como copago (on-demand): no viene en el plan base,
+   *  se cobra aparte por sesión (ej. Psicología → SF `COB-OTR-020`). */
+  copago?: boolean;
 }) {
   const clases =
     'flex items-center gap-3 rounded-card bg-brand-oscurecido px-5 py-4 text-white shadow-elevada transition-opacity';
   const contenido = (
     <>
       <Glifo size={22} strokeWidth={1.75} aria-hidden="true" className="shrink-0 text-white" />
-      <span className="flex min-w-0 flex-col">
-        <span className="text-sm font-medium leading-tight">{label}</span>
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="flex items-center gap-2">
+          <span className="text-sm font-medium leading-tight">{label}</span>
+          {copago ? (
+            <span className="shrink-0 rounded-pill bg-white/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+              Copago
+            </span>
+          ) : null}
+        </span>
         {descripcion ? (
           <span className="text-xs text-white/80 leading-tight">{descripcion}</span>
         ) : null}
@@ -231,12 +242,14 @@ export function Coberturas() {
                   icono={Stethoscope}
                   label="Médico Clínico"
                   descripcion="1° Consulta sin cargo"
+                  href="https://doctorprevinca.videoconsultas.app/paciente/autogestion"
                 />
                 <AccesoCobertura
                   icono={Brain}
                   label="Psicología"
                   descripcion="1° Sesión a $15.000"
-                  href="https://test-doctorprevinca.videoconsultas.app/paciente/autogestion"
+                  href="https://doctorprevinca.videoconsultas.app/paciente/autogestion"
+                  copago
                 />
                 <AccesoCobertura
                   icono={Siren}
