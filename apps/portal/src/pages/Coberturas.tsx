@@ -72,7 +72,7 @@ function AccesoCobertura({
   copago?: boolean;
 }) {
   const clases =
-    'flex items-center gap-3 rounded-card bg-brand-oscurecido px-5 py-4 text-white shadow-elevada transition-opacity';
+    'flex items-center gap-3 rounded-card bg-brand-oscurecido px-5 py-4 text-left text-white shadow-elevada transition-opacity';
   const contenido = (
     <>
       <Glifo size={22} strokeWidth={1.75} aria-hidden="true" className="shrink-0 text-white" />
