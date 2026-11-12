@@ -222,10 +222,10 @@ export function Onboarding() {
         email: contacto.email.trim(),
         telefono: contacto.telefono.trim(),
         dni: documento.dni.trim(),
-        // Onboarding de vendedores: NO mandar a SF mientras la integración
-        // está en pruebas (ver skipSf en back /leads).
-        skipSf: true,
-        // Trazabilidad: marcamos canal + vendedor atribuido (si vino en ?ref=).
+        // Onboarding de vendedores: dispara lead_intake a SF al alta (y
+        // sale_intake se dispara automáticamente desde el webhook de MP
+        // cuando el pago queda `authorized` y el perfil está completo).
+        // Si SF_ENABLED=false en el back, el envío es no-op (mock log).
         canal: 'onboarding',
         ...(vendedorId ? { vendedorId } : {}),
         ...capturarTrazabilidad(),
