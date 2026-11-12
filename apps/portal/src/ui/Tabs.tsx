@@ -13,6 +13,10 @@ export interface TabsProps<T extends string> {
   /** Nombre accesible de la lista de pestañas. */
   etiqueta: string;
   children: ReactNode;
+  /** Slot opcional a la derecha de la lista de tabs, en la misma línea.
+   *  Pensado para acciones secundarias contextuales a la tabla/panel
+   *  activo (ej. "Descargar CSV", "Exportar"). */
+  trailing?: ReactNode;
 }
 
 /**
@@ -21,7 +25,7 @@ export interface TabsProps<T extends string> {
  * `tsc --noEmit`, en vez de fallar en runtime porque ningún panel coincide con
  * la pestaña activa.
  */
-export function Tabs<T extends string>({ valor, onCambio, items, etiqueta, children }: TabsProps<T>) {
+export function Tabs<T extends string>({ valor, onCambio, items, etiqueta, children, trailing }: TabsProps<T>) {
   return (
     <RadixTabs.Root
       value={valor}
@@ -32,25 +36,28 @@ export function Tabs<T extends string>({ valor, onCambio, items, etiqueta, child
       // que ya son de tipo `T`.
       onValueChange={(nuevoValor) => onCambio(nuevoValor as T)}
     >
-      <RadixTabs.List
-        aria-label={etiqueta}
-        className="mb-5 inline-flex gap-1 rounded-pill bg-ink-100 p-1"
-      >
-        {items.map((item) => (
-          <RadixTabs.Trigger
-            key={item.valor}
-            value={item.valor}
-            className={[
-              'cursor-pointer rounded-pill px-4 py-2 text-sm font-medium text-ink-600',
-              'transition-colors duration-200 ease-out-quart',
-              'data-[state=active]:bg-white data-[state=active]:text-ink-950 data-[state=active]:shadow-suave',
-              'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca-500',
-            ].join(' ')}
-          >
-            {item.label}
-          </RadixTabs.Trigger>
-        ))}
-      </RadixTabs.List>
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <RadixTabs.List
+          aria-label={etiqueta}
+          className="inline-flex gap-1 rounded-pill bg-ink-100 p-1"
+        >
+          {items.map((item) => (
+            <RadixTabs.Trigger
+              key={item.valor}
+              value={item.valor}
+              className={[
+                'cursor-pointer rounded-pill px-4 py-2 text-sm font-medium text-ink-600',
+                'transition-colors duration-200 ease-out-quart',
+                'data-[state=active]:bg-white data-[state=active]:text-ink-950 data-[state=active]:shadow-suave',
+                'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca-500',
+              ].join(' ')}
+            >
+              {item.label}
+            </RadixTabs.Trigger>
+          ))}
+        </RadixTabs.List>
+        {trailing}
+      </div>
       {children}
     </RadixTabs.Root>
   );

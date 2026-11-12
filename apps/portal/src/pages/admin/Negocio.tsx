@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Calendar, Check, ChevronDown, Search, X } from 'lucide-react';
+import { Calendar, Check, ChevronDown, Download, Search, X } from 'lucide-react';
 import { Dialog } from '@/ui/Dialog';
 import { Button } from '@/ui/Button';
 import { cn } from '@/lib/cn';
@@ -304,7 +304,19 @@ export function AdminNegocio({ fuente = 'admin' }: AdminNegocioProps = {}) {
         }}
       />
 
-      <Tabs valor={pestana} onCambio={setPestana} items={ITEMS} etiqueta="Negocio">
+      <Tabs
+        valor={pestana}
+        onCambio={setPestana}
+        items={ITEMS}
+        etiqueta="Negocio"
+        trailing={
+          <BotonDescargaCSV
+            lista={pestana === 'afiliados' ? afiliados : enFunnel}
+            nombreArchivo={pestana}
+            disabled={cargando || (pestana === 'afiliados' ? afiliados.length : enFunnel.length) === 0}
+          />
+        }
+      >
         <TabPanel<Pestana> valor="afiliados">
           {cargando ? (
             <SkeletonTabla />
@@ -667,5 +679,125 @@ function SkeletonTabla() {
         <Skeleton key={i} className="h-12 w-full" />
       ))}
     </div>
+  );
+}
+
+// ──────────────────── Descarga CSV ────────────────────
+
+/** Escapa un valor para CSV estándar RFC 4180: si contiene comas, saltos de
+ *  línea o comillas, se envuelve en comillas dobles y las comillas internas
+ *  se duplican. */
+function escaparCSV(valor: unknown): string {
+  if (valor === null || valor === undefined) return '';
+  const s = typeof valor === 'string' ? valor : String(valor);
+  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+/** Devuelve `obj[clave]` tipado como unknown para no romper con `perfil`
+ *  siendo `Record<string, unknown> | null`. Soporta paths con punto. */
+function extraer(obj: Record<string, unknown> | null | undefined, path: string): unknown {
+  if (!obj) return '';
+  const partes = path.split('.');
+  let cur: unknown = obj;
+  for (const p of partes) {
+    if (cur && typeof cur === 'object' && p in (cur as Record<string, unknown>)) {
+      cur = (cur as Record<string, unknown>)[p];
+    } else {
+      return '';
+    }
+  }
+  return cur ?? '';
+}
+
+/** Definición de columnas del CSV. El orden acá es el orden que ve el
+ *  usuario en Excel. Mantener en sync con `LeadResumenAdmin` (lib/api) si
+ *  se agregan campos nuevos. */
+const COLUMNAS_CSV: Array<{ header: string; accesor: (l: LeadResumenAdmin) => unknown }> = [
+  { header: 'ID', accesor: (l) => l.id },
+  { header: 'Tipo', accesor: (l) => (l.es_beneficiario ? 'Familiar' : 'Titular') },
+  { header: 'Titular ID', accesor: (l) => l.titular_lead_id ?? '' },
+  { header: 'Nombre', accesor: (l) => l.nombre ?? '' },
+  { header: 'Apellido', accesor: (l) => l.apellido ?? '' },
+  { header: 'Email', accesor: (l) => l.email },
+  { header: 'DNI', accesor: (l) => l.dni ?? '' },
+  { header: 'Teléfono', accesor: (l) => l.telefono ?? '' },
+  { header: 'Fecha de nacimiento', accesor: (l) => l.fecha_nacimiento ?? '' },
+  { header: 'Plan', accesor: (l) => l.item_nombre ?? '' },
+  { header: 'Estado MP', accesor: (l) => l.mp_status ?? '' },
+  { header: 'Cobertura pausada', accesor: (l) => (l.cobertura_pausada ? 'Sí' : 'No') },
+  { header: 'Completitud (%)', accesor: (l) => calcularCompletitud(l) },
+  { header: 'Alta', accesor: (l) => l.created_at },
+  // Perfil (JSON persistido en v3.leads.perfil, cargado por el wizard del portal).
+  { header: 'Tipo documento (perfil)', accesor: (l) => extraer(l.perfil, 'tipoDocumento') },
+  { header: 'Nro documento (perfil)', accesor: (l) => extraer(l.perfil, 'numeroDocumento') },
+  { header: 'Sexo', accesor: (l) => extraer(l.perfil, 'sexo') },
+  { header: 'Fecha nacimiento (perfil)', accesor: (l) => extraer(l.perfil, 'fechaNacimiento') },
+  { header: 'Calle', accesor: (l) => extraer(l.perfil, 'domicilio.calle') },
+  { header: 'Número', accesor: (l) => extraer(l.perfil, 'domicilio.numero') },
+  { header: 'Piso', accesor: (l) => extraer(l.perfil, 'domicilio.piso') },
+  { header: 'Departamento', accesor: (l) => extraer(l.perfil, 'domicilio.departamento') },
+  { header: 'Torre', accesor: (l) => extraer(l.perfil, 'domicilio.torre') },
+  { header: 'Localidad', accesor: (l) => extraer(l.perfil, 'domicilio.localidad') },
+  { header: 'Provincia', accesor: (l) => extraer(l.perfil, 'domicilio.provincia') },
+  { header: 'Código postal', accesor: (l) => extraer(l.perfil, 'domicilio.cp') },
+  { header: 'País', accesor: (l) => extraer(l.perfil, 'domicilio.pais') },
+  // Fallback: JSON crudo del perfil por si en el futuro aparecen campos que
+  // no están mapeados arriba. Garantiza que "todos los datos" realmente salen.
+  { header: 'Perfil (JSON)', accesor: (l) => (l.perfil ? JSON.stringify(l.perfil) : '') },
+];
+
+function construirCSV(lista: LeadResumenAdmin[]): string {
+  const headers = COLUMNAS_CSV.map((c) => escaparCSV(c.header)).join(',');
+  const filas = lista.map((l) => COLUMNAS_CSV.map((c) => escaparCSV(c.accesor(l))).join(','));
+  // \r\n por RFC 4180 — Excel en Windows espera CRLF para no mezclar filas.
+  return [headers, ...filas].join('\r\n');
+}
+
+function descargarCSV(nombreArchivo: string, contenido: string) {
+  // BOM UTF-8 para que Excel detecte el encoding y no rompa tildes/ñ.
+  const blob = new Blob(['﻿' + contenido], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nombreArchivo;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function BotonDescargaCSV({
+  lista,
+  nombreArchivo,
+  disabled,
+}: {
+  lista: LeadResumenAdmin[];
+  nombreArchivo: string;
+  disabled?: boolean;
+}) {
+  function onClick() {
+    const csv = construirCSV(lista);
+    const fecha = new Date().toISOString().slice(0, 10);
+    descargarCSV(`negocio-${nombreArchivo}-${fecha}.csv`, csv);
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={`Descargar ${nombreArchivo} como CSV`}
+      title={disabled ? 'Nada para descargar' : `Descargar ${lista.length} filas como CSV`}
+      className={cn(
+        'inline-flex h-10 shrink-0 items-center gap-2 rounded-pill bg-white px-3 text-sm font-medium text-ink-700 ring-1 ring-ink-200 transition-colors',
+        'hover:bg-ink-50 hover:text-ink-900',
+        'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca-500',
+        disabled ? 'cursor-not-allowed opacity-50 hover:bg-white hover:text-ink-700' : 'cursor-pointer',
+      )}
+    >
+      <Download size={14} aria-hidden="true" />
+      CSV
+    </button>
   );
 }
