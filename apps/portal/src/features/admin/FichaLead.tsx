@@ -304,6 +304,14 @@ function ColumnaDatos({ leadId, lead, beneficiarios, vendedor, fuente, onVerVend
 
   return (
     <div className="flex flex-col gap-6">
+      <Seccion titulo="Condición">
+        <Dato
+          etiqueta="Rol en la suscripción"
+          valor={<Chip tono="marca">Titular</Chip>}
+          ancho="completo"
+        />
+      </Seccion>
+
       <Seccion titulo="Contacto">
         <Dato etiqueta="Nombre" valor={formatearValor(lead.nombre)} />
         <Dato etiqueta="Apellido" valor={formatearValor(lead.apellido)} />
