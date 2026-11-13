@@ -148,6 +148,10 @@ export function Onboarding() {
   // titular para el caso típico.
   const [emailMp, setEmailMp] = useState('');
   const [enviando, setEnviando] = useState(false);
+  // Persiste el leadId entre reintentos: si crearLead OK pero guardarPerfil o
+  // crearSuscripcion fallan, en el siguiente "Continuar" saltamos crearLead
+  // (ya existe) y retomamos desde donde cayó. Evita crear leads duplicados.
+  const [resultadoLeadId, setResultadoLeadId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [resultado, setResultado] = useState<ResultadoOnboarding | null>(null);
 
@@ -225,78 +229,108 @@ export function Onboarding() {
       return;
     }
 
-    // Paso 6 (Email MP) → envío al backend (crea lead + perfil + MP sub)
+    // Paso 6 (Email MP) → envío al backend (crea lead + perfil + MP sub).
+    // Guardamos el leadId resLeadId FUERA del try para que si falla alguno de
+    // los pasos siguientes (perfil o subscripción) el mensaje de error pueda
+    // distinguir "lead creado — reintentá solo el pago" vs "no se pudo ni
+    // crear el lead". Cada paso tiene su propio try/catch así sabemos en cuál
+    // murió.
     setEnviando(true);
+    let resLeadId: string | null = resultadoLeadId;
     try {
-      const resLead = await crearLead({
-        tipo: 'plan',
-        itemId: PLAN.slug,
-        itemNombre: PLAN.nombre,
-        nombre: contacto.nombre.trim(),
-        apellido: contacto.apellido.trim(),
-        email: contacto.email.trim(),
-        telefono: contacto.telefono.trim(),
-        dni: documento.dni.trim(),
-        // Onboarding de vendedores: dispara lead_intake a SF al alta (y
-        // sale_intake se dispara automáticamente desde el webhook de MP
-        // cuando el pago queda `authorized` y el perfil está completo).
-        // Si SF_ENABLED=false en el back, el envío es no-op (mock log).
-        canal: 'onboarding',
-        ...(vendedorId ? { vendedorId } : {}),
-        ...capturarTrazabilidad(),
-      });
+      /* Cada sub-paso (A/B/C) tiene su propio try/catch con mensaje específico.
+       * Este try externo solo asegura el `finally { setEnviando(false) }` por
+       * si alguno tira sin ser ApiError (ej. excepción de red no envuelta). */
+      // --- Paso A: crear o reusar lead ---
+      if (!resLeadId) {
+        try {
+          const resLead = await crearLead({
+            tipo: 'plan',
+            itemId: PLAN.slug,
+            itemNombre: PLAN.nombre,
+            nombre: contacto.nombre.trim(),
+            apellido: contacto.apellido.trim(),
+            email: contacto.email.trim(),
+            telefono: contacto.telefono.trim(),
+            dni: documento.dni.trim(),
+            canal: 'onboarding',
+            ...(vendedorId ? { vendedorId } : {}),
+            ...capturarTrazabilidad(),
+          });
+          resLeadId = resLead.leadId;
+          setResultadoLeadId(resLead.leadId);
+        } catch (err) {
+          if (err instanceof ApiError && err.cuerpo.error === 'cliente_ya_contratado') {
+            setError('Este cliente ya tiene cobertura activa con Nexo.');
+            return;
+          }
+          setError('No pudimos crear el alta. Revisá los datos del cliente e intentá de nuevo.');
+          return;
+        }
+      }
 
-      await guardarPerfilOnboarding(resLead.leadId, {
-        perfil: {
-          tipoDocumento: 'DNI',
-          numeroDocumento: documento.dni.trim(),
-          sexo: documento.sexo as 'F' | 'M' | 'X',
-          fechaNacimiento: documento.fechaNacimiento,
-          domicilio: {
-            calle: domicilio.calle.trim(),
-            numero: domicilio.numero.trim(),
-            piso: domicilio.piso.trim() || undefined,
-            departamento: domicilio.departamento.trim() || undefined,
-            torre: domicilio.torre.trim() || undefined,
-            localidad: domicilio.localidad.trim(),
-            provincia: domicilio.provincia.trim(),
-            cp: domicilio.cp.trim(),
-            pais: 'Argentina',
+      // --- Paso B: guardar perfil ---
+      try {
+        await guardarPerfilOnboarding(resLeadId, {
+          perfil: {
+            tipoDocumento: 'DNI',
+            numeroDocumento: documento.dni.trim(),
+            sexo: documento.sexo as 'F' | 'M' | 'X',
+            fechaNacimiento: documento.fechaNacimiento,
+            domicilio: {
+              calle: domicilio.calle.trim(),
+              numero: domicilio.numero.trim(),
+              piso: domicilio.piso.trim() || undefined,
+              departamento: domicilio.departamento.trim() || undefined,
+              torre: domicilio.torre.trim() || undefined,
+              localidad: domicilio.localidad.trim(),
+              provincia: domicilio.provincia.trim(),
+              cp: domicilio.cp.trim(),
+              pais: 'Argentina',
+            },
           },
-        },
-        beneficiarios: beneficiarios.map((b) => ({
-          nombre: b.nombre.trim(),
-          apellido: b.apellido.trim(),
-          tipoDocumento: 'DNI',
-          numeroDocumento: b.numeroDocumento.trim(),
-          sexo: b.sexo,
-          fechaNacimiento: b.fechaNacimiento,
-          relacion: b.relacion,
-        })),
-        familiaresCount: beneficiarios.length,
-      });
+          beneficiarios: beneficiarios.map((b) => ({
+            nombre: b.nombre.trim(),
+            apellido: b.apellido.trim(),
+            tipoDocumento: 'DNI',
+            numeroDocumento: b.numeroDocumento.trim(),
+            sexo: b.sexo,
+            fechaNacimiento: b.fechaNacimiento,
+            relacion: b.relacion,
+          })),
+          familiaresCount: beneficiarios.length,
+        });
+      } catch (err) {
+        console.error('[onboarding] perfil error', err);
+        setError('El alta se registró pero no pudimos guardar los datos del perfil. Tocá "Continuar" para reintentar solo este paso.');
+        return;
+      }
 
+      // --- Paso C: crear suscripción MP ---
       // El monto escala con familiares — cada uno paga su cuota del plan.
-      const resMp = await crearSuscripcionOnboarding({
-        planId: PLAN.slug,
-        planNombre: PLAN.nombre,
-        monto: total,
-        emailMp: emailMp.trim(),
-        leadId: resLead.leadId,
-      });
+      try {
+        const resMp = await crearSuscripcionOnboarding({
+          planId: PLAN.slug,
+          planNombre: PLAN.nombre,
+          monto: total,
+          emailMp: emailMp.trim(),
+          leadId: resLeadId,
+        });
 
-      setResultado({
-        leadId: resLead.leadId,
-        initPoint: resMp.initPoint,
-        preapprovalId: resMp.preapprovalId,
-      });
-      setPaso(7);
-    } catch (err) {
-      console.error('[onboarding] error', err);
-      if (err instanceof ApiError && err.cuerpo.error === 'mp_no_configurado') {
-        setError('MercadoPago no está configurado. Avisá a soporte.');
-      } else {
-        setError('No pudimos completar el alta. Revisá los datos e intentá de nuevo.');
+        setResultado({
+          leadId: resLeadId,
+          initPoint: resMp.initPoint,
+          preapprovalId: resMp.preapprovalId,
+        });
+        setPaso(7);
+      } catch (err) {
+        console.error('[onboarding] subs error', err);
+        if (err instanceof ApiError && err.cuerpo.error === 'mp_no_configurado') {
+          setError('MercadoPago no está configurado. Avisá a soporte.');
+        } else {
+          setError('El alta se registró pero no pudimos generar el link de pago. Tocá "Continuar" para reintentar solo el pago.');
+        }
+        return;
       }
     } finally {
       setEnviando(false);

@@ -130,12 +130,15 @@ export function PortalLayout() {
   });
   const tieneEstadoContratacion =
     sesion.leadId !== undefined || sesion.pagoPendiente !== undefined || tienePagadaPendienteDeDev;
-  const faltaNombre =
-    usuario !== undefined && (usuario.nombre ?? '').trim() === '' && (usuario.apellido ?? '').trim() === '';
-  const faltaDni = sesion.dniLead === undefined;
-  const faltaIntent = sesion.intent === undefined;
-  const necesitaHidratar = faltaNombre || faltaDni || faltaIntent;
-  const debeConsultar = emailUsuario !== undefined && (necesitaHidratar || tieneEstadoContratacion);
+  // Antes solo consultábamos cuando `necesitaHidratar || tieneEstadoContratacion`
+  // — para evitar re-hydrates que pisen datos frescos del portal. Esa estrategia
+  // dejaba al cliente que ya entró una vez sin forma de ver cambios del
+  // backend (ej. pago autorizado en MP pero no reflejado en sesión, cobertura
+  // vencida, DNI corregido desde el admin). Ahora SIEMPRE consultamos al back
+  // al montar el layout: la fuente de verdad es `v3.leads`, el sessionStorage
+  // es solo caché local. La función de hidratado ya es idempotente — patchea
+  // únicamente lo que falta, no pisa datos que ya están cargados.
+  const debeConsultar = emailUsuario !== undefined;
   useEffect(() => {
     if (!debeConsultar) return;
     let cancelado = false;
