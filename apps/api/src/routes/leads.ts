@@ -85,6 +85,134 @@ leadsRouter.post('/leads', async (req, res) => {
     }
   }
 
+  // 0. UPSERT por (email, dni): si ya existe un titular con ese par, no
+  //    duplicamos — actualizamos los campos editables y reusamos el leadId.
+  //    Evita que un reintento del vendedor tras un fallo intermedio (Resend
+  //    503, MP 502, red lenta) termine creando 2 leads para el mismo cliente.
+  //    Reglas:
+  //      · `mp_status === 'authorized'` → el cliente ya pagó. Error específico
+  //        para que el front muestre "este cliente ya tiene cobertura".
+  //      · `mp_preapproval_id` seteado y `mp_status !== 'authorized'` → hay
+  //        una preapproval zombie pendiente. La cancelamos en MP antes de
+  //        seguir, así el POST /subscriptions siguiente puede crear una nueva
+  //        sin chocar con la vieja. (resuelve también el riesgo preapproval
+  //        zombie documentado en docs/riesgos-aceptados.md).
+  const emailLower = datos.email.toLowerCase();
+  const { data: existente } = await supabaseAdmin
+    .schema('v3')
+    .from('leads')
+    .select('id, sf_lead_id, mp_preapproval_id, mp_status')
+    .eq('email', emailLower)
+    .eq('dni', datos.dni)
+    .eq('es_beneficiario', false)
+    .maybeSingle();
+
+  if (existente) {
+    if (existente.mp_status === 'authorized') {
+      return res.status(409).json({
+        ok: false,
+        error: 'cliente_ya_contratado',
+        leadId: existente.id,
+      });
+    }
+
+    // Cancelar preapproval zombie si existe.
+    if (existente.mp_preapproval_id && config.mp.accessToken) {
+      try {
+        const r = await fetch(`https://api.mercadopago.com/preapproval/${existente.mp_preapproval_id}`, {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${config.mp.accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ status: 'cancelled' }),
+        });
+        if (!r.ok) {
+          // Preapproval ya cancelada / terminal: no bloquea.
+          console.warn('[POST /leads] no se pudo cancelar preapproval zombie', existente.mp_preapproval_id, r.status);
+        }
+      } catch (err) {
+        console.warn('[POST /leads] excepción cancelando preapproval zombie', err);
+      }
+    }
+
+    // UPDATE de los campos que pueden haber cambiado + reseteo mp_* para que
+    // el POST /subscriptions siguiente arranque limpio.
+    const { error: errorUpdate } = await supabaseAdmin
+      .schema('v3')
+      .from('leads')
+      .update({
+        nombre: datos.nombre,
+        apellido: datos.apellido,
+        ...(datos.telefono ? { telefono: datos.telefono } : {}),
+        item_tipo: datos.tipo,
+        item_id: datos.itemId,
+        item_nombre: datos.itemNombre,
+        ...(datos.canal ? { canal: datos.canal } : {}),
+        ...(vendedorIdResuelto ? { vendedor_id: vendedorIdResuelto } : {}),
+        mp_preapproval_id: null,
+        mp_status: null,
+      })
+      .eq('id', existente.id);
+
+    if (errorUpdate) {
+      console.error('[POST /leads] db update error (reuso)', errorUpdate);
+      return res.status(500).json({ ok: false, error: 'db_update_error' });
+    }
+
+    // Regenerar magic link (el anterior pudo haber expirado) + re-enviar email.
+    const { data: linkDataReuso, error: errorLinkReuso } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'magiclink',
+      email: emailLower,
+      options: {
+        data: {
+          nombre: datos.nombre,
+          apellido: datos.apellido,
+          dni: datos.dni,
+          ...(datos.telefono ? { telefono: datos.telefono } : {}),
+        },
+        redirectTo:
+          `${config.portalUrl}/auth/callback` +
+          `?leadId=${existente.id}` +
+          `&planTipo=${encodeURIComponent(datos.tipo)}` +
+          `&planId=${encodeURIComponent(datos.itemId)}`,
+      },
+    });
+
+    const magicLinkReuso = linkDataReuso?.properties?.action_link ?? '';
+    if (errorLinkReuso || !magicLinkReuso) {
+      console.warn('[POST /leads] magic link falló en reuso', errorLinkReuso);
+    } else {
+      try {
+        await emailClient.enviar({
+          to: emailLower,
+          subject: asuntoBienvenida(datos.itemNombre),
+          html: htmlBienvenida({
+            nombre: datos.nombre,
+            magicLink: magicLinkReuso,
+            logoUrl: config.emailLogoUrl,
+            nombrePlan: datos.itemNombre,
+          }),
+        });
+        await supabaseAdmin
+          .schema('v3')
+          .from('leads')
+          .update({ magic_link_sent_at: new Date().toISOString() })
+          .eq('id', existente.id);
+      } catch (err) {
+        console.warn('[POST /leads] email send falló en reuso (no bloquea)', err);
+      }
+    }
+
+    return res.status(200).json({
+      ok: true,
+      leadId: existente.id,
+      sfLeadId: existente.sf_lead_id,
+      sfMock: false,
+      reused: true,
+    });
+  }
+
   // 1. Insertamos el lead en v3.leads. Usamos service_role → se salta RLS.
   //    El select('id') recupera el ID autogenerado para después asociarlo al
   //    magic link.
