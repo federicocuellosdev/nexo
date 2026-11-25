@@ -12,7 +12,18 @@ export type EstadoCuenta = 'sinCuenta' | 'conCuentaSinPago' | 'pagadoSinPerfil' 
 export function derivarEstado(sesion: Session): EstadoCuenta {
   if (sesion.usuario === undefined) return 'sinCuenta';
 
-  const tienePago = sesion.ordenes.some((orden) => orden.estado === 'pagada');
+  // Una pagada ya devuelta (tiene su contrapartida `dev-${id}`) no cuenta
+  // como pago vigente. Antes el estado seguía siendo 'activo' después de un
+  // declientar (= backend sin lead) porque la pagada original quedaba en la
+  // sesión junto con la devolución, y el `some()` la contaba igual.
+  const idsDevueltos = new Set(
+    sesion.ordenes
+      .filter((o) => o.estado === 'devuelta' && o.id.startsWith('dev-'))
+      .map((o) => o.id.slice('dev-'.length)),
+  );
+  const tienePago = sesion.ordenes.some(
+    (orden) => orden.estado === 'pagada' && !idsDevueltos.has(orden.id),
+  );
   if (!tienePago) return 'conCuentaSinPago';
 
   if (sesion.perfil === undefined) return 'pagadoSinPerfil';
